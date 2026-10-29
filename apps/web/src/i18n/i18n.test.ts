@@ -14,9 +14,31 @@ function keys(value: unknown, prefix = ''): string[] {
   );
 }
 
+// i18next plural keys end in the CLDR category, and Slovak has more categories than English.
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
+
+/** Each key once, with plural forms folded into their base key. */
+function baseKeys(value: unknown): string[] {
+  return [...new Set(keys(value).map((key) => key.replace(PLURAL_SUFFIX, '')))].sort();
+}
+
 describe('translations', () => {
   it('have the same keys in sk and en', () => {
-    expect(keys(sk).sort()).toEqual(keys(en).sort());
+    expect(baseKeys(sk)).toEqual(baseKeys(en));
+  });
+
+  it.each([
+    ['sk', sk],
+    ['en', en],
+  ] as const)('have every plural form %s needs', (locale, messages) => {
+    const all = keys(messages);
+    const plurals = new Set(
+      all.filter((key) => PLURAL_SUFFIX.test(key)).map((key) => key.replace(PLURAL_SUFFIX, '')),
+    );
+    const categories = new Intl.PluralRules(locale).resolvedOptions().pluralCategories;
+    for (const base of plurals) {
+      for (const category of categories) expect(all).toContain(`${base}_${category}`);
+    }
   });
 
   it('cover every API error code and achievement', () => {

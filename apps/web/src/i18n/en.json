@@ -3,7 +3,8 @@
     "name": "Toasthub",
     "skipToContent": "Skip to content",
     "loading": "Loading…",
-    "retry": "Try again"
+    "retry": "Try again",
+    "close": "Close"
   },
   "nav": {
     "label": "Main",
@@ -75,6 +76,51 @@
   },
   "placeholder": {
     "body": "This page is still in the toaster. Check back soon."
+  },
+  "home": {
+    "logToast": "Toast",
+    "achievementUnlocked": "Achievement unlocked: {{name}}",
+    "today": {
+      "label": "Today",
+      "unit_one": "toast",
+      "unit_other": "toasts"
+    },
+    "streak": {
+      "label": "Streak 🔥",
+      "unit_one": "day",
+      "unit_other": "days",
+      "longest": "Longest: {{value}}"
+    },
+    "clanStreak": {
+      "label": "Clan streak 🔥"
+    },
+    "fact": {
+      "title": "Toast fact of the day"
+    },
+    "toastOfTheWeek": {
+      "title": "Toast of the week",
+      "empty": "No winner yet. Every Monday one photo toast from the week before is drawn."
+    },
+    "log": {
+      "title": "Log toasts",
+      "description": "How many toasts did you have? A photo is optional.",
+      "count": "Toasts",
+      "fewer": "One toast fewer",
+      "more": "One toast more",
+      "confirm_one": "Log {{count}} toast",
+      "confirm_other": "Log {{count}} toasts",
+      "saving": "Saving…",
+      "partial": "Only {{saved}} of {{total}} toasts were logged."
+    },
+    "photo": {
+      "add": "Add a photo",
+      "previewAlt": "The photo you picked",
+      "noPreview": "This browser can't preview the photo, but it will upload fine.",
+      "change": "Choose another",
+      "remove": "Remove photo",
+      "tooLarge": "This photo is larger than 10 MB. Pick a smaller one.",
+      "invalid": "We can't read this file. Use a JPEG, PNG, WebP or HEIC photo."
+    }
   },
   "auth": {
     "email": {

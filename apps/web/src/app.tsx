@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 
 import { createQueryClient } from '@/api/query-client';
+import { Toaster } from '@/components/ui/sonner';
 import { meQueryKey } from '@/features/auth/me-query';
 import { ApiSessionProvider } from '@/features/auth/session';
 import { routes } from '@/routes';
@@ -21,6 +22,8 @@ export function App() {
       <ApiSessionProvider>
         <RouterProvider router={router} />
       </ApiSessionProvider>
+      {/* Top centre: clear of the thumb zone and the mobile tab bar. */}
+      <Toaster position="top-center" />
     </QueryClientProvider>
   );
 }

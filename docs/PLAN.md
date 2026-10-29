@@ -45,11 +45,12 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M5 | Auth UI, onboarding, settings, E2E harness | `m05-auth-ui` | M2, M4 | ☑ |
 | M6 | Toast logging backend (photos, storage, flags) | `m06-toasts-api` | M3 | ☑ |
 | M7 | Streaks, achievements, facts, `/home` | `m07-home-api` | M6 | ☑ |
-| M8 | Home screen UI and PWA | `m08-home-ui` | M5, M7 | ☐ |
+| M8 | Home screen UI and PWA | `m08-home-ui` | M5, M7 | ☑ |
+| M8b | Toast sessions: history and editing (API + UI) | `m08b-toast-sessions` | M8 | ☐ |
 | M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☐ |
-| M10 | Profile UI | `m10-profile-ui` | M8, M9 | ☐ |
+| M10 | Profile UI | `m10-profile-ui` | M8b, M9 | ☐ |
 | M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☐ |
-| M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M9, M11 | ☐ |
+| M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☐ |
 | M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☐ |
 | M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☐ |
 | M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☐ |
@@ -60,7 +61,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M20 | Launch hardening | `m20-hardening` | all | ☐ |
 
 **Parallel tracks (team of 3).** After M3, backend work (M6 → M7 → M9/M11 → M12) and frontend work
-(M4 → M5 → M8) run side by side. M18 and M19 depend only on what they deploy and can start once M15 is merged. Two
+(M4 → M5 → M8 → M8b) run side by side. M18 and M19 depend only on what they deploy and can start once M15 is merged. Two
 milestones may run at the same time only if they don't both edit the Drizzle schema. Merge the schema change first,
 or keep schema edits in one milestone.
 
@@ -217,13 +218,42 @@ owner and by someone else, and the flag created exactly once.
 ### M8 — Home screen UI and PWA
 **Read:** SPEC §2 G1, §4.3 acceptance, §9 `/home`, §10 PWA.
 **Scope**
-- Home: large "+ Toast" button (one tap, optimistic update of the today count and streak), camera button →
-  pick/take photo → confirm → upload, today's count, streak, clan streak if any, fact card, Toast of the week card
-  placeholder, a toast notification for new achievements (shadcn sonner).
+- Home: large "+ Toast" button → dialog with the number of toasts (default 1) and an optional photo (pick/take,
+  preview) → confirm → upload (optimistic update of the today count and streak); no separate camera button.
+  Today's count, streak, clan streak if any, fact card, Toast of the week card placeholder, a toast notification
+  for new achievements (shadcn sonner).
 - vite-plugin-pwa: manifest, icons (placeholders are fine), app-shell caching, no offline logging.
-- E2E: log in → tap "+ Toast" → counter is 1 and streak is 1; photo upload path with a fixture image.
+- E2E: log in → "+ Toast" → confirm → counter is 1 and streak is 1; several toasts with a fixture photo.
 
 **Done when:** the E2E test passes and Lighthouse reports the app as installable.
+
+### M8b — Toast sessions: history and editing (API + UI)
+**Read:** SPEC §4.3 (BR-TOAST-3, 5–7, acceptance), §4.4 (BR-MOD-1), §4.12, §7 ToastSession + Toast, §8
+(`/toast-sessions`, `/me/toast-sessions`), §9 `/toasts`, §12 D39, D41, D43.
+**Scope**
+- Schema: `toast_session` table, required `toast.session_id`, and a migration that gives every existing toast its
+  own session. Seeds create sessions.
+- Session edit policy (pure, unit tested): owner only; the session's `local_date` is today (shared time utils);
+  no rejected toast; a hidden photo can be removed but not replaced; count 1–10; lowering removes the newest
+  toasts, never the lead toast.
+- `POST /toast-sessions` replaces `POST /toasts`: all toasts in one transaction, the photo through
+  `processPhoto()` onto the lead toast, the rate limit counts toasts, BR-MOD-1 check, achievements. Remove
+  `POST /toasts` and `DELETE /toasts/:id`.
+- `GET /me/toast-sessions` (cursor, own photos presigned, `editable`), `PATCH` count, `PUT`/`DELETE` photo,
+  `DELETE` session; 409 after the session's day. A replaced or removed photo's object is not deleted at once (an
+  open `photo_report` may point at it): record how it is tracked for the M15 cleanup in §12.
+- Web: `useLogToasts()` sends one `POST /toast-sessions` (drop the per-toast loop and the partial-failure notice
+  from D41). "My toasts" page at `/toasts`: sessions grouped by day with infinite scroll; today's sessions open an
+  edit dialog (count stepper and photo picker reused from the M8 log dialog, delete with a confirmation), older
+  ones are read-only. Every change invalidates `['home']`. A "My toasts" link on home.
+- E2E: log 2 toasts → My toasts shows one session of 2 → raise it to 3 and add a photo → home shows 3 → delete
+  the session → home shows 0.
+
+✂ If it is too big: move the web part (page, edit dialog, E2E) into its own milestone right after.
+
+**Done when:** unit tests for the edit policy, integration tests for each endpoint (including 409 on yesterday's
+session, 403 on someone else's, and a lowered count that keeps the lead toast and its photo), and the E2E test
+pass.
 
 ---
 
@@ -246,11 +276,11 @@ owner and by someone else, and the flag created exactly once.
 **Read:** SPEC §9 `/u/:id`, §10 a11y.
 **Scope**
 - Profile page: avatar, name, stats cards, year heatmap (accessible, with a year switch), achievement grid (earned
-  with date, locked greyed out), photo grid with infinite scroll (alt text), delete on own toasts with a confirm
-  dialog, a reduced view for clan-only profiles.
+  with date, locked greyed out), photo grid with infinite scroll (alt text), a "My toasts" link on the own profile
+  (editing and deleting happen there, M8b), a reduced view for clan-only profiles.
 - The Profile tab links to your own profile.
-- E2E: log a toast → profile shows total 1, the heatmap cell and the First Bite achievement; delete the toast →
-  total 0, achievement kept.
+- E2E: log a toast → profile shows total 1, the heatmap cell and the First Bite achievement; delete the session in
+  My toasts → total 0, achievement kept.
 
 ---
 
@@ -274,14 +304,14 @@ owner and by someone else, and the flag created exactly once.
 **Done when:** integration tests cover the BR-CLAN rules, including clan-full and concurrent approvals.
 
 ### M12 — Clan roles, feed, likes, reports (API)
-**Read:** SPEC §4.4 (BR-MOD-3), §4.8 (feed), §4.9, §8 (members, transfer, feed, like, report rows).
+**Read:** SPEC §4.4 (BR-MOD-3), §4.8 (feed), §4.9, §8 (members, transfer, feed, like, report rows), §12 D43.
 **Scope**
 - `PATCH /clans/:id/members/:userId` (promote and demote, Owner only), `DELETE` (kick; Officers can kick Members
   only), `POST /clans/:id/transfer` (atomic swap that keeps the one-owner index valid).
-- `GET /clans/:id/feed` (members only): current members' toasts, newest first, presigned photos (clanmates always
-  see them), like count and `likedByMe`.
-- `POST`/`DELETE /toasts/:id/like` (idempotent; only if the viewer can see the toast); include like counts in the
-  toast list DTOs from M9.
+- `GET /clans/:id/feed` (members only): current members' toast sessions, newest first, one item per session with
+  its count and lead toast id, presigned photo (clanmates always see them), like count and `likedByMe`.
+- `POST`/`DELETE /toasts/:id/like` on a session's lead toast (idempotent; only if the viewer can see the toast);
+  include like counts in the toast list DTOs from M9.
 - `POST /toasts/:id/report` (photo toasts only, optional reason, creates a `photo_report` flag, rate limited) → 202.
 
 **Done when:** integration tests for each endpoint and the role matrix pass.
@@ -294,7 +324,7 @@ owner and by someone else, and the flag created exactly once.
   (placeholder until M14), Members (roles; promote, demote and kick menus by role); requests panel for Officers+;
   Owner settings (edit, transfer, delete).
 - The Clan tab goes to your clan or to the browser. The home clan streak links here.
-- E2E with two users: A creates a clan, B requests, A approves, B sees the feed and likes A's toast.
+- E2E with two users: A creates a clan, B requests, A approves, B sees the feed and likes A's toast session.
 
 ✂ If it is too big: move the Owner settings and member role menus into M17.
 
@@ -323,8 +353,8 @@ owner and by someone else, and the flag created exactly once.
 - TOTW draw service (unit tested with an injectable RNG): eligible = photo, not deleted, not rejected, photo not
   hidden, active user, in the previous week. Upsert the `ToastOfTheWeek` row (null when nothing is eligible). Award
   `golden_toast`. Redraw is reused in M16.
-- Cleanup jobs: expired `verification` rows; S3 photos of toasts soft-deleted more than 30 days ago (decide the
-  retention and record it in §12).
+- Cleanup jobs: expired `verification` rows; S3 photos of toasts soft-deleted, and photos replaced or removed in a
+  toast session (M8b), more than 30 days ago (decide the retention and record it in §12).
 - `GET /toast-of-the-week` (history with cursor; a deleted winner shows "removed"). `/home` now fills
   `toastOfTheWeek`. `canSeePhoto` allows the winning photo for everyone.
 - UI: TOTW card on home, history page.
@@ -516,3 +546,20 @@ milestones._
 - Int tests can't pick the hour `eaten_at` gets (Postgres `now()`), so toast tests drop `early_bird` and
   `midnight_snack` (`withoutTimeOfDay`); the unit tests cover them. Past toasts are inserted directly at
   `<date>T10:00:00Z` (midday in Bratislava, DST-proof).
+- **M8** — `/home` is live: `pages/home-page.tsx` + `features/home` (`homeQueryOptions` = `['home']`,
+  `withLoggedToasts(home, n)` for the optimistic update, `useLogToasts()` = n × `POST /toasts` in sequence
+  with the optional photo as `FormData` on the first, `LogToastButton` with the count + photo dialog,
+  `HomeCards`) (BR-TOAST-5, D41). The 1–10 cap is `MAX_TOASTS_PER_LOG`, client-side only. New shadcn
+  `dialog` and `sonner` (`<Toaster>` in `app.tsx`); new token `--overlay`; `app.close` key. Any later
+  mutation that changes counts or streaks (M10 delete, M16 reject) should invalidate `['home']`.
+- PWA via vite-plugin-pwa (D42): placeholder icons in `apps/web/public` (rendered from `favicon.svg` with
+  sharp; replace with real artwork, keeping the maskable one inside the 80 % safe zone). The service worker
+  exists only in `vite build` output, so check PWA changes with `vite preview`, not `bun run dev`.
+- For M15: openapi-fetch's response type drops properties typed as just `null`, so `homeQueryOptions`
+  adds `toastOfTheWeek: null` itself. Remove that line when `toastOfTheWeek` gets a real schema, then
+  replace the placeholder card in `home-cards.tsx`. For M13: the clan streak card doesn't link to the clan
+  yet (`/home` has no clan id); add one to the response or read it from the clan query.
+- E2E: CI now also starts MinIO (+ `minio-init`); locally run `docker compose … up -d minio` once too. New
+  helpers `signUp(page)` and `openMagicLink(page, link)` (AGENTS.md → Tests): Better Auth's magic-link plugin
+  limits `/magic-link/verify` to 5/min per IP, which the 5-test suite already reached. jsdom gets a
+  `matchMedia` stub in `src/test/setup.ts` (sonner needs it).

@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 
 export type PlaceholderPageName =
-  'home' | 'leaderboards' | 'clans' | 'clanNew' | 'clan' | 'profile' | 'toastOfTheWeek' | 'admin';
+  'leaderboards' | 'clans' | 'clanNew' | 'clan' | 'profile' | 'toastOfTheWeek' | 'admin';
 
 /** Stands in for a page until its milestone builds it (see docs/PLAN.md). */
 export function PlaceholderPage({ page }: { page: PlaceholderPageName }) {

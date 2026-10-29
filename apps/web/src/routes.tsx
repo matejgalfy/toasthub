@@ -8,6 +8,7 @@ import {
   RequireOnboarded,
 } from '@/features/auth/guards';
 import { AuthCallbackPage } from '@/pages/auth-callback-page';
+import { HomePage } from '@/pages/home-page';
 import { LandingPage } from '@/pages/landing-page';
 import { LoginPage } from '@/pages/login-page';
 import { NotFoundPage } from '@/pages/not-found-page';
@@ -40,7 +41,7 @@ export const routes: RouteObject[] = [
       {
         element: <AppLayout />,
         children: [
-          { path: 'home', element: <PlaceholderPage page="home" /> },
+          { path: 'home', element: <HomePage /> },
           { path: 'leaderboards', element: <PlaceholderPage page="leaderboards" /> },
           { path: 'clans', element: <PlaceholderPage page="clans" /> },
           { path: 'clans/new', element: <PlaceholderPage page="clanNew" /> },

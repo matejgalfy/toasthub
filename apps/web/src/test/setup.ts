@@ -13,6 +13,17 @@ if (!('ResizeObserver' in globalThis)) {
   };
 }
 
+// jsdom doesn't implement matchMedia either; the sonner Toaster reads the system colour scheme with it.
+Object.defineProperty(window, 'matchMedia', {
+  configurable: true,
+  value: (query: string): Partial<MediaQueryList> => ({
+    matches: false,
+    media: query,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }),
+});
+
 // Tests assert on English text.
 await initI18n('en');
 

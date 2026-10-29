@@ -7,7 +7,7 @@
 
 ## 1. Overview
 Toasthub is a mobile-first web app where users track and compete over who eats the most toasts. Users log toasts
-(optionally with a photo), build daily streaks, earn achievements, join clans, compete on leaderboards and see personal
+in sessions (how many they ate in one sitting, optionally with a photo), build daily streaks, earn achievements, join clans, compete on leaderboards and see personal
 statistics. Every week a random photo toast is picked as **Toast of the week**, and every day the app shows a
 **toast fact of the day**.
 
@@ -42,7 +42,7 @@ architecture, tests and documentation are first-class requirements.
 | Role | Description | Can do |
 |------|-------------|--------|
 | Guest | Not logged in | See the landing page, request a magic link |
-| User | Registered, active | Log / delete own toasts, upload photos, like toasts, report photos, see leaderboards / stats / profiles (subject to visibility), create / join / leave one clan, edit own profile |
+| User | Registered, active | Log toast sessions, view own past sessions, edit / delete own sessions on the day they were logged, upload photos, like toasts, report photos, see leaderboards / stats / profiles (subject to visibility), create / join / leave one clan, edit own profile |
 | Admin | Internal (app-wide role) | Everything a User can, plus: review flags, hide photos, reject toasts, ban / unban users, manage any clan, edit app settings, see app metrics, re-run the Toast of the week draw |
 
 **Clan roles** (scoped to one clan, held by Users):
@@ -78,10 +78,13 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 ### 4.3 Logging toasts
 - BR-TOAST-1: A toast is a timestamp set by the server at creation. No backdating, no extra fields.
 - BR-TOAST-2: A photo is optional. Upload limit 10 MB (JPEG/PNG/WebP/HEIC). Server re-encodes to WebP, max 1600 px longest side, strips EXIF (incl. GPS).
-- BR-TOAST-3: The owner can delete their toast at any time (soft delete). Streaks, stats and leaderboards recompute; likes on it are removed.
+- BR-TOAST-3: Toasts are deleted per session (BR-TOAST-7), never one by one by their owner. Deletion is a soft delete; streaks, stats and leaderboards recompute; likes on the session are removed.
 - BR-TOAST-4: Achievements already earned are kept even if the toasts that triggered them are deleted.
+- BR-TOAST-5: One log from the home screen is a **toast session**: 1–10 toasts eaten in one sitting, created together. Each is its own toast; the optional photo belongs to the session's first toast (its *lead toast*).
+- BR-TOAST-6: A user can view their own past sessions, newest first: date and time, toast count and photo.
+- BR-TOAST-7: On the session's own day (its `local_date`, Europe/Bratislava) the owner can change its toast count (1–10), add, replace or remove its photo, and delete it. Raising the count adds toasts at the current server time (so they fall on the same day, BR-TOAST-1); lowering it soft-deletes the newest toasts, never the lead toast. Added toasts count toward the creation rate limit and the BR-MOD-1 threshold and trigger achievements like a new log; so does adding a photo (`shutterbug`). After that day ends, the session is read-only. A session with an admin-rejected toast is read-only, and a photo an admin has hidden can be removed but not replaced.
 
-**Acceptance:** from the home screen, one tap on "+ Toast" logs a toast and the today-counter and streak update immediately; photo flow is: tap camera icon → pick / take photo → confirm.
+**Acceptance:** from the home screen, "+ Toast" opens a dialog with the number of toasts (default 1) and an optional photo (pick / take); confirming logs them, so one toast is two taps (G1), and the today-counter and streak update immediately. There is no separate camera button. "My toasts" lists past sessions; today's sessions open an edit dialog (count, photo, delete with a confirmation) and the home counters follow the change; older sessions show no edit controls.
 
 ### 4.4 Anti-cheat & moderation (trust-based, admin only)
 - BR-MOD-1: When a user's toast count for a day exceeds the threshold (app setting, default **8**), a `count_threshold` flag is created for admin review (once per user per day).
@@ -115,17 +118,17 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - BR-CLAN-3: Max members is an app setting, default **10**. Joining / approving fails when full.
 - BR-CLAN-4: The Owner cannot leave without transferring ownership or deleting the clan.
 - BR-CLAN-5: A user may have at most one pending join request at a time; joining a clan cancels it, or they can cancel it themselves.
-- **Clan feed:** toasts of current members, newest first, with photos and 🍞 likes. Clanmates always see each other's photos regardless of profile visibility.
+- **Clan feed:** toast sessions of current members, newest first, one entry per session with its count, photo and 🍞 likes. Clanmates always see each other's photos regardless of profile visibility.
 - **Clan page:** info, member list with roles, inner leaderboard, feed.
 
 ### 4.9 Likes
-- One reaction type: 🍞. A user can like a toast once and unlike it. Toasts show the like count.
+- One reaction type: 🍞. A user can like a toast session once and unlike it; the like is stored on the session's lead toast. Sessions show the like count.
 
 ### 4.10 Toast of the week
 - BR-TOTW-1: Drawn every Monday 00:00 for the previous Monday–Sunday week by a scheduled job.
 - BR-TOTW-2: Uniform random pick among photo toasts of that week that are not deleted, not rejected, whose photo is not hidden, from active users. **All users enter**, regardless of profile visibility; the winning photo becomes visible to all logged-in users.
 - BR-TOTW-3: No eligible toast → no winner that week.
-- BR-TOTW-4: Admin can re-run the draw for a week (e.g. after hiding the winning photo). If the winner deletes the toast later, the slot shows "removed".
+- BR-TOTW-4: Admin can re-run the draw for a week (e.g. after hiding the winning photo). If the winning toast is removed later (deleted or rejected), the slot shows "removed". The owner can't delete or change it any more: the draw runs after its day has ended (BR-TOAST-7).
 - Winner is shown on the home screen for the following week and in a history list; the winner earns the "Golden Toast" achievement.
 
 ### 4.11 Toast fact of the day
@@ -145,7 +148,7 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 | `early_bird` | Early Bird | Toast before 07:00 |
 | `midnight_snack` | Midnight Snack | Toast between 00:00 and 03:59 |
 
-- Evaluated synchronously after the triggering action (toast logged, clan joined, TOTW drawn). Earned once, kept forever (BR-TOAST-4).
+- Evaluated synchronously after the triggering action (toasts logged or added to a session, a photo added to a session, clan joined, TOTW drawn). Earned once, kept forever (BR-TOAST-4).
 - Profile shows all achievements, earned ones with the date.
 
 ### 4.13 Admin
@@ -248,20 +251,33 @@ Don't edit their core columns by hand. App-specific user fields below are declar
 | role | enum(`user`,`admin`) | default `user` |
 | status | enum(`active`,`banned`) | default `active` |
 
+### Entity: ToastSession
+One log of 1–10 toasts eaten in one sitting (BR-TOAST-5). Its count is the number of its toasts that are not deleted.
+
+| Field | Type | Constraints |
+|-------|------|-------------|
+| id | uuid | PK |
+| user_id | uuid | FK → User |
+| local_date | date | local day of logging; the only day the session can be edited or deleted (BR-TOAST-7) |
+| deleted_at | timestamptz | nullable (soft delete, together with its toasts) |
+
+Indexes: `(user_id, created_at desc, id)` for the history list.
+
 ### Entity: Toast
 | Field | Type | Constraints |
 |-------|------|-------------|
 | id | uuid | PK |
 | user_id | uuid | FK → User |
+| session_id | uuid | FK → ToastSession, required |
 | clan_id | uuid | FK → Clan, nullable — clan at time of logging (§12 D9) |
 | eaten_at | timestamptz | server-set, required |
 | local_date | date | derived from eaten_at in local zone, indexed |
-| photo_key | text | S3 key, nullable |
+| photo_key | text | S3 key, nullable; only on a session's lead toast (its first toast, never removed by lowering the count) |
 | photo_hidden_at | timestamptz | nullable (set by admin) |
 | status | enum(`active`,`rejected`) | default `active` |
 | deleted_at | timestamptz | nullable (soft delete) |
 
-Indexes: `(user_id, local_date)`, `(clan_id, local_date)`, `(local_date) where photo_key is not null`.
+Indexes: `(user_id, local_date)`, `(clan_id, local_date)`, `(session_id)`, `(local_date) where photo_key is not null`.
 
 ### Entity: Like
 | Field | Type | Constraints |
@@ -337,7 +353,7 @@ Indexes: `(user_id, local_date)`, `(clan_id, local_date)`, `(local_date) where p
 | key | text | PK (`flag_daily_threshold`, `clan_max_members`) |
 | value | jsonb | required |
 
-**Relationships:** User 1—N Toast; User 1—N Session; User 0..1—1 ClanMembership N—1 Clan; Clan 1—N ClanJoinRequest;
+**Relationships:** User 1—N ToastSession 1—N Toast; User 1—N Toast; User 1—N Session; User 0..1—1 ClanMembership N—1 Clan; Clan 1—N ClanJoinRequest;
 Toast 1—N Like; User 1—N UserAchievement; ToastOfTheWeek 0..1—1 Toast; Flag N—1 User (subject) / Toast.
 
 ## 8. API
@@ -351,8 +367,12 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | GET | /me | Session | — | `200 {user}` | app profile incl. `onboarded` flag |
 | PATCH | /me | Session | `{displayName?, avatarId?, locale?, profileVisibility?}` | `200 {user}` | onboarding uses this |
 | GET | /home | Session | — | `200 {todayCount, streak, clanStreak?, fact, toastOfTheWeek}` | one call for home screen |
-| POST | /toasts | Session | multipart `{photo?}` | `201 {toast, newAchievements[]}` | 30/hour rate limit |
-| DELETE | /toasts/:id | Session (owner) | — | `204` | soft delete |
+| POST | /toast-sessions | Session | multipart `{count?, photo?}` (count 1–10, default 1) | `201 {session, newAchievements[]}` | one transaction; the 30/hour rate limit counts toasts; photo on the lead toast |
+| GET | /me/toast-sessions | Session | cursor | `200 {items: [{id, loggedAt, localDate, count, photoUrl?, editable}], nextCursor}` | own sessions, newest first |
+| PATCH | /toast-sessions/:id | Session (owner) | `{count}` (1–10) | `200 {session, newAchievements[]}` | only on the session's day (BR-TOAST-7), else 409 |
+| PUT | /toast-sessions/:id/photo | Session (owner) | multipart `{photo}` | `200 {session, newAchievements[]}` | add or replace; same day rule; 409 if the photo is hidden |
+| DELETE | /toast-sessions/:id/photo | Session (owner) | — | `200 {session}` | same day rule |
+| DELETE | /toast-sessions/:id | Session (owner) | — | `204` | soft delete with its toasts; same day rule |
 | POST | /toasts/:id/like | Session | — | `204` | idempotent |
 | DELETE | /toasts/:id/like | Session | — | `204` | idempotent |
 | POST | /toasts/:id/report | Session | `{reason?}` | `202` | photo toasts only |
@@ -396,7 +416,7 @@ Error format (consistent everywhere):
 { "error": { "code": "VALIDATION_ERROR", "message": "…", "fields": {} } }
 ```
 Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT` 409
-(e.g. already in a clan, clan full), `PAYLOAD_TOO_LARGE` 413, `RATE_LIMITED` 429, `INTERNAL` 500.
+(e.g. already in a clan, clan full, editing a toast session after its day), `PAYLOAD_TOO_LARGE` 413, `RATE_LIMITED` 429, `INTERNAL` 500.
 `message` is English; the web client maps `code` to localized text.
 
 ## 9. UI / Pages
@@ -406,12 +426,13 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 | `/login` | Login | Public | Email field, "check your inbox" state |
 | `/auth/callback` | Verify link | Public | Consumes token, redirects to `/onboarding` or `/home`, error + resend on failure |
 | `/onboarding` | Onboarding | User (new) | Display name, avatar picker (6), visibility |
-| `/home` | Home | User | Big "+ Toast" button, camera button, today's count, current streak, clan streak, fact of the day, Toast of the week card, new-achievement toast |
+| `/home` | Home | User | Big "+ Toast" button (opens the log dialog: number of toasts, optional photo), "My toasts" link, today's count, current streak, clan streak, fact of the day, Toast of the week card, new-achievement toast |
 | `/leaderboards` | Leaderboards | User | Tabs Users / Clans, period switch week / month / year (clans default to month), clan rows show 🔥 streak, "me" row pinned |
 | `/clans` | Clan browser | User | Search, list with member count, "Create clan" |
 | `/clans/new` | Create clan | User (no clan) | Name, description |
 | `/clans/:id` | Clan | User | Header with current / longest clan streak + request to join / cancel request / leave, tabs: Feed (members), Leaderboard, Members; requests panel for Officers+; settings for Owner |
-| `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (subject to visibility); own profile has delete on toasts |
+| `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, add / replace / remove photo, delete with a confirmation), older ones are read-only. Linked from home and the own profile |
+| `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (subject to visibility); own profile links to My toasts |
 | `/toast-of-the-week` | TOTW history | User | Past winners by week |
 | `/settings` | Settings | User | Display name, avatar, visibility, language, logout |
 | `/admin` | Admin | Admin | Sub-pages: Flags, Users, Clans, Settings, Metrics, TOTW |
@@ -434,7 +455,7 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 ## 11. Quality & Definition of Done
 A feature is done when:
 - [ ] All acceptance criteria and business rules (§4) for it pass
-- [ ] Unit tests for business logic (streaks, ranking, achievements, TOTW draw, visibility), integration tests for API endpoints against real Postgres (Testcontainers)
+- [ ] Unit tests for business logic (streaks, ranking, achievements, TOTW draw, visibility, toast session edit rules), integration tests for API endpoints against real Postgres (Testcontainers)
 - [ ] E2E test for the main happy path (Playwright, mobile viewport)
 - [ ] Prettier check, ESLint (zero warnings) and type check pass, CI green
 - [ ] Both SK and EN strings added
@@ -485,6 +506,9 @@ A feature is done when:
 | D38 | Photo dependencies beyond §5: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` (S3 API), `@fastify/multipart` (uploads), `heic-decode` (libheif compiled to WebAssembly, LGPL) + `@types/heic-decode`. The type is checked by magic bytes only (HEIC = an `ftyp` box with a HEIC/HEIF brand; AVIF is rejected). HEIC is decoded by `heic-decode`, everything else by sharp. Each photo is rotated by its EXIF orientation, fit inside 1600×1600 without enlarging, encoded as WebP (quality 80) with no metadata and stored at `toasts/<userId>/<random uuid>.webp`. Inputs over 100 MP are rejected. A wrong type or an unreadable image is a 400 `VALIDATION_ERROR` with `fields.photo`; over 10 MB is a 413 | Prebuilt sharp has no HEVC decoder (patents), so it can't read iPhone HEIC files. The official AWS SDK works with any S3-compatible store. The pixel cap stops decompression bombs that fit in 10 MB |
 | D39 | Toast API details: the 30/h limit counts every `POST /toasts` attempt (checked before the upload is read) and lives in memory per replica until Q4 is decided. `DELETE` on someone else's toast is a 403; on a missing or already deleted one, a 404. A soft-deleted toast keeps its photo object. A `count_threshold` flag has no `toast_id` (it is about the day) and is created at most once per user and day, even after it is resolved. Countable toasts (`countableToasts()`) = not deleted, `status = active`, and the owner's `status = active` | Counting attempts protects the image pipeline from floods. Toast IDs appear in feeds anyway, so a 403 reveals nothing. One SQL fragment keeps every aggregate consistent |
 | D40 | Streaks are computed on read: the distinct countable `local_date`s of a user (or clan, via `toast.clan_id`) go through a pure function; days after today are ignored. Streak achievements check the *longest* streak. Achievements are evaluated after the toast transaction commits; inserts are `ON CONFLICT DO NOTHING RETURNING`, so each code is returned once, even under concurrent requests. If evaluation fails, the toast is still a 201 with `newAchievements: []` and the error is logged. `GET /home`: `clanStreak` is `null` (not omitted) outside a clan, `fact` is `null` only when there are no facts, and the fact rotation runs in `toast_fact.id` order | Per D8 there is no streak table to keep in sync. Using the longest run lets a streak that reached 7 before it was evaluated still earn the badge. A 5xx after the toast is saved would make clients retry and log it twice; count and streak badges catch up with the next toast. Explicit nulls are easier for clients than missing keys |
+| D41 | Home UI: "+ Toast" opens one dialog: a stepper for the number of toasts (1–10, a client-side cap; default 1) and an optional photo from a file input without `capture` (camera or gallery) with a preview (HEIC shows a "no preview" note) and a client-side 10 MB check. Confirming sends one `POST /toasts` per toast, one after another; the photo goes as `FormData` with the first, so a bad photo fails before anything is saved. If a later request fails (e.g. the 30/h limit), the toasts already saved stay, the dialog closes and a notice says how many were logged; the rest are not sent. `['home']` is updated optimistically on confirm (`todayCount + n`; the first toast of the day also adds 1 to `streak.current` and raises `longest`), rolled back if nothing was saved and refetched afterwards. The clan streak is not guessed (another member may have toasted today), only refetched. The dialog can't be closed while saving. New achievements and errors are `sonner` toasts (web dependency beyond §5, through shadcn's `sonner` component with `theme="system"` instead of `next-themes`) | One entry point keeps the home screen simple and still meets G1 (two taps for one toast). The API stays one toast per request (BR-TOAST-1, and the rate limit keeps counting toasts), so a batch is a client loop. Meets the §4.3 acceptance without waiting for the server; a wrong guess for the clan would flicker. Picking from the gallery matters as much as the camera. sonner is what shadcn/ui ships for toasts |
+| D42 | PWA (vite-plugin-pwa, `generateSW`, `autoUpdate`): precaches the built app shell and icons, `navigateFallback` to `index.html` except `/api/*` (the magic-link verify must reach the server), no runtime caching of API responses, no service worker in dev. Manifest `start_url` is `/home`, colours are the light theme's `--background` / `--primary` as hex. Icons are placeholders rendered from `public/favicon.svg` (192, 512, maskable 512, apple-touch 180). Installability is checked with Chromium's `Page.getInstallabilityErrors` (Lighthouse 12 has no PWA category any more) | SPEC §10: installable, app shell cached, no offline logging. A new deploy takes over on the next load without a prompt |
+| D43 | Toast sessions (BR-TOAST-5–7): a `toast_session` row groups the toasts of one log; each toast keeps its own row, so counts, streaks, leaderboards and `countableToasts()` don't change. The photo, likes and reports stay on the session's lead toast (its first toast), so TOTW, `photo_report` flags, hiding and `canSeePhoto` keep working per toast. `POST /toast-sessions` creates all toasts in one transaction and replaces `POST /toasts` and the web's per-toast loop from D41; owners no longer delete single toasts (`DELETE /toasts/:id` goes, D39). Editing is limited to the session's `local_date`, checked on the server (409 after that day); added toasts get the current time, never the session's. The migration gives every existing toast its own session. The name is "toast session" to stay apart from Better Auth's auth `session` | Grouping on top of per-toast rows keeps every aggregate as it is. One day to edit means no backdating (BR-TOAST-1): past days, streaks, leaderboards and TOTW draws never change afterwards, and a winning photo can't be swapped. One request per log makes it atomic, so there are no partly saved logs |
 
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)

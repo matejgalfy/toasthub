@@ -39,6 +39,9 @@
   --input: oklch(0.86 0.03 75);
   --ring: oklch(0.62 0.13 60);
 
+  /* Dims the page behind dialogs */
+  --overlay: oklch(0.2 0.02 55 / 50%);
+
   /* Initials avatars: the 6 choices a user can pick (SPEC §4.2), one shared text colour */
   --avatar-foreground: oklch(0.28 0.04 55);
   --avatar-1: oklch(0.89 0.1 90);
@@ -73,6 +76,7 @@
     --border: oklch(1 0 0 / 12%);
     --input: oklch(1 0 0 / 18%);
     --ring: oklch(0.72 0.12 72);
+    --overlay: oklch(0 0 0 / 60%);
 
     /* Initials avatars */
     --avatar-foreground: oklch(0.96 0.02 85);

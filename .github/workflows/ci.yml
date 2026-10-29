@@ -96,8 +96,10 @@ jobs:
           restore-keys: bun-${{ runner.os }}-
 
       - run: bun install --frozen-lockfile
-      # Only the services the tests use so far; add minio once a test uploads a photo (M8).
-      - run: docker compose -f infra/docker/docker-compose.yml up -d --wait postgres mailpit
+      # MinIO for the photo toast test; minio-init runs in the foreground until the bucket exists.
+      - run: |
+          docker compose -f infra/docker/docker-compose.yml up -d --wait postgres mailpit minio
+          docker compose -f infra/docker/docker-compose.yml up minio-init
       - run: cp apps/api/.env.example apps/api/.env
       - run: bun run db:migrate
       - run: bunx playwright install --with-deps chromium

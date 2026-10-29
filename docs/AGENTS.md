@@ -139,6 +139,9 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `null`, so the guards send the user to `/login`. Change the own profile with `useUpdateMe()`
   (`features/account`), which writes the response back into that query. Language changes go through
   `useChangeLocale()` (saves to `/me` when signed in), never `changeLocale()` directly from UI.
+- Short notices (achievements, errors after an action) are `toast.success()` / `toast.error()` from `sonner`;
+  the one `<Toaster>` is mounted in `app.tsx`. Plurals use i18next `_one`/`_other` keys in `en.json` and
+  `_one`/`_few`/`_many`/`_other` in `sk.json` (the i18n test checks both).
 
 ## Tests
 
@@ -154,9 +157,12 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `renderWithApp(ui, { session: testSession('user'), path })` (`src/test/render.tsx`, `src/test/sessions.ts`)
   and fake the API with `mockApi(request => jsonResponse(…))` (`src/test/api.ts`), which records requests.
 - E2E tests live in `e2e/tests/*.spec.ts` (Playwright, one `mobile` project = Pixel 7 Chromium). Playwright
-  starts the built api and the Vite dev server, or reuses ones already running. Sign up through the UI with
-  `uniqueEmail()` and read the link with `magicLinkFor(email)` (`e2e/support/mailpit.ts`); the database is
-  not reset between tests, so never rely on it being empty. Use role and label locators with English text.
+  starts the built api and the Vite dev server, or reuses ones already running. `signUp(page)`
+  (`e2e/support/auth.ts`) creates an onboarded user and ends on `/home`. For your own flows use
+  `uniqueEmail()` + `magicLinkFor(email)` (`e2e/support/mailpit.ts`) and open the link with
+  `openMagicLink(page, link)`, never `page.goto(link)`: it clears Better Auth's 5-per-minute verify limit,
+  which a parallel suite on one IP would hit. The database is not reset between tests, so never rely on it
+  being empty. Use role and label locators with English text; fixtures go in `e2e/fixtures/`.
 - Business logic named in SPEC §11 (streaks, ranking, achievements, TOTW draw, visibility) must have unit tests.
   Each endpoint needs an integration test.
 

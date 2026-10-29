@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { openMagicLink } from '../support/auth.js';
 import { magicLinkFor, uniqueEmail } from '../support/mailpit.js';
 
 async function requestLink(page: Page, email: string) {
@@ -15,7 +16,7 @@ test('a new user signs up, finishes onboarding and lands on home', async ({ page
   await page.getByRole('link', { name: 'Log in with email' }).click();
   await requestLink(page, email);
 
-  await page.goto(await magicLinkFor(email));
+  await openMagicLink(page, await magicLinkFor(email));
   await expect(page).toHaveURL('/onboarding');
 
   await page.getByLabel('Display name').fill('E2E Toaster');
@@ -39,12 +40,12 @@ test('a used link shows an error and sends a new one', async ({ page }) => {
   await page.goto('/login');
   await requestLink(page, email);
   const link = await magicLinkFor(email);
-  await page.goto(link);
+  await openMagicLink(page, link);
   await expect(page).toHaveURL('/onboarding');
 
   // The same link again, signed out.
   await page.context().clearCookies();
-  await page.goto(link);
+  await openMagicLink(page, link);
   await expect(page).toHaveURL(/\/auth\/callback\?error=/);
   await expect(page.getByText('This login link has expired or was already used.')).toBeVisible();
 
@@ -53,7 +54,7 @@ test('a used link shows an error and sends a new one', async ({ page }) => {
   await page.getByRole('button', { name: 'Send new link' }).click();
   await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();
 
-  await page.goto(await magicLinkFor(email, { count: 2 }));
+  await openMagicLink(page, await magicLinkFor(email, { count: 2 }));
   await expect(page).toHaveURL('/onboarding');
 });
 
@@ -62,7 +63,7 @@ test('logging out returns to the landing page', async ({ page }) => {
 
   await page.goto('/login');
   await requestLink(page, email);
-  await page.goto(await magicLinkFor(email));
+  await openMagicLink(page, await magicLinkFor(email));
   await page.getByLabel('Display name').fill('Leaver');
   await page.getByRole('button', { name: 'Start toasting' }).click();
   await expect(page).toHaveURL('/home');

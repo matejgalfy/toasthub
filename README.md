@@ -22,6 +22,10 @@ bun run dev       # web → http://localhost:5173, api → http://localhost:3000
 
 API docs (outside production): http://localhost:3000/api/v1/docs. Mailpit: http://localhost:8025.
 
+Logging in locally: enter any email at http://localhost:5173/login, open the email in Mailpit and click the
+link (it is valid for 15 minutes and works once). `bun run db:seed` adds onboarded sample users
+(`ann|bob|cyril|dana|emil@example.com`) that sign in the same way.
+
 Checks (the same ones CI runs):
 
 ```sh

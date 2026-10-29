@@ -3,7 +3,8 @@
     "name": "Toasthub",
     "skipToContent": "Preskočiť na obsah",
     "loading": "Načítava sa…",
-    "retry": "Skúsiť znova"
+    "retry": "Skúsiť znova",
+    "close": "Zavrieť"
   },
   "nav": {
     "label": "Hlavná navigácia",
@@ -75,6 +76,57 @@
   },
   "placeholder": {
     "body": "Táto stránka sa ešte opeká. Pozri sa sem čoskoro."
+  },
+  "home": {
+    "logToast": "Toast",
+    "achievementUnlocked": "Nový úspech: {{name}}",
+    "today": {
+      "label": "Dnes",
+      "unit_one": "toast",
+      "unit_few": "toasty",
+      "unit_many": "toastu",
+      "unit_other": "toastov"
+    },
+    "streak": {
+      "label": "Séria 🔥",
+      "unit_one": "deň",
+      "unit_few": "dni",
+      "unit_many": "dňa",
+      "unit_other": "dní",
+      "longest": "Najdlhšia: {{value}}"
+    },
+    "clanStreak": {
+      "label": "Séria klanu 🔥"
+    },
+    "fact": {
+      "title": "Toastový fakt dňa"
+    },
+    "toastOfTheWeek": {
+      "title": "Toast týždňa",
+      "empty": "Zatiaľ bez víťaza. Každý pondelok vyžrebujeme jeden toast s fotkou z minulého týždňa."
+    },
+    "log": {
+      "title": "Zapísať toasty",
+      "description": "Koľko toastov zapísať? Fotka je nepovinná.",
+      "count": "Toasty",
+      "fewer": "O toast menej",
+      "more": "O toast viac",
+      "confirm_one": "Zapísať {{count}} toast",
+      "confirm_few": "Zapísať {{count}} toasty",
+      "confirm_many": "Zapísať {{count}} toastu",
+      "confirm_other": "Zapísať {{count}} toastov",
+      "saving": "Ukladá sa…",
+      "partial": "Zapísalo sa len {{saved}} z {{total}} toastov."
+    },
+    "photo": {
+      "add": "Pridať fotku",
+      "previewAlt": "Vybraná fotka",
+      "noPreview": "Tento prehliadač fotku nezobrazí, ale nahrá sa v poriadku.",
+      "change": "Vybrať inú",
+      "remove": "Odstrániť fotku",
+      "tooLarge": "Fotka má viac ako 10 MB. Vyber menšiu.",
+      "invalid": "Tento súbor nevieme prečítať. Použi fotku JPEG, PNG, WebP alebo HEIC."
+    }
   },
   "auth": {
     "email": {

@@ -29,6 +29,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
   --color-avatar-foreground: var(--avatar-foreground);
   --color-avatar-1: var(--avatar-1);
   --color-avatar-2: var(--avatar-2);
