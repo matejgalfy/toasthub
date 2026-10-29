@@ -9,10 +9,13 @@ import { createDatabase } from './db.module';
 // Two levels up is the api package root from both `src/db` (tests) and `dist/db` (built CLI).
 export const MIGRATIONS_FOLDER = path.resolve(__dirname, '..', '..', 'src', 'db', 'migrations');
 
-export async function runMigrations(databaseUrl: string): Promise<void> {
+export async function runMigrations(
+  databaseUrl: string,
+  migrationsFolder = MIGRATIONS_FOLDER,
+): Promise<void> {
   const pool = new Pool({ connectionString: databaseUrl, max: 1 });
   try {
-    await migrate(createDatabase(pool), { migrationsFolder: MIGRATIONS_FOLDER });
+    await migrate(createDatabase(pool), { migrationsFolder });
   } finally {
     await pool.end();
   }

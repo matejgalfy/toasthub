@@ -11,13 +11,16 @@ export class RateLimiter {
     private readonly windowMs: number,
   ) {}
 
-  /** Records a hit and returns true, or returns false without recording when `key` is at the limit. */
-  tryHit(key: string, now: number = Date.now()): boolean {
+  /**
+   * Records `cost` hits and returns true, or returns false without recording any when they would take
+   * `key` over the limit.
+   */
+  tryHit(key: string, now: number = Date.now(), cost = 1): boolean {
     const cutoff = now - this.windowMs;
     this.sweep(now, cutoff);
     const recent = (this.hits.get(key) ?? []).filter((at) => at > cutoff);
-    const allowed = recent.length < this.limit;
-    if (allowed) recent.push(now);
+    const allowed = recent.length + cost <= this.limit;
+    if (allowed) for (let i = 0; i < cost; i++) recent.push(now);
     this.hits.set(key, recent);
     return allowed;
   }

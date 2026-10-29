@@ -38,6 +38,9 @@
     "home": {
       "title": "Home"
     },
+    "myToasts": {
+      "title": "My toasts"
+    },
     "leaderboards": {
       "title": "Leaderboards"
     },
@@ -79,6 +82,7 @@
   },
   "home": {
     "logToast": "Toast",
+    "myToasts": "My toasts",
     "achievementUnlocked": "Achievement unlocked: {{name}}",
     "today": {
       "label": "Today",
@@ -109,8 +113,7 @@
       "more": "One toast more",
       "confirm_one": "Log {{count}} toast",
       "confirm_other": "Log {{count}} toasts",
-      "saving": "Saving…",
-      "partial": "Only {{saved}} of {{total}} toasts were logged."
+      "saving": "Saving…"
     },
     "photo": {
       "add": "Add a photo",
@@ -120,6 +123,34 @@
       "remove": "Remove photo",
       "tooLarge": "This photo is larger than 10 MB. Pick a smaller one.",
       "invalid": "We can't read this file. Use a JPEG, PNG, WebP or HEIC photo."
+    }
+  },
+  "toasts": {
+    "today": "Today",
+    "count_one": "{{count}} toast",
+    "count_other": "{{count}} toasts",
+    "photoAlt": "Photo from {{time}}",
+    "photoHidden": "Photo hidden by an admin",
+    "editHint": "Edit",
+    "empty": "No toasts yet. Log your first one from home.",
+    "backHome": "Go to home",
+    "loadMore": "Show older toasts",
+    "edit": {
+      "title": "Edit toasts",
+      "description": "Logged at {{time}}. You can change it until midnight.",
+      "photoAlt": "The photo of these toasts",
+      "photoHidden": "An admin hid this photo. You can remove it, but not replace it.",
+      "photoLocked": "An admin hid the photo of these toasts, so they can't get a new one.",
+      "save": "Save changes",
+      "delete": "Delete"
+    },
+    "delete": {
+      "title": "Delete these toasts?",
+      "description_one": "This {{count}} toast leaves your counts and streak. You can't undo it.",
+      "description_other": "These {{count}} toasts leave your counts and streak. You can't undo it.",
+      "confirm": "Delete",
+      "cancel": "Keep them",
+      "done": "Toasts deleted."
     }
   },
   "auth": {

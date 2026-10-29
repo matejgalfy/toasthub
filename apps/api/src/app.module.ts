@@ -10,7 +10,7 @@ import { HealthModule } from './modules/health/health.module';
 import { HomeModule } from './modules/home/home.module';
 import { MeModule } from './modules/me/me.module';
 import { SettingsModule } from './modules/settings/settings.module';
-import { ToastsModule } from './modules/toasts/toasts.module';
+import { ToastSessionsModule } from './modules/toast-sessions/toast-sessions.module';
 
 @Module({
   imports: [
@@ -35,7 +35,7 @@ import { ToastsModule } from './modules/toasts/toasts.module';
     HomeModule,
     MeModule,
     SettingsModule,
-    ToastsModule,
+    ToastSessionsModule,
   ],
 })
 export class AppModule {}

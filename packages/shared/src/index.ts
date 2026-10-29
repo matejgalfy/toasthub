@@ -8,5 +8,6 @@ export * from './pagination.js';
 export * from './settings.js';
 export * from './streak.js';
 export * from './time.js';
+export * from './toast-session.js';
 export * from './toast.js';
 export * from './user.js';

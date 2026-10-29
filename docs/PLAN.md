@@ -46,7 +46,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M6 | Toast logging backend (photos, storage, flags) | `m06-toasts-api` | M3 | ☑ |
 | M7 | Streaks, achievements, facts, `/home` | `m07-home-api` | M6 | ☑ |
 | M8 | Home screen UI and PWA | `m08-home-ui` | M5, M7 | ☑ |
-| M8b | Toast sessions: history and editing (API + UI) | `m08b-toast-sessions` | M8 | ☐ |
+| M8b | Toast sessions: history and editing (API + UI) | `m08b-toast-sessions` | M8 | ☑ |
 | M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☐ |
 | M10 | Profile UI | `m10-profile-ui` | M8b, M9 | ☐ |
 | M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☐ |
@@ -563,3 +563,19 @@ milestones._
   helpers `signUp(page)` and `openMagicLink(page, link)` (AGENTS.md → Tests): Better Auth's magic-link plugin
   limits `/magic-link/verify` to 5/min per IP, which the 5-test suite already reached. jsdom gets a
   `matchMedia` stub in `src/test/setup.ts` (sonner needs it).
+- **M8b** — Toasts are logged only as sessions: `src/modules/toast-sessions` (`POST /toast-sessions`,
+  `GET /me/toast-sessions`, `PATCH`, `PUT`/`DELETE …/photo`, `DELETE`); pure rules in `toast-sessions.policy.ts`.
+  `POST`/`DELETE /toasts` and the `ToastsModule` are gone; `toasts/` keeps `countableToasts()`, the photo pipeline and
+  `readPhotoUpload()` (now returns `{fields, photo}`). Every toast row needs `session_id`: tests insert past toasts
+  with `insertToasts(db, rows)` (`test/toasts.ts`, one session each). Details and limits: SPEC §12 D44.
+- For M12: likes and reports stay per toast (on the lead toast, D43). For M15: delete the objects in `discarded_photo`
+  once no open `photo_report` on their `toast_id` needs them, then the row. For M16: rejecting a toast makes its session
+  read-only; lock the `toast_session` row (`FOR UPDATE`) when changing its toasts, as the edit endpoints do.
+- Web: `features/toast-sessions` (`toastSessionsQueryOptions` = infinite `['toast-sessions']`, mutation hooks that
+  invalidate `['home']` and the list, `CountStepper`, `PhotoPicker` + `usePickedPhoto()` shared with the home log
+  dialog, `EditSessionDialog`, `SessionList`), page `/toasts`. `useLogToasts()` is one request; the partial-failure
+  notice and `MAX_TOASTS_PER_LOG` are gone (`TOAST_SESSION_MAX_COUNT` in `shared`). For M10: link the own profile to `/toasts`.
+- Gotchas: `pageSchema`'s `nextCursor` is `z.string().min(1).nullable()` because a bare nullable string at a DTO's top
+  level comes out of @nestjs/swagger as an array. jsdom's `File` reaches undici's `Request` as text, so web tests check
+  multipart bodies with `request.text()`. Run `bun run db:migrate` for 0005. To run E2E next to another api on :3000:
+  `PORT=3100 E2E_API_URL=http://localhost:3100 API_PROXY_TARGET=http://localhost:3100 bun run e2e`.

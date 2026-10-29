@@ -2,12 +2,12 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CreateToastResponse, HomeResponse } from '@toasthub/shared';
+import type { HomeResponse, ToastSessionChangeResponse } from '@toasthub/shared';
 
 import { Toaster } from '@/components/ui/sonner';
 import { jsonResponse, mockApi } from '@/test/api';
 import { renderWithApp } from '@/test/render';
-import { testSession, testUser } from '@/test/sessions';
+import { testSession } from '@/test/sessions';
 
 import { HomePage } from './home-page';
 
@@ -19,14 +19,16 @@ const home: HomeResponse = {
   toastOfTheWeek: null,
 };
 
-const created: CreateToastResponse = {
-  toast: {
+const created: ToastSessionChangeResponse = {
+  session: {
     id: '01900000-0000-7000-8000-0000000000aa',
-    userId: testUser.id,
-    clanId: null,
-    eatenAt: '2026-10-29T08:00:00.000Z',
+    loggedAt: '2026-10-29T08:00:00.000Z',
     localDate: '2026-10-29',
+    count: 1,
+    hasPhoto: false,
     photoUrl: null,
+    photoHidden: false,
+    editable: true,
   },
   newAchievements: [],
 };
@@ -56,6 +58,22 @@ function deferred() {
 const isPost = (request: Request) => request.method === 'POST';
 const revokeObjectURL = vi.fn();
 
+/**
+ * The multipart body of the one `POST /toast-sessions` that was sent, as text: undici can't parse a body
+ * built from jsdom's `File` back into FormData.
+ */
+async function postedBody(requests: Request[]) {
+  const posts = requests.filter(isPost);
+  expect(posts).toHaveLength(1);
+  const [post] = posts;
+  if (!post) throw new Error('No POST');
+  expect(post.url).toBe('http://localhost/api/v1/toast-sessions');
+  expect(post.headers.get('content-type')).toMatch(/^multipart\/form-data; boundary=/);
+  return post.text();
+}
+
+const countField = (count: number) => `name="count"\r\n\r\n${String(count)}\r\n`;
+
 beforeEach(() => {
   // jsdom has no object URLs; the preview only needs a string.
   URL.createObjectURL = vi.fn(() => 'blob:preview');
@@ -84,6 +102,13 @@ describe('HomePage', () => {
     expect(screen.getByRole('group', { name: 'Clan streak 🔥' })).toHaveTextContent('4days');
     expect(screen.getByText(home.fact?.text ?? '')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Toast of the week' })).toBeInTheDocument();
+  });
+
+  it('links to My toasts', () => {
+    mockApi(() => jsonResponse(200, home));
+    renderHome();
+
+    expect(screen.getByRole('link', { name: 'My toasts' })).toHaveAttribute('href', '/toasts');
   });
 
   it('hides the clan streak outside a clan', async () => {
@@ -122,16 +147,14 @@ describe('HomePage', () => {
     expect(screen.getByText('Log your first toast')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    const post = requests.find(isPost);
-    expect(post?.url).toBe('http://localhost/api/v1/toasts');
-    expect(post?.headers.get('content-type')).toBeNull();
+    expect(await postedBody(requests)).toContain(countField(1));
     // The counters are refetched once the toast is saved.
     await vi.waitFor(() => {
       expect(requests.filter((request) => request.method === 'GET')).toHaveLength(2);
     });
   });
 
-  it('logs as many toasts as picked, one request each', async () => {
+  it('logs as many toasts as picked in one request', async () => {
     const user = userEvent.setup();
     const requests = mockApi((request) =>
       isPost(request) ? jsonResponse(201, created) : jsonResponse(200, home),
@@ -154,7 +177,9 @@ describe('HomePage', () => {
     await vi.waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
-    expect(requests.filter(isPost)).toHaveLength(3);
+    const body = await postedBody(requests);
+    expect(body).toContain(countField(3));
+    expect(body).not.toContain('name="photo"');
   });
 
   it('stops at 10 toasts', async () => {
@@ -177,7 +202,8 @@ describe('HomePage', () => {
     await screen.findByRole('group', { name: 'Today' });
 
     const dialog = await openLogDialog(user);
-    await user.click(within(dialog).getByRole('button', { name: 'Log 1 toast' }));
+    await user.click(within(dialog).getByRole('button', { name: 'One toast more' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Log 2 toasts' }));
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(
       'Too many attempts. Wait a while and try again.',
@@ -185,30 +211,7 @@ describe('HomePage', () => {
     expect(screen.getByText('Today').closest('[role="group"]')).toHaveTextContent('0toasts');
   });
 
-  it('keeps the toasts saved before a later one fails and says how many', async () => {
-    const user = userEvent.setup();
-    let posts = 0;
-    const requests = mockApi((request) => {
-      if (!isPost(request)) return jsonResponse(200, home);
-      posts += 1;
-      return posts === 1 ? jsonResponse(201, created) : rateLimited();
-    });
-    renderHome();
-    await screen.findByRole('group', { name: 'Today' });
-
-    const dialog = await openLogDialog(user);
-    await user.click(within(dialog).getByRole('button', { name: 'One toast more' }));
-    await user.click(within(dialog).getByRole('button', { name: 'One toast more' }));
-    await user.click(within(dialog).getByRole('button', { name: 'Log 3 toasts' }));
-
-    expect(await screen.findByText('Only 1 of 3 toasts were logged.')).toBeInTheDocument();
-    expect(screen.getByText('Too many attempts. Wait a while and try again.')).toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    // The third toast is not tried once the second failed.
-    expect(requests.filter(isPost)).toHaveLength(2);
-  });
-
-  it('uploads the photo with the first of the toasts', async () => {
+  it('uploads the photo with the session', async () => {
     const user = userEvent.setup();
     const requests = mockApi((request) =>
       isPost(request) ? jsonResponse(201, created) : jsonResponse(200, home),
@@ -232,9 +235,10 @@ describe('HomePage', () => {
     await vi.waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
-    const [first, second] = requests.filter(isPost);
-    expect(first?.headers.get('content-type')).toMatch(/^multipart\/form-data; boundary=/);
-    expect(second?.headers.get('content-type')).toBeNull();
+    const body = await postedBody(requests);
+    expect(body).toContain(countField(2));
+    // jsdom's File reaches undici as plain text, so only the part itself is checked.
+    expect(body).toContain('name="photo"');
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:preview');
   });
 
@@ -256,7 +260,7 @@ describe('HomePage', () => {
     await vi.waitFor(() => {
       expect(requests.some(isPost)).toBe(true);
     });
-    expect(requests.find(isPost)?.headers.get('content-type')).toBeNull();
+    expect(await postedBody(requests)).not.toContain('name="photo"');
   });
 
   it('refuses a photo over 10 MB without uploading it', async () => {

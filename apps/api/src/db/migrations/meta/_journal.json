@@ -36,6 +36,13 @@
       "when": 1793276106708,
       "tag": "0004_seed_reference_data",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793293904793,
+      "tag": "0005_toast_sessions",
+      "breakpoints": true
     }
   ]
 }

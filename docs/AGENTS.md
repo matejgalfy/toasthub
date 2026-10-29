@@ -151,7 +151,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   Build the app with `createTestApp()` from `apps/api/test/create-app.ts` and call it with `app.inject()`. Get a
   session with `signIn(app, email)` from `test/auth.ts` (real magic link via Mailpit); cookie mutations need
   `origin: WEB_ORIGIN`. A MinIO container with the photo bucket runs alongside (objects are not cleared between
-  tests); presigned URLs from responses can be fetched directly.
+  tests); presigned URLs from responses can be fetched directly. Every toast belongs to a `toast_session`: insert
+  past or special toasts with `insertToasts(db, rows)` from `test/toasts.ts` (one session per toast).
 - Web tests are `*.test.ts(x)` with Vitest + Testing Library in jsdom (config in `apps/web/vite.config.ts`).
   `src/test/setup.ts` starts i18n in English, so assert on English text. Render pages with
   `renderWithApp(ui, { session: testSession('user'), path })` (`src/test/render.tsx`, `src/test/sessions.ts`)

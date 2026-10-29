@@ -38,6 +38,9 @@
     "home": {
       "title": "Domov"
     },
+    "myToasts": {
+      "title": "Moje toasty"
+    },
     "leaderboards": {
       "title": "Rebríčky"
     },
@@ -79,6 +82,7 @@
   },
   "home": {
     "logToast": "Toast",
+    "myToasts": "Moje toasty",
     "achievementUnlocked": "Nový úspech: {{name}}",
     "today": {
       "label": "Dnes",
@@ -115,8 +119,7 @@
       "confirm_few": "Zapísať {{count}} toasty",
       "confirm_many": "Zapísať {{count}} toastu",
       "confirm_other": "Zapísať {{count}} toastov",
-      "saving": "Ukladá sa…",
-      "partial": "Zapísalo sa len {{saved}} z {{total}} toastov."
+      "saving": "Ukladá sa…"
     },
     "photo": {
       "add": "Pridať fotku",
@@ -126,6 +129,38 @@
       "remove": "Odstrániť fotku",
       "tooLarge": "Fotka má viac ako 10 MB. Vyber menšiu.",
       "invalid": "Tento súbor nevieme prečítať. Použi fotku JPEG, PNG, WebP alebo HEIC."
+    }
+  },
+  "toasts": {
+    "today": "Dnes",
+    "count_one": "{{count}} toast",
+    "count_few": "{{count}} toasty",
+    "count_many": "{{count}} toastu",
+    "count_other": "{{count}} toastov",
+    "photoAlt": "Fotka z {{time}}",
+    "photoHidden": "Fotku skryl administrátor",
+    "editHint": "Upraviť",
+    "empty": "Zatiaľ žiadne toasty. Prvý zapíšeš na domovskej stránke.",
+    "backHome": "Domov",
+    "loadMore": "Zobraziť staršie toasty",
+    "edit": {
+      "title": "Upraviť toasty",
+      "description": "Zapísané o {{time}}. Zmeniť to môžeš do polnoci.",
+      "photoAlt": "Fotka týchto toastov",
+      "photoHidden": "Túto fotku skryl administrátor. Môžeš ju odstrániť, ale nie nahradiť.",
+      "photoLocked": "Fotku týchto toastov skryl administrátor, takže novú už nedostanú.",
+      "save": "Uložiť zmeny",
+      "delete": "Vymazať"
+    },
+    "delete": {
+      "title": "Vymazať tieto toasty?",
+      "description_one": "Tento {{count}} toast zmizne z tvojich počtov aj série. Nedá sa to vrátiť.",
+      "description_few": "Tieto {{count}} toasty zmiznú z tvojich počtov aj série. Nedá sa to vrátiť.",
+      "description_many": "Týchto {{count}} toastu zmizne z tvojich počtov aj série. Nedá sa to vrátiť.",
+      "description_other": "Týchto {{count}} toastov zmizne z tvojich počtov aj série. Nedá sa to vrátiť.",
+      "confirm": "Vymazať",
+      "cancel": "Ponechať",
+      "done": "Toasty sú vymazané."
     }
   },
   "auth": {

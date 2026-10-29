@@ -8,21 +8,35 @@ function statusOf(error: unknown): number | undefined {
   return typeof error.statusCode === 'number' ? error.statusCode : undefined;
 }
 
+export interface PhotoUpload {
+  /** The text fields of the body, by name. */
+  fields: Record<string, string>;
+  /** The bytes of the optional `photo` file part. */
+  photo: Buffer | null;
+}
+
 /**
- * The bytes of the optional `photo` file part, or null for a request that isn't multipart or has no file.
- * `@fastify/multipart` enforces the size limit while streaming (413 past `PHOTO_MAX_BYTES`).
+ * Reads a `multipart/form-data` body: its text fields and the optional `photo` file part. A request that
+ * isn't multipart has neither. `@fastify/multipart` enforces the size limit while streaming (413 past
+ * `PHOTO_MAX_BYTES`).
  */
-export async function readPhotoUpload(request: FastifyRequest): Promise<Buffer | null> {
-  if (!request.isMultipart()) return null;
+export async function readPhotoUpload(request: FastifyRequest): Promise<PhotoUpload> {
+  const upload: PhotoUpload = { fields: {}, photo: null };
+  if (!request.isMultipart()) return upload;
   try {
-    const part = await request.file();
-    if (!part) return null;
-    if (part.fieldname !== PHOTO_FIELD) {
-      throw new AppError('VALIDATION_ERROR', 'Unexpected file field', {
-        [part.fieldname]: `Only a "${PHOTO_FIELD}" file is accepted`,
-      });
+    for await (const part of request.parts()) {
+      if (part.type === 'field') {
+        if (typeof part.value === 'string') upload.fields[part.fieldname] = part.value;
+        continue;
+      }
+      if (part.fieldname !== PHOTO_FIELD) {
+        throw new AppError('VALIDATION_ERROR', 'Unexpected file field', {
+          [part.fieldname]: `Only a "${PHOTO_FIELD}" file is accepted`,
+        });
+      }
+      upload.photo = await part.toBuffer();
     }
-    return await part.toBuffer();
+    return upload;
   } catch (error) {
     if (error instanceof AppError) throw error;
     if (statusOf(error) === 413) {

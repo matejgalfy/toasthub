@@ -19,7 +19,9 @@ export type PageQuery = z.infer<typeof pageQuerySchema>;
 export function pageSchema<T extends z.ZodType>(item: T) {
   return z.object({
     items: z.array(item),
-    nextCursor: z.string().nullable(),
+    // `min(1)` is also for the OpenAPI document: a bare nullable string becomes `type: [string, null]`,
+    // which @nestjs/swagger reads as an array on a DTO's top-level property.
+    nextCursor: z.string().min(1).nullable(),
   });
 }
 

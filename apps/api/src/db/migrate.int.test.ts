@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { APP_SETTING_DEFAULTS } from '@toasthub/shared';
@@ -14,6 +15,14 @@ afterAll(async () => {
   await pool.end();
 });
 
+interface Journal {
+  entries: { tag: string }[];
+}
+
+async function readJournal(folder: string): Promise<Journal> {
+  return JSON.parse(await readFile(path.join(folder, 'meta', '_journal.json'), 'utf8')) as Journal;
+}
+
 async function appliedCount(): Promise<number> {
   const { rows } = await pool.query<{ n: number }>(
     'select count(*)::int as n from drizzle.__drizzle_migrations',
@@ -21,12 +30,41 @@ async function appliedCount(): Promise<number> {
   return rows[0]?.n ?? 0;
 }
 
+/**
+ * Runs `test` against a new, empty database. The shared test database is truncated before each test,
+ * so migrations that seed or move rows are checked on a fresh one.
+ */
+async function withFreshDatabase(test: (url: string, db: Pool) => Promise<void>): Promise<void> {
+  const name = `fresh_${String(Date.now())}`;
+  await pool.query(`CREATE DATABASE ${name}`);
+  const url = new URL(process.env.DATABASE_URL ?? '');
+  url.pathname = `/${name}`;
+  const fresh = new Pool({ connectionString: url.toString(), max: 1 });
+  try {
+    await test(url.toString(), fresh);
+  } finally {
+    await fresh.end();
+    await pool.query(`DROP DATABASE ${name}`);
+  }
+}
+
+/** A copy of the migrations folder whose journal stops before the migration tagged `tag`. */
+async function migrationsBefore(tag: string): Promise<string> {
+  const folder = await mkdtemp(path.join(tmpdir(), 'toasthub-migrations-'));
+  await cp(MIGRATIONS_FOLDER, folder, { recursive: true });
+  const journal = await readJournal(folder);
+  const end = journal.entries.findIndex((entry) => entry.tag === tag);
+  expect(end).toBeGreaterThan(0);
+  await writeFile(
+    path.join(folder, 'meta', '_journal.json'),
+    JSON.stringify({ ...journal, entries: journal.entries.slice(0, end) }),
+  );
+  return folder;
+}
+
 describe('runMigrations', () => {
   it('has applied every journal entry (global setup ran it once)', async () => {
-    const journal = JSON.parse(
-      await readFile(path.join(MIGRATIONS_FOLDER, 'meta', '_journal.json'), 'utf8'),
-    ) as { entries: unknown[] };
-    expect(await appliedCount()).toBe(journal.entries.length);
+    expect(await appliedCount()).toBe((await readJournal(MIGRATIONS_FOLDER)).entries.length);
   });
 
   it('is idempotent', async () => {
@@ -37,15 +75,9 @@ describe('runMigrations', () => {
 });
 
 describe('on an empty database', () => {
-  // The shared test database is truncated before each test, so check the seeded rows on a fresh one.
   it('applies cleanly and seeds the reference data', async () => {
-    const name = `fresh_${String(Date.now())}`;
-    await pool.query(`CREATE DATABASE ${name}`);
-    const url = new URL(process.env.DATABASE_URL ?? '');
-    url.pathname = `/${name}`;
-    const fresh = new Pool({ connectionString: url.toString(), max: 1 });
-    try {
-      await runMigrations(url.toString());
+    await withFreshDatabase(async (url, fresh) => {
+      await runMigrations(url);
 
       const settings = await fresh.query<{ key: string; value: unknown }>(
         'select key, value from app_setting order by key',
@@ -66,9 +98,51 @@ describe('on an empty database', () => {
         expect(fact.text_sk).not.toBe('');
         expect(fact.text_en).not.toBe('');
       }
+    });
+  });
+});
+
+describe('0005_toast_sessions', () => {
+  it('gives every existing toast its own session on the same day', async () => {
+    const before = await migrationsBefore('0005_toast_sessions');
+    try {
+      await withFreshDatabase(async (url, fresh) => {
+        await runMigrations(url, before);
+        const { rows: users } = await fresh.query<{ id: string }>(
+          `insert into "user" (email, display_name) values ('ann@example.com', 'Ann') returning id`,
+        );
+        // Half past midnight in Bratislava, still the day before in UTC; one toast is deleted.
+        await fresh.query(
+          `insert into toast (user_id, eaten_at, deleted_at) values
+             ($1, '2026-10-28T23:30:00Z', null),
+             ($1, '2026-10-28T23:30:00Z', '2026-10-29T08:00:00Z'),
+             ($1, '2026-10-20T10:00:00Z', null)`,
+          [users[0]?.id],
+        );
+
+        await runMigrations(url);
+
+        const { rows } = await fresh.query<{
+          sameId: boolean;
+          sameUser: boolean;
+          sameDay: boolean;
+          sameDeleted: boolean;
+          localDate: string;
+        }>(
+          `select t.session_id = t.id as "sameId", s.user_id = t.user_id as "sameUser",
+                  s.local_date = t.local_date as "sameDay",
+                  s.deleted_at is not distinct from t.deleted_at as "sameDeleted",
+                  s.local_date::text as "localDate"
+           from toast t join toast_session s on s.id = t.session_id order by t.eaten_at, t.id`,
+        );
+        expect(rows).toHaveLength(3);
+        expect(rows.every((r) => r.sameId && r.sameUser && r.sameDay && r.sameDeleted)).toBe(true);
+        expect(rows.map((r) => r.localDate)).toEqual(['2026-10-20', '2026-10-29', '2026-10-29']);
+        const { rows: sessions } = await fresh.query('select id from toast_session');
+        expect(sessions).toHaveLength(3);
+      });
     } finally {
-      await fresh.end();
-      await pool.query(`DROP DATABASE ${name}`);
+      await rm(before, { recursive: true, force: true });
     }
   });
 });

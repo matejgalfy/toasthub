@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { createDatabase } from './db.module';
-import { clan, clanMembership, toast, user } from './schema';
+import { clan, clanMembership, toast, toastSession, user } from './schema';
 import { seed } from './seed';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
@@ -14,13 +14,15 @@ afterAll(async () => {
 });
 
 async function counts() {
-  const n = async (table: typeof user | typeof clan | typeof clanMembership | typeof toast) =>
-    (await db.select({ n: count() }).from(table))[0]?.n;
+  const n = async (
+    table: typeof user | typeof clan | typeof clanMembership | typeof toast | typeof toastSession,
+  ) => (await db.select({ n: count() }).from(table))[0]?.n;
   return {
     users: await n(user),
     clans: await n(clan),
     memberships: await n(clanMembership),
     toasts: await n(toast),
+    sessions: await n(toastSession),
   };
 }
 
@@ -29,6 +31,8 @@ describe('dev seed', () => {
     await seed(db);
     const after = await counts();
     expect(after).toMatchObject({ users: 5, clans: 1, memberships: 3 });
+    expect(after.sessions).toBeGreaterThan(30);
+    expect(after.sessions).toBeLessThan(after.toasts ?? 0);
     expect(after.toasts).toBeGreaterThan(50);
 
     const users = await db.select().from(user);

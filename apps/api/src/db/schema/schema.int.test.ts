@@ -11,6 +11,7 @@ import {
   flag,
   toast,
   toastOfTheWeek,
+  toastSession,
   user,
   userAchievement,
 } from './index';
@@ -49,6 +50,16 @@ async function pgCode(query: PromiseLike<unknown>): Promise<string | undefined> 
   }
 }
 
+/** A toast session of Ann's, logged at `createdAt` (default now). */
+async function createSession(createdAt?: Date): Promise<string> {
+  const [row] = await db
+    .insert(toastSession)
+    .values({ userId: annId, createdAt })
+    .returning({ id: toastSession.id });
+  if (!row) throw new Error('insert failed');
+  return row.id;
+}
+
 const UNIQUE = '23505';
 const CHECK = '23514';
 
@@ -58,7 +69,7 @@ beforeEach(async () => {
   clanId = await createClan('Crumbs');
 });
 
-describe('toast.local_date', () => {
+describe('toast.local_date and toast_session.local_date', () => {
   it.each([
     '2026-03-28T22:59:59Z',
     '2026-03-28T23:00:00Z',
@@ -68,17 +79,24 @@ describe('toast.local_date', () => {
     '2026-10-25T22:59:59Z',
     '2026-10-25T23:00:00Z',
     '2026-12-31T23:30:00Z',
-  ])('for eaten_at %s matches localDate()', async (iso) => {
-    const eatenAt = new Date(iso);
+  ])('for %s match localDate()', async (iso) => {
+    const at = new Date(iso);
+    const sessionId = await createSession(at);
     const [row] = await db
       .insert(toast)
-      .values({ userId: annId, eatenAt })
+      .values({ userId: annId, sessionId, eatenAt: at })
       .returning({ localDate: toast.localDate });
-    expect(row?.localDate).toBe(localDate(eatenAt));
+    expect(row?.localDate).toBe(localDate(at));
+    const [session] = await db
+      .select({ localDate: toastSession.localDate })
+      .from(toastSession)
+      .where(eq(toastSession.id, sessionId));
+    expect(session?.localDate).toBe(localDate(at));
   });
 
   it('defaults to an active, uuid v7 toast eaten now', async () => {
-    const [row] = await db.insert(toast).values({ userId: annId }).returning();
+    const sessionId = await createSession();
+    const [row] = await db.insert(toast).values({ userId: annId, sessionId }).returning();
     expect(row).toMatchObject({ status: 'active', deletedAt: null, clanId: null });
     expect(row?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7/);
     expect(row?.localDate).toBe(localDate(new Date()));
@@ -148,7 +166,11 @@ describe('flag', () => {
   });
 
   it('allows several photo reports on the same user', async () => {
-    const [t] = await db.insert(toast).values({ userId: annId, photoKey: 'k' }).returning();
+    const sessionId = await createSession();
+    const [t] = await db
+      .insert(toast)
+      .values({ userId: annId, sessionId, photoKey: 'k' })
+      .returning();
     const report = {
       type: 'photo_report' as const,
       subjectUserId: annId,

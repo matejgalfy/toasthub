@@ -34,6 +34,15 @@ describe('RateLimiter', () => {
     expect(limiter.tryHit('ann', MINUTE)).toBe(true);
   });
 
+  it('takes several hits at once or none of them', () => {
+    const limiter = new RateLimiter(5, MINUTE);
+    expect(limiter.tryHit('ann', 0, 3)).toBe(true);
+    expect(limiter.tryHit('ann', 1, 3)).toBe(false);
+    expect(limiter.tryHit('ann', 2, 2)).toBe(true);
+    expect(limiter.tryHit('ann', 3)).toBe(false);
+    expect(limiter.tryHit('ann', MINUTE, 3)).toBe(true);
+  });
+
   it('keeps working after idle keys are swept', () => {
     const limiter = new RateLimiter(1, MINUTE);
     limiter.tryHit('ann', 0);

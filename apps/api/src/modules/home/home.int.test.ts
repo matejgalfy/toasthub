@@ -5,8 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { type SignedIn, signIn } from '../../../test/auth';
 import { createTestApp } from '../../../test/create-app';
+import { insertToasts } from '../../../test/toasts';
 import { type Database, DB } from '../../db/db.module';
-import { clan, clanMembership, toast, toastFact, user } from '../../db/schema';
+import { clan, clanMembership, toastFact, user } from '../../db/schema';
 
 let app: NestFastifyApplication;
 let db: Database;
@@ -39,10 +40,13 @@ function dayAt(daysAgo: number): Date {
   return new Date(`${addDays(today, -daysAgo)}T10:00:00Z`);
 }
 
-type ToastInsert = typeof toast.$inferInsert;
+type ToastInsert = Parameters<typeof insertToasts>[1][number];
 
 async function addToasts(userId: string, daysAgo: number[], extra: Partial<ToastInsert> = {}) {
-  await db.insert(toast).values(daysAgo.map((n) => ({ userId, eatenAt: dayAt(n), ...extra })));
+  await insertToasts(
+    db,
+    daysAgo.map((n) => ({ userId, eatenAt: dayAt(n), ...extra })),
+  );
 }
 
 async function expectedFact(locale: 'sk' | 'en') {

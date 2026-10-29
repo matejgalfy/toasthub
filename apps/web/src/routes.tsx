@@ -11,6 +11,7 @@ import { AuthCallbackPage } from '@/pages/auth-callback-page';
 import { HomePage } from '@/pages/home-page';
 import { LandingPage } from '@/pages/landing-page';
 import { LoginPage } from '@/pages/login-page';
+import { MyToastsPage } from '@/pages/my-toasts-page';
 import { NotFoundPage } from '@/pages/not-found-page';
 import { OnboardingPage } from '@/pages/onboarding-page';
 import { PlaceholderPage } from '@/pages/placeholder-page';
@@ -42,6 +43,7 @@ export const routes: RouteObject[] = [
         element: <AppLayout />,
         children: [
           { path: 'home', element: <HomePage /> },
+          { path: 'toasts', element: <MyToastsPage /> },
           { path: 'leaderboards', element: <PlaceholderPage page="leaderboards" /> },
           { path: 'clans', element: <PlaceholderPage page="clans" /> },
           { path: 'clans/new', element: <PlaceholderPage page="clanNew" /> },
