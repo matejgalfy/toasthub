@@ -1,13 +1,21 @@
 import { randomUUID } from 'node:crypto';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { type CreateToastResponse, FlagType, type LocalDate, type Toast } from '@toasthub/shared';
+import {
+  type AchievementCode,
+  AchievementTrigger,
+  type CreateToastResponse,
+  FlagType,
+  type LocalDate,
+  type Toast,
+} from '@toasthub/shared';
 import { and, count, eq, isNull, sql } from 'drizzle-orm';
 
 import { AppError } from '../../common/errors/app-error';
 import { RateLimiter } from '../../common/rate-limiter';
 import { type Database, DB, type DbExecutor } from '../../db/db.module';
 import { clanMembership, flag, like, toast } from '../../db/schema';
+import { AchievementsService } from '../achievements/achievements.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
 import { countableToasts } from './countable-toasts';
@@ -26,6 +34,7 @@ export class ToastsService {
 
   constructor(
     @Inject(DB) private readonly db: Database,
+    private readonly achievements: AchievementsService,
     private readonly settings: SettingsService,
     private readonly storage: StorageService,
   ) {}
@@ -59,8 +68,11 @@ export class ToastsService {
       if (photoKey) await this.deletePhotoQuietly(photoKey);
       throw error;
     }
-    // Achievements are evaluated from M7 on.
-    return { toast: await this.toDto(created), newAchievements: [] };
+    const [dto, newAchievements] = await Promise.all([
+      this.toDto(created),
+      this.evaluateAchievements(created),
+    ]);
+    return { toast: dto, newAchievements };
   }
 
   /**
@@ -103,6 +115,22 @@ export class ToastsService {
       .insert(flag)
       .values({ type: FlagType.count_threshold, subjectUserId: userId, localDate })
       .onConflictDoNothing();
+  }
+
+  /**
+   * The toast is already saved, so a failure here must not become an error that the client retries (and
+   * so logs a second toast). Count and streak achievements catch up with the next toast.
+   */
+  private async evaluateAchievements(created: ToastRow): Promise<AchievementCode[]> {
+    try {
+      return await this.achievements.evaluate(created.userId, {
+        trigger: AchievementTrigger.toast_logged,
+        eatenAt: created.eatenAt,
+      });
+    } catch (error) {
+      this.logger.error({ err: error, toastId: created.id }, 'Could not evaluate achievements');
+      return [];
+    }
   }
 
   private async storePhoto(userId: string, upload: Buffer): Promise<string> {

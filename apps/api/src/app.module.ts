@@ -7,6 +7,7 @@ import { ConfigService } from './config/config.service';
 import { DbModule } from './db/db.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { HomeModule } from './modules/home/home.module';
 import { MeModule } from './modules/me/me.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ToastsModule } from './modules/toasts/toasts.module';
@@ -31,6 +32,7 @@ import { ToastsModule } from './modules/toasts/toasts.module';
     DbModule,
     AuthModule,
     HealthModule,
+    HomeModule,
     MeModule,
     SettingsModule,
     ToastsModule,

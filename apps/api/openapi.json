@@ -43,6 +43,35 @@
         ]
       }
     },
+    "/api/v1/home": {
+      "get": {
+        "operationId": "HomeController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Home"
+        ]
+      }
+    },
     "/api/v1/me": {
       "get": {
         "operationId": "MeController_get",
@@ -222,6 +251,87 @@
         },
         "required": [
           "status"
+        ],
+        "additionalProperties": false
+      },
+      "HomeResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "todayCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "streak": {
+            "type": "object",
+            "properties": {
+              "current": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "longest": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "current",
+              "longest"
+            ],
+            "additionalProperties": false
+          },
+          "clanStreak": {
+            "type": "object",
+            "properties": {
+              "current": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "longest": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "current",
+              "longest"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "fact": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "text"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "toastOfTheWeek": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "todayCount",
+          "streak",
+          "clanStreak",
+          "fact",
+          "toastOfTheWeek"
         ],
         "additionalProperties": false
       },

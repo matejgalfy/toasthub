@@ -1,5 +1,11 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { type CreateToastResponse, localDate, PHOTO_MAX_BYTES } from '@toasthub/shared';
+import {
+  type AchievementCode,
+  addDays,
+  type CreateToastResponse,
+  localDate,
+  PHOTO_MAX_BYTES,
+} from '@toasthub/shared';
 import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -7,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type SignedIn, signIn, WEB_ORIGIN } from '../../../test/auth';
 import { createTestApp } from '../../../test/create-app';
 import { type Database, DB } from '../../db/db.module';
-import { clan, clanMembership, flag, like, toast } from '../../db/schema';
+import { clan, clanMembership, flag, like, toast, userAchievement } from '../../db/schema';
 import { SettingsService } from '../settings/settings.service';
 import { TOAST_RATE_LIMIT } from './toasts.service';
 
@@ -54,9 +60,24 @@ function deleteToast(as: SignedIn, id: string) {
 }
 
 async function createToast(as: SignedIn): Promise<CreateToastResponse['toast']> {
-  const res = await postToast(as);
+  return (await createToastWithAchievements(as)).toast;
+}
+
+async function createToastWithAchievements(
+  as: SignedIn,
+  body?: ReturnType<typeof filePart>,
+): Promise<CreateToastResponse> {
+  const res = await postToast(as, body);
   expect(res.statusCode).toBe(201);
-  return res.json<CreateToastResponse>().toast;
+  return res.json<CreateToastResponse>();
+}
+
+/**
+ * Early bird and midnight snack depend on the hour the test runs, so tests ignore them (the unit tests of
+ * the rules cover them).
+ */
+function withoutTimeOfDay(codes: AchievementCode[]): AchievementCode[] {
+  return codes.filter((code) => code !== 'early_bird' && code !== 'midnight_snack');
 }
 
 function photo(width: number, height: number) {
@@ -87,8 +108,9 @@ describe('POST /toasts', () => {
         localDate: localDate(new Date()),
         photoUrl: null,
       },
-      newAchievements: [],
+      newAchievements: expect.any(Array) as unknown,
     });
+    expect(withoutTimeOfDay(body.newAchievements)).toEqual(['first_bite']);
     const eatenAt = Date.parse(body.toast.eatenAt);
     expect(eatenAt).toBeGreaterThanOrEqual(before - 1000);
     expect(eatenAt).toBeLessThanOrEqual(Date.now() + 1000);
@@ -166,6 +188,67 @@ describe('POST /toasts', () => {
 
     const bob = await signIn(app, 'bob@example.com');
     expect((await postToast(bob)).statusCode).toBe(201);
+  });
+});
+
+describe('achievements', () => {
+  /** Inserts countable toasts at midday in Bratislava, `daysAgo` days before today. */
+  async function addPastToasts(daysAgo: number[], extra: Partial<typeof toast.$inferInsert> = {}) {
+    const today = localDate(new Date());
+    await db.insert(toast).values(
+      daysAgo.map((n) => ({
+        userId: ann.userId,
+        eatenAt: new Date(`${addDays(today, -n)}T10:00:00Z`),
+        ...extra,
+      })),
+    );
+  }
+
+  async function newAchievements(body?: ReturnType<typeof filePart>) {
+    return withoutTimeOfDay((await createToastWithAchievements(ann, body)).newAchievements);
+  }
+
+  it('awards first_bite once and stores it', async () => {
+    expect(await newAchievements()).toEqual(['first_bite']);
+    expect(await newAchievements()).toEqual([]);
+
+    const rows = await db
+      .select()
+      .from(userAchievement)
+      .where(eq(userAchievement.userId, ann.userId));
+    expect(rows.map((row) => row.achievementCode)).toContain('first_bite');
+  });
+
+  it('awards shutterbug for the first toast with a photo', async () => {
+    await createToast(ann);
+    expect(await newAchievements(filePart(await photo(8, 8)))).toEqual(['shutterbug']);
+    expect(await newAchievements(filePart(await photo(8, 8)))).toEqual([]);
+  });
+
+  it('awards week_warrior when the toast completes a 7-day streak', async () => {
+    await addPastToasts([6, 5, 4, 3, 2, 1]);
+    expect(await newAchievements()).toEqual(['first_bite', 'week_warrior']);
+  });
+
+  it('awards centurion at 100 countable toasts', async () => {
+    // Every other day, so no streak achievement gets in the way.
+    await addPastToasts(Array.from({ length: 98 }, (_, i) => 2 + 2 * (i % 20)));
+    await addPastToasts([1], { deletedAt: new Date() });
+    await addPastToasts([1], { status: 'rejected' });
+    expect(await newAchievements()).toEqual(['first_bite']);
+    expect(await newAchievements()).toEqual(['centurion']);
+  });
+
+  it('keeps earned achievements when the toast is deleted', async () => {
+    const { toast: first } = await createToastWithAchievements(ann);
+    expect((await deleteToast(ann, first.id)).statusCode).toBe(204);
+
+    const rows = await db
+      .select()
+      .from(userAchievement)
+      .where(eq(userAchievement.userId, ann.userId));
+    expect(rows.map((row) => row.achievementCode)).toContain('first_bite');
+    expect(await newAchievements()).toEqual([]);
   });
 });
 

@@ -44,7 +44,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M4 | Web shell (UI kit, i18n, API client, layout) | `m04-web-shell` | M1 | ☑ |
 | M5 | Auth UI, onboarding, settings, E2E harness | `m05-auth-ui` | M2, M4 | ☑ |
 | M6 | Toast logging backend (photos, storage, flags) | `m06-toasts-api` | M3 | ☑ |
-| M7 | Streaks, achievements, facts, `/home` | `m07-home-api` | M6 | ☐ |
+| M7 | Streaks, achievements, facts, `/home` | `m07-home-api` | M6 | ☑ |
 | M8 | Home screen UI and PWA | `m08-home-ui` | M5, M7 | ☐ |
 | M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☐ |
 | M10 | Profile UI | `m10-profile-ui` | M8, M9 | ☐ |
@@ -504,3 +504,15 @@ milestones._
 - For M7: `ToastsService.create` returns `newAchievements: []`; call the evaluator after the insert transaction.
   For M8: the generated client types the multipart body, but openapi-fetch needs a `FormData` `bodySerializer`.
   Soft-deleted toasts keep their photo object (D7, D39); nothing removes orphaned photos yet.
+- **M7** — New api modules: `streaks` (`StreaksService.forUser/forClan`, read-time over the distinct `local_date`s,
+  pure `computeStreak()` in `streak.ts`), `achievements` (`AchievementsService.evaluate(userId, event)`, pure
+  rules in `achievement-rules.ts`, no routes) and `home` (`GET /home` + `FactsService`). `shared` has
+  `streakSchema` (reuse it for M9 stats and M11 clan detail) and `homeResponseSchema` (D40).
+- For M11 / M15: call `achievements.evaluate(userId, { trigger: 'clan_joined' })` (or `'totw_won'`) after the
+  transaction commits, like `ToastsService.create` does; it returns only codes this call inserted. For M15:
+  `toastOfTheWeek` is `z.null()` in `homeResponseSchema` for now; replace it and run `bun run openapi`.
+- For M8: optimistic "+ Toast" = `todayCount + 1`; if `todayCount` was 0, `streak.current + 1` (and `longest`
+  at least that), since the current streak already counts up to yesterday. `clanStreak` works the same way.
+- Int tests can't pick the hour `eaten_at` gets (Postgres `now()`), so toast tests drop `early_bird` and
+  `midnight_snack` (`withoutTimeOfDay`); the unit tests cover them. Past toasts are inserted directly at
+  `<date>T10:00:00Z` (midday in Bratislava, DST-proof).

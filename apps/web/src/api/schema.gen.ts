@@ -36,6 +36,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/home': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['HomeController_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/me': {
     parameters: {
       query?: never;
@@ -91,6 +107,22 @@ export interface components {
     HealthDto_Output: {
       /** @enum {string} */
       status: 'ok';
+    };
+    HomeResponseDto_Output: {
+      todayCount: number;
+      streak: {
+        current: number;
+        longest: number;
+      };
+      clanStreak: {
+        current: number;
+        longest: number;
+      } | null;
+      fact: {
+        id: number;
+        text: string;
+      } | null;
+      toastOfTheWeek: null;
     };
     MeResponseDto_Output: {
       user: {
@@ -208,6 +240,25 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HealthDto_Output'];
+        };
+      };
+    };
+  };
+  HomeController_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HomeResponseDto_Output'];
         };
       };
     };
