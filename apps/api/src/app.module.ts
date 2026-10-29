@@ -6,6 +6,7 @@ import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
 import { DbModule } from './db/db.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ClansModule } from './modules/clans/clans.module';
 import { HealthModule } from './modules/health/health.module';
 import { HomeModule } from './modules/home/home.module';
 import { MeModule } from './modules/me/me.module';
@@ -32,6 +33,7 @@ import { UsersModule } from './modules/users/users.module';
     }),
     DbModule,
     AuthModule,
+    ClansModule,
     HealthModule,
     HomeModule,
     MeModule,

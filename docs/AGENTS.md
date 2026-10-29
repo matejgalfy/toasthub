@@ -103,6 +103,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `src/db/schema/index.ts`; generate migrations with `db:generate`, never edit an applied one.
 - Lists: parse `pageQuerySchema` from `shared`, fetch `limit + 1` rows ordered by a unique keyset, and return
   `toPage(rows, limit, keysetOf)`. Read the cursor with `decodeCursor(cursor, keysetSchema)` (`src/common/pagination.ts`).
+- A check-then-insert can lose a race to a unique index: catch it with `uniqueViolation(error)` (`src/db/pg-error.ts`,
+  returns the index name) and answer with the 409 the check gives. Rules that depend on a clan lock its row first.
 - Counts, streaks, stats, leaderboards and achievements filter `toast` with `countableToasts()`
   (`src/modules/toasts/countable-toasts.ts`: not deleted, not rejected, owner not banned). Never re-spell it.
 - Photos: store and sign through `StorageService` (`src/modules/storage`). Check visibility before you call

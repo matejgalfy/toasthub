@@ -49,7 +49,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M8b | Toast sessions: history and editing (API + UI) | `m08b-toast-sessions` | M8 | ☑ |
 | M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☑ |
 | M10 | Profile UI | `m10-profile-ui` | M8b, M9 | ☑ |
-| M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☐ |
+| M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☑ |
 | M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☐ |
 | M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☐ |
 | M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☐ |
@@ -600,3 +600,15 @@ milestones._
   `className` for section-sized spinners. `renderWithApp()` has a `routePath` option for pages that read `useParams()`.
 - Any mutation that changes toasts must also invalidate `usersQueryKey` (M16 reject/ban, M13 clan join changes a
   clan-only profile's `access`: invalidate `['users']` there too). For M13: link member names to `/u/:id`.
+- **M11** — `src/modules/clans`: `GET`/`POST /clans`, `GET`/`PATCH`/`DELETE /clans/:id`, `/join`, `/leave`, `/requests`
+  (+ `approve`, `reject`) and `DELETE /me/clan-request`. Pure role rules in `clans.policy.ts` (`canActOnClan`,
+  `canActOnMember`, `assertCanActOnClan`, `assertHasRoom`); the matrix already covers M12's kick, role change and
+  transfer. Schemas in `shared/clan.ts`, plus `userSummarySchema` (`{id, displayName, avatarId}`) in `shared/profile.ts`
+  for any list of users. Shapes, locks and error order: SPEC §12 D47.
+- For M12: lock the clan row (`FOR UPDATE`) in transfer, role change and kick, as approve does, and reuse
+  `ClansService`'s `loadClan()`/`roleIn()`. `uniqueViolation(error)` (`src/db/pg-error.ts`) names the violated index,
+  so a race lost on `clan_membership_one_owner` can become a 409. For M13: `GET /clans/:id` has `myRole` and
+  `myRequest` (both nullable); joining or leaving changes clan-only profile access, so invalidate `['users']` too.
+- For M16: a banned member keeps the membership, is listed and counts toward the limit; decide whether a ban
+  removes it. Gotcha: parallel `app.inject()` calls only race once the pool has open connections (otherwise the
+  first commits while the others connect), so concurrency tests call `warmPool()` first (`clans.int.test.ts`).

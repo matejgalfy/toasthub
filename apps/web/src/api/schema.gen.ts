@@ -4,6 +4,134 @@
  */
 
 export interface paths {
+  '/api/v1/clans': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['ClansController_list'];
+    put?: never;
+    post: operations['ClansController_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clans/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['ClansController_get'];
+    put?: never;
+    post?: never;
+    delete: operations['ClansController_delete'];
+    options?: never;
+    head?: never;
+    patch: operations['ClansController_update'];
+    trace?: never;
+  };
+  '/api/v1/clans/{id}/join': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ClansController_join'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clans/{id}/leave': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ClansController_leave'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clans/{id}/requests': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['ClansController_listRequests'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clans/{id}/requests/{rid}/approve': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ClansController_approve'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clans/{id}/requests/{rid}/reject': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ClansController_reject'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/me/clan-request': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['ClansController_cancelMyRequest'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/healthz': {
     parameters: {
       query?: never;
@@ -216,6 +344,157 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    ClanPageDto_Output: {
+      items: {
+        /** Format: uuid */
+        id: string;
+        name: string;
+        description: string | null;
+        memberCount: number;
+        /** Format: date-time */
+        createdAt: string;
+      }[];
+      nextCursor: string | null;
+    };
+    CreateClanDto: {
+      name: string;
+      description?: string | null;
+    };
+    CreateClanResponseDto_Output: {
+      clan: {
+        /** Format: uuid */
+        id: string;
+        name: string;
+        description: string | null;
+        memberCount: number;
+        /** Format: date-time */
+        createdAt: string;
+      };
+      newAchievements: (
+        | 'first_bite'
+        | 'shutterbug'
+        | 'week_warrior'
+        | 'toast_devotee'
+        | 'centurion'
+        | 'toastmaster'
+        | 'clansman'
+        | 'golden_toast'
+        | 'early_bird'
+        | 'midnight_snack'
+      )[];
+    };
+    ClanDetailDto_Output: {
+      clan: {
+        /** Format: uuid */
+        id: string;
+        name: string;
+        description: string | null;
+        memberCount: number;
+        /** Format: date-time */
+        createdAt: string;
+      };
+      streak: {
+        current: number;
+        longest: number;
+      };
+      members: {
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** @enum {string} */
+        role: 'owner' | 'officer' | 'member';
+        /** Format: date-time */
+        joinedAt: string;
+      }[];
+      /** @enum {string|null} */
+      myRole: 'owner' | 'officer' | 'member' | null;
+      myRequest: {
+        /** Format: uuid */
+        id: string;
+        /** Format: uuid */
+        clanId: string;
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** @enum {string} */
+        status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+        /** Format: date-time */
+        createdAt: string;
+      } | null;
+    };
+    UpdateClanDto: {
+      name?: string;
+      description?: string | null;
+    };
+    ClanResponseDto_Output: {
+      clan: {
+        /** Format: uuid */
+        id: string;
+        name: string;
+        description: string | null;
+        memberCount: number;
+        /** Format: date-time */
+        createdAt: string;
+      };
+    };
+    ClanJoinRequestResponseDto_Output: {
+      request: {
+        /** Format: uuid */
+        id: string;
+        /** Format: uuid */
+        clanId: string;
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** @enum {string} */
+        status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+        /** Format: date-time */
+        createdAt: string;
+      };
+    };
+    ClanJoinRequestListDto_Output: {
+      items: {
+        /** Format: uuid */
+        id: string;
+        /** Format: uuid */
+        clanId: string;
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** @enum {string} */
+        status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+        /** Format: date-time */
+        createdAt: string;
+      }[];
+    };
+    ClanMembershipResponseDto_Output: {
+      membership: {
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** @enum {string} */
+        role: 'owner' | 'officer' | 'member';
+        /** Format: date-time */
+        joinedAt: string;
+        /** Format: uuid */
+        clanId: string;
+      };
+    };
     HealthDto_Output: {
       /** @enum {string} */
       status: 'ok';
@@ -432,6 +711,237 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  ClansController_list: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanPageDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateClanDto'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CreateClanResponseDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanDetailDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClansController_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateClanDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanResponseDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_join: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanJoinRequestResponseDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_leave: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClansController_listRequests: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanJoinRequestListDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_approve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        rid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanMembershipResponseDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_reject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        rid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClansController_cancelMyRequest: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   HealthController_healthz: {
     parameters: {
       query?: never;

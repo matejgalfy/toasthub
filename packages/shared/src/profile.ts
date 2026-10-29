@@ -14,6 +14,14 @@ export const ProfileAccess = { full: 'full', reduced: 'reduced' } as const;
 export const profileAccessSchema = z.enum(ProfileAccess);
 export type ProfileAccess = z.infer<typeof profileAccessSchema>;
 
+/** A user as shown in lists (clan members, join requests). Never carries the email. */
+export const userSummarySchema = z.object({
+  id: z.uuid(),
+  displayName: z.string(),
+  avatarId: avatarIdSchema.nullable(),
+});
+export type UserSummary = z.infer<typeof userSummarySchema>;
+
 export const userParamsSchema = z.object({ id: z.uuid() });
 export type UserParams = z.infer<typeof userParamsSchema>;
 
