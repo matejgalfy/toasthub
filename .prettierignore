@@ -7,3 +7,7 @@ test-results/
 # Hand-wrapped planning docs; Prettier would realign every table.
 docs/SPEC.md
 docs/PLAN.md
+
+# Generated: `bun run openapi`, drizzle-kit migration snapshots.
+apps/api/openapi.json
+apps/api/src/db/migrations/meta/

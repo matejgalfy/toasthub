@@ -21,27 +21,36 @@ How to work in this repo. `docs/SPEC.md` says **what** to build, `docs/PLAN.md` 
 
 Run from the repo root:
 
-| Command                                     | What it does                                                |
-| ------------------------------------------- | ----------------------------------------------------------- |
-| `bun install`                               | Install all workspaces; also installs the lefthook git hook |
-| `bun run dev`                               | Build `shared`, then watch `shared`, run `api` and `web`    |
-| `bun run build`                             | Build every workspace in dependency order                   |
-| `bun run lint`                              | ESLint, zero warnings allowed                               |
-| `bun run format` / `bun run format:check`   | Prettier write / check                                      |
-| `bun run typecheck`                         | `tsc --noEmit` in every workspace                           |
-| `bun run test`                              | Vitest in every workspace that has tests                    |
-| `bun run --filter @toasthub/<pkg> <script>` | Run one workspace's script (`api`, `web`, `shared`, `e2e`)  |
+| Command                                      | What it does                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------- |
+| `bun install`                                | Install all workspaces; also installs the lefthook git hook       |
+| `bun run dev`                                | Build `shared`, then watch `shared`, run `api` and `web`          |
+| `bun run build`                              | Build every workspace in dependency order                         |
+| `bun run lint`                               | ESLint, zero warnings allowed                                     |
+| `bun run format` / `bun run format:check`    | Prettier write / check                                            |
+| `bun run typecheck`                          | `tsc --noEmit` in every workspace                                 |
+| `bun run test`                               | Vitest in every workspace (api integration tests need Docker)     |
+| `bun run db:migrate`                         | Apply Drizzle migrations to `DATABASE_URL` (from `apps/api/.env`) |
+| `bun run openapi`                            | Regenerate `apps/api/openapi.json` (commit it)                    |
+| `bun run --filter @toasthub/<pkg> <script>`  | Run one workspace's script (`api`, `web`, `shared`, `e2e`)        |
+| `bun run --filter @toasthub/api test:unit`   | api unit tests only (no Docker); `test:int` for integration       |
+| `bun run --filter @toasthub/api db:generate` | Generate a migration from the Drizzle schema (drizzle-kit)        |
 
-Dev URLs: web http://localhost:5173, api http://localhost:3000 (`/healthz`).
+Local services: `docker compose -f infra/docker/docker-compose.yml up -d` (Postgres, MinIO + bucket, Mailpit),
+then `cp apps/api/.env.example apps/api/.env` once and `bun run db:migrate`.
 
-CI (`.github/workflows/ci.yml`) runs format check → lint → typecheck → test → build. The pre-commit hook runs
-Prettier (auto-fix + re-stage) and ESLint on staged files. Don't bypass it with `--no-verify`.
+Dev URLs: web http://localhost:5173, api http://localhost:3000 (`/healthz`, `/readyz`, docs at `/api/v1/docs`),
+Mailpit http://localhost:8025, MinIO console http://localhost:9001.
+
+CI (`.github/workflows/ci.yml`) has two jobs: `check` (format → lint → typecheck → build → `openapi.json` is up to
+date, uploaded as an artifact) and `test` (all tests, Testcontainers on the runner's Docker). The pre-commit hook
+runs Prettier (auto-fix + re-stage) and ESLint on staged files. Don't bypass it with `--no-verify`.
 
 ## Repo layout
 
 ```
 apps/web          React SPA (Vite)            → src/components, src/features/<area>, src/pages, src/api, src/i18n
-apps/api          NestJS on Fastify           → src/modules/<area>, src/db, src/jobs
+apps/api          NestJS on Fastify           → src/modules/<area>, src/config, src/db, src/common, src/jobs, test/
 packages/shared   Zod schemas, DTO types, enums, achievement definitions — imported by web and api
 e2e               Playwright tests (from M5)
 infra             docker/ and k8s/ (from M1 / M19)
@@ -80,8 +89,16 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 - Controllers stay thin: parse input, call a service, return a DTO. Business rules live in services or in pure
   functions, which are easy to unit test.
 - Request and response shapes are Zod schemas in `packages/shared`. The api never defines its own copy of a DTO.
-- Errors: throw Nest HTTP exceptions or domain errors that the global filter maps to the SPEC §8 error format and
-  codes (filter from M1). Never leak internal messages, stack traces or emails to clients.
+- Errors: throw `AppError(code, message)` (`src/common/errors/app-error.ts`) or Nest HTTP exceptions. The global
+  filter maps them to the SPEC §8 format (rules in SPEC §12 D24). Never leak internal messages, stack traces or
+  emails to clients.
+- Config: read env only through `ConfigService.get('NAME')`. A new variable goes into `src/config/env.ts` (Zod) and
+  `apps/api/.env.example`.
+- Database: inject with `@Inject(DB) db: Database` (`src/db/db.module.ts`). Tables are exported from
+  `src/db/schema/index.ts`; generate migrations with `db:generate`, never edit an applied one.
+- Lists: parse `pageQuerySchema` from `shared`, fetch `limit + 1` rows ordered by a unique keyset, and return
+  `toPage(rows, limit, keysetOf)`. Read the cursor with `decodeCursor(cursor, keysetSchema)` (`src/common/pagination.ts`).
+- Any new app instance (scripts, tests) uses `createFastifyAdapter()` + `configureApp()` from `src/app.setup.ts`.
 - Don't log emails, tokens or auth headers (the pino redaction from M1 is a safety net, not a licence).
 - Don't use `import type` for classes that Nest injects. DI needs the runtime reference for decorator metadata.
 
@@ -95,7 +112,9 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 ## Tests
 
 - Unit tests sit next to the code: `foo.ts` → `foo.test.ts`. Build configs exclude `*.test.ts`.
-- API integration tests (Testcontainers Postgres, from M1) use `*.int.test.ts` next to the module they cover.
+- API integration tests use `*.int.test.ts` next to the module they cover. One Testcontainers Postgres runs per
+  test run with migrations applied, and every `public` table is truncated before each test. Build the app with
+  `createTestApp()` from `apps/api/test/create-app.ts` and call it with `app.inject()`.
 - E2E tests live in `e2e/` (Playwright, mobile viewport, from M5).
 - Business logic named in SPEC §11 (streaks, ranking, achievements, TOTW draw, visibility) must have unit tests.
   Each endpoint needs an integration test.

@@ -9,13 +9,18 @@ streaks, earn achievements, join clans, climb leaderboards.
 
 ## Quick start
 
-Prerequisites: **Node 24** (see `.node-version`) and **Bun** (version in `package.json` → `packageManager`).
-Bun is only the package manager. The apps run on Node.
+Prerequisites: **Node 24** (see `.node-version`), **Bun** (version in `package.json` → `packageManager`) and
+**Docker**. Bun is only the package manager. The apps run on Node.
 
 ```sh
-bun install       # installs all workspaces and the pre-commit hook
-bun run dev       # web → http://localhost:5173, api → http://localhost:3000/healthz
+bun install                                            # all workspaces + the pre-commit hook
+docker compose -f infra/docker/docker-compose.yml up -d # Postgres, MinIO, Mailpit
+cp apps/api/.env.example apps/api/.env                 # once
+bun run db:migrate
+bun run dev       # web → http://localhost:5173, api → http://localhost:3000/readyz
 ```
+
+API docs (outside production): http://localhost:3000/api/v1/docs. Mailpit: http://localhost:8025.
 
 Checks (the same ones CI runs):
 
@@ -35,6 +40,7 @@ bun run build
 | `apps/api`        | NestJS 11 on Fastify                        |
 | `packages/shared` | Zod schemas and types shared by web and api |
 | `e2e`             | Playwright end-to-end tests                 |
+| `infra/docker`    | Docker Compose for local services           |
 | `docs`            | Spec, plan, contributor guide               |
 
 ## License

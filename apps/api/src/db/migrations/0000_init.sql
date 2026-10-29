@@ -1,0 +1,1 @@
+-- Intentionally empty: starts the migration journal. Tables arrive from M2 on.

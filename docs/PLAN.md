@@ -37,7 +37,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | # | Milestone | Branch | Depends on | Status |
 |---|-----------|--------|------------|--------|
 | M0 | Monorepo scaffold, tooling, CI | `m00-scaffold` | — | ☑ |
-| M1 | API foundation and local infra | `m01-api-foundation` | M0 | ☐ |
+| M1 | API foundation and local infra | `m01-api-foundation` | M0 | ☑ |
 | M2 | Auth backend (Better Auth) | `m02-auth-api` | M1 | ☐ |
 | M3 | Domain schema, time utils, seeds | `m03-domain-schema` | M2 | ☐ |
 | M4 | Web shell (UI kit, i18n, API client, layout) | `m04-web-shell` | M1 | ☐ |
@@ -416,3 +416,20 @@ milestones._
   plus Testcontainers and can split the CI test step into its own job.
 - `docs/SPEC.md` and `docs/PLAN.md` are in `.prettierignore` (hand-wrapped; Prettier would realign every table).
   The root `AGENTS.md` is a pointer to `docs/AGENTS.md`.
+- **M1** — Cross-cutting api code lives outside `modules/`: `src/config` (Zod env → `ConfigService.get()`), `src/db`
+  (`DB` token → Drizzle on `pg`, `casing: 'snake_case'`, schema entry `src/db/schema/index.ts`, migrations in
+  `src/db/migrations`), `src/common` (`AppError`, error filter, pino options, cursor helpers). `configureApp()` +
+  `createFastifyAdapter()` in `app.setup.ts` are shared by `main.ts`, `bun run openapi` and tests: use them for
+  any new app instance. Services throw `AppError(code, message)`; the filter maps it (D24).
+- Tests: `*.test.ts` = unit project (no Docker), `*.int.test.ts` = int project (one Testcontainers Postgres per
+  run, migrated in `test/global-setup.ts`, every `public` table truncated before each test, files run serially).
+  `test/create-app.ts` → `createTestApp(envOverrides)` builds the full app for `app.inject()`. If M3 seeds
+  reference rows (settings, facts) in a migration, exclude those tables from the truncate in `test/setup-int.ts`.
+- `apps/api/openapi.json` is committed and CI fails if it is stale: run `bun run openapi` after changing routes or
+  DTOs. DTO classes (`createZodDto(sharedSchema)`) are named after the schema they should have in the client.
+  Health probes are not logged (nestjs-pino `exclude`). Request IDs come from Fastify's `genReqId` and are echoed
+  in `x-request-id`.
+- Not done here (left to the milestone that needs it): CORS, `trustProxy`, S3/SMTP env vars. Local S3 uses the
+  `pgsty/minio` image because upstream MinIO images are gone (D23); compose creates the `toasthub-photos` bucket.
+- Gotcha (Windows): if `bun add` ends in `EEXIST ... failed to symlink`, delete every `node_modules` folder and run
+  `bun install` again. This branch is stacked on `m00-scaffold`, which was not merged to `main` yet.

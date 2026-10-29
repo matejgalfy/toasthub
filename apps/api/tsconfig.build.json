@@ -6,5 +6,6 @@
     "sourceMap": true,
     "customConditions": []
   },
+  "include": ["src"],
   "exclude": ["src/**/*.test.ts"]
 }
