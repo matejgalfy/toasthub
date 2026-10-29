@@ -21,6 +21,8 @@ export const DISPLAY_NAME_MIN = 2;
 export const DISPLAY_NAME_MAX = 30;
 export const AVATAR_COUNT = 6;
 
+// Leading and trailing spaces are trimmed, as the magic-link form does before sending.
+export const emailSchema = z.string().trim().pipe(z.email());
 export const displayNameSchema = z.string().trim().min(DISPLAY_NAME_MIN).max(DISPLAY_NAME_MAX);
 export const avatarIdSchema = z.int().min(1).max(AVATAR_COUNT);
 

@@ -3,19 +3,24 @@ import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 
 import { createQueryClient } from '@/api/query-client';
-import { PreviewSessionProvider } from '@/features/auth/preview-session';
+import { meQueryKey } from '@/features/auth/me-query';
+import { ApiSessionProvider } from '@/features/auth/session';
 import { routes } from '@/routes';
 
-const queryClient = createQueryClient();
+const queryClient = createQueryClient({
+  // The guards then send the user to /login.
+  onUnauthenticated: () => {
+    queryClient.setQueryData(meQueryKey, null);
+  },
+});
 const router = createBrowserRouter(routes);
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      {/* M5: replace with a provider that reads GET /me. */}
-      <PreviewSessionProvider>
+      <ApiSessionProvider>
         <RouterProvider router={router} />
-      </PreviewSessionProvider>
+      </ApiSessionProvider>
     </QueryClientProvider>
   );
 }

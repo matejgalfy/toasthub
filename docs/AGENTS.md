@@ -31,6 +31,7 @@ Run from the repo root:
 | `bun run format` / `bun run format:check`    | Prettier write / check                                            |
 | `bun run typecheck`                          | `tsc --noEmit` in every workspace                                 |
 | `bun run test`                               | Vitest in every workspace (api integration tests need Docker)     |
+| `bun run e2e`                                | Playwright against the dev stack (needs Postgres + Mailpit)       |
 | `bun run db:migrate`                         | Apply Drizzle migrations to `DATABASE_URL` (from `apps/api/.env`) |
 | `bun run db:seed`                            | Idempotent dev sample data (users, a clan, toasts); not in prod   |
 | `bun run openapi`                            | Regenerate `apps/api/openapi.json` + the web client (commit both) |
@@ -130,6 +131,10 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `status`, `fields`); show `t(errorMessageKey(error))`. Never hand-write a request or response type.
 - Route guards (`src/features/auth/guards.tsx`) are layout routes: `RequireAuth` > `RequireOnboarded` >
   `RequireAdmin`, plus `RedirectIfAuthenticated` for landing and login. Read the user with `useUser()`.
+- The session is the `['me']` query (`features/auth/me-query.ts`): `null` = signed out. Any 401 sets it to
+  `null`, so the guards send the user to `/login`. Change the own profile with `useUpdateMe()`
+  (`features/account`), which writes the response back into that query. Language changes go through
+  `useChangeLocale()` (saves to `/me` when signed in), never `changeLocale()` directly from UI.
 
 ## Tests
 
@@ -140,9 +145,13 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   session with `signIn(app, email)` from `test/auth.ts` (real magic link via Mailpit); cookie mutations need
   `origin: WEB_ORIGIN`.
 - Web tests are `*.test.ts(x)` with Vitest + Testing Library in jsdom (config in `apps/web/vite.config.ts`).
-  `src/test/setup.ts` starts i18n in English, so assert on English text. Wrap guarded UI in a
-  `SessionProvider` and a memory router (see `guards.test.tsx`).
-- E2E tests live in `e2e/` (Playwright, mobile viewport, from M5).
+  `src/test/setup.ts` starts i18n in English, so assert on English text. Render pages with
+  `renderWithApp(ui, { session: testSession('user'), path })` (`src/test/render.tsx`, `src/test/sessions.ts`)
+  and fake the API with `mockApi(request => jsonResponse(…))` (`src/test/api.ts`), which records requests.
+- E2E tests live in `e2e/tests/*.spec.ts` (Playwright, one `mobile` project = Pixel 7 Chromium). Playwright
+  starts the built api and the Vite dev server, or reuses ones already running. Sign up through the UI with
+  `uniqueEmail()` and read the link with `magicLinkFor(email)` (`e2e/support/mailpit.ts`); the database is
+  not reset between tests, so never rely on it being empty. Use role and label locators with English text.
 - Business logic named in SPEC §11 (streaks, ranking, achievements, TOTW draw, visibility) must have unit tests.
   Each endpoint needs an integration test.
 

@@ -10,7 +10,7 @@ export const resources = { en: { translation: en }, sk: { translation: sk } } as
 
 export const LOCALES = [Locale.sk, Locale.en] as const;
 
-// The device's choice until M5 syncs it with the user's `locale` from /me.
+// The device's choice. Signed-in users' saved `locale` (from /me) overrides it after login.
 const STORAGE_KEY = 'toasthub.locale';
 
 /** Stored choice first, then the browser languages; Slovak only for `sk*`, English otherwise. */

@@ -42,7 +42,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M2 | Auth backend (Better Auth) | `m02-auth-api` | M1 | ☑ |
 | M3 | Domain schema, time utils, seeds | `m03-domain-schema` | M2 | ☑ |
 | M4 | Web shell (UI kit, i18n, API client, layout) | `m04-web-shell` | M1 | ☑ |
-| M5 | Auth UI, onboarding, settings, E2E harness | `m05-auth-ui` | M2, M4 | ☐ |
+| M5 | Auth UI, onboarding, settings, E2E harness | `m05-auth-ui` | M2, M4 | ☑ |
 | M6 | Toast logging backend (photos, storage, flags) | `m06-toasts-api` | M3 | ☐ |
 | M7 | Streaks, achievements, facts, `/home` | `m07-home-api` | M6 | ☐ |
 | M8 | Home screen UI and PWA | `m08-home-ui` | M5, M7 | ☐ |
@@ -479,3 +479,14 @@ milestones._
 - Production JS is 534 kB (165 kB gzip; Zod via `shared` is a large share) and Vite warns about chunk size. Look at
   it in M20's LCP check (route-level `lazy`, or `zod/mini` for the web). Achievement names/descriptions are in
   both locale files already (`achievements.<code>.name|description`).
+- **M5** — Auth UI is live: `/login` + `/auth/callback` (`features/auth`: `auth-api.ts` = plain fetch to Better Auth,
+  `magic-link-form.tsx`), `/onboarding` and `/settings` share `ProfileForm` (`features/account`). The session is
+  the `['me']` query read by `ApiSessionProvider` (D36); `preview-session.tsx` is gone, tests use
+  `src/test/{render,sessions,api}.ts(x)`. Header has a settings (gear) link; new shadcn `input`, `label`, `radio-group`.
+- `shared` gained `emailSchema`. shadcn's CLI wrote `import { cn } from "cn"` and added an npm `cn` package:
+  after `shadcn add`, point imports back to `@/lib/utils` and drop that dependency.
+- E2E (D37): `bun run e2e` needs `docker compose … up -d postgres mailpit` and a migrated DB; first run
+  `bunx playwright install chromium` in `e2e/`. Specs: sign-up → onboarding → home, used link → resend,
+  logout. Not covered: an *expired* link (same `INVALID_TOKEN` path as a used one; the api int test covers it).
+- For M8: the E2E CI job starts only Postgres and Mailpit; add `minio` to its `docker compose up` for the photo
+  test. `/home` is still a placeholder, the onboarding E2E asserts only its heading.

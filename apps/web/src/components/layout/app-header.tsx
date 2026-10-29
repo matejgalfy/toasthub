@@ -1,3 +1,4 @@
+import { Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink } from 'react-router';
 
@@ -32,8 +33,22 @@ export function AppHeader({ showNav = false, wide = false }: AppHeaderProps) {
         </Link>
         {showNav && <TopNav />}
         <LanguageSwitch className="ml-auto" />
+        {showNav && <SettingsLink />}
       </div>
     </header>
+  );
+}
+
+function SettingsLink() {
+  const { t } = useTranslation();
+  return (
+    <NavLink
+      to="/settings"
+      aria-label={t('pages.settings.title')}
+      className="-mr-2 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring aria-[current=page]:text-primary"
+    >
+      <Settings className="size-5" aria-hidden="true" />
+    </NavLink>
   );
 }
 

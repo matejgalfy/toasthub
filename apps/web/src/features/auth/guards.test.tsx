@@ -2,7 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
-import { previewSession, type PreviewKind } from './preview-session';
+import { testSession, type SessionKind } from '@/test/sessions';
+
 import { RedirectIfAuthenticated, RequireAdmin, RequireAuth, RequireOnboarded } from './guards';
 import { SessionProvider, type Session } from './session';
 
@@ -37,7 +38,7 @@ function renderAt(path: string, session: Session) {
 }
 
 describe('route guards', () => {
-  it.each<[string, PreviewKind, string]>([
+  it.each<[string, SessionKind, string]>([
     ['/', 'anonymous', 'landing'],
     ['/', 'user', 'home'],
     ['/onboarding', 'anonymous', 'login'],
@@ -50,7 +51,7 @@ describe('route guards', () => {
     ['/admin', 'user', 'home'],
     ['/admin', 'admin', 'admin'],
   ])('%s as %s shows %s', async (path, kind, expected) => {
-    renderAt(path, previewSession(kind));
+    renderAt(path, testSession(kind));
     expect(await screen.findByText(expected)).toBeInTheDocument();
   });
 

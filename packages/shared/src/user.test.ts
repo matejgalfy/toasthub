@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { updateMeSchema } from './user.js';
+import { emailSchema, updateMeSchema } from './user.js';
 
 describe('updateMeSchema', () => {
   it('accepts an empty patch', () => {
@@ -36,5 +36,15 @@ describe('updateMeSchema', () => {
   it('rejects an unknown locale or visibility', () => {
     expect(updateMeSchema.safeParse({ locale: 'de' }).success).toBe(false);
     expect(updateMeSchema.safeParse({ profileVisibility: 'private' }).success).toBe(false);
+  });
+});
+
+describe('emailSchema', () => {
+  it('trims before checking', () => {
+    expect(emailSchema.parse('  ann@example.com ')).toBe('ann@example.com');
+  });
+
+  it.each(['', 'ann', 'ann@', '@example.com', 'ann @example.com'])('rejects %j', (email) => {
+    expect(emailSchema.safeParse(email).success).toBe(false);
   });
 });

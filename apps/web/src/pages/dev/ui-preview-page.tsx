@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router';
 
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { LanguageSwitch } from '@/components/layout/language-switch';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PREVIEW_KINDS, usePreviewControl } from '@/features/auth/preview-session';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useFormat } from '@/i18n/format';
 
 // Dev-only design preview (not in production builds, so its text is not translated). Edit
@@ -34,7 +35,6 @@ const BUTTON_VARIANTS = [
 const BUTTON_SIZES = ['xs', 'sm', 'default', 'lg'] as const;
 
 export function UiPreviewPage() {
-  const { kind, setKind } = usePreviewControl();
   const format = useFormat();
   return (
     <main className="mx-auto flex max-w-content flex-col gap-10 px-4 py-8">
@@ -42,31 +42,6 @@ export function UiPreviewPage() {
         <h1 className="text-2xl font-bold tracking-tight">UI preview</h1>
         <LanguageSwitch />
       </header>
-
-      <Section title="Preview session (until M5)">
-        <div className="flex flex-wrap gap-2">
-          {PREVIEW_KINDS.map((option) => (
-            <Button
-              key={option}
-              size="sm"
-              variant={option === kind ? 'default' : 'outline'}
-              aria-pressed={option === kind}
-              onClick={() => {
-                setKind(option);
-              }}
-            >
-              {option}
-            </Button>
-          ))}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Then open{' '}
-          <Link to="/" className="text-primary underline">
-            the app
-          </Link>
-          .
-        </p>
-      </Section>
 
       <Section title="Colours">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -101,6 +76,25 @@ export function UiPreviewPage() {
         <div>
           <Button disabled>disabled</Button>
         </div>
+      </Section>
+
+      <Section title="Form controls">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="preview-input">Label</Label>
+          <Input id="preview-input" placeholder="Placeholder" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="preview-invalid">Invalid</Label>
+          <Input id="preview-invalid" defaultValue="x" aria-invalid />
+        </div>
+        <RadioGroup defaultValue="a" aria-label="Radio group">
+          {['a', 'b'].map((value) => (
+            <div key={value} className="flex items-center gap-3">
+              <RadioGroupItem id={`preview-radio-${value}`} value={value} />
+              <Label htmlFor={`preview-radio-${value}`}>Option {value.toUpperCase()}</Label>
+            </div>
+          ))}
+        </RadioGroup>
       </Section>
 
       <Section title="Card">

@@ -32,6 +32,13 @@ bun run test
 bun run build
 ```
 
+End-to-end tests (Playwright, needs the Docker services and a migrated database; installs Chromium once):
+
+```sh
+cd e2e && bunx playwright install chromium && cd ..
+bun run e2e       # builds the api, starts api + web unless already running
+```
+
 ## Layout
 
 | Path              | What                                        |

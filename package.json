@@ -26,6 +26,7 @@
     "db:seed": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api db:seed",
     "openapi": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api openapi && bun run gen:client",
     "gen:client": "bun run --filter @toasthub/web gen:client",
+    "e2e": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api build && bun run --filter @toasthub/e2e e2e",
     "prepare": "lefthook install"
   },
   "devDependencies": {

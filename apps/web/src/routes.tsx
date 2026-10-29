@@ -7,9 +7,13 @@ import {
   RequireAuth,
   RequireOnboarded,
 } from '@/features/auth/guards';
+import { AuthCallbackPage } from '@/pages/auth-callback-page';
 import { LandingPage } from '@/pages/landing-page';
+import { LoginPage } from '@/pages/login-page';
 import { NotFoundPage } from '@/pages/not-found-page';
+import { OnboardingPage } from '@/pages/onboarding-page';
 import { PlaceholderPage } from '@/pages/placeholder-page';
+import { SettingsPage } from '@/pages/settings-page';
 
 // The route tree from SPEC §9. Milestones replace each PlaceholderPage with the real page.
 export const routes: RouteObject[] = [
@@ -20,13 +24,13 @@ export const routes: RouteObject[] = [
         element: <RedirectIfAuthenticated />,
         children: [
           { index: true, element: <LandingPage /> },
-          { path: 'login', element: <PlaceholderPage page="login" /> },
+          { path: 'login', element: <LoginPage /> },
         ],
       },
-      { path: 'auth/callback', element: <PlaceholderPage page="authCallback" /> },
+      { path: 'auth/callback', element: <AuthCallbackPage /> },
       {
         element: <RequireAuth />,
-        children: [{ path: 'onboarding', element: <PlaceholderPage page="onboarding" /> }],
+        children: [{ path: 'onboarding', element: <OnboardingPage /> }],
       },
     ],
   },
@@ -43,7 +47,7 @@ export const routes: RouteObject[] = [
           { path: 'clans/:id', element: <PlaceholderPage page="clan" /> },
           { path: 'u/:id', element: <PlaceholderPage page="profile" /> },
           { path: 'toast-of-the-week', element: <PlaceholderPage page="toastOfTheWeek" /> },
-          { path: 'settings', element: <PlaceholderPage page="settings" /> },
+          { path: 'settings', element: <SettingsPage /> },
         ],
       },
       {
@@ -57,7 +61,7 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-  // Design preview: tokens, components, preview session. Left out of production builds.
+  // Design preview: tokens and components. Left out of production builds.
   ...(import.meta.env.DEV
     ? [
         {
