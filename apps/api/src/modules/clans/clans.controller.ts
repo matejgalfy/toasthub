@@ -3,11 +3,14 @@ import { ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import {
   type ClanDetail,
   clanDetailSchema,
+  type ClanFeedPage,
+  clanFeedPageSchema,
   type ClanJoinRequestList,
   clanJoinRequestListSchema,
   type ClanJoinRequestResponse,
   clanJoinRequestResponseSchema,
   clanListQuerySchema,
+  clanMemberParamsSchema,
   type ClanMembershipResponse,
   clanMembershipResponseSchema,
   type ClanPage,
@@ -16,15 +19,21 @@ import {
   clanRequestParamsSchema,
   type ClanResponse,
   clanResponseSchema,
+  type ClanTransferResponse,
+  clanTransferResponseSchema,
   createClanResponseSchema,
   createClanSchema,
   type CreateClanResponse,
+  pageQuerySchema,
+  transferClanSchema,
+  updateClanMemberSchema,
   updateClanSchema,
 } from '@toasthub/shared';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 
 import type { AuthUser } from '../auth/auth.config';
 import { CurrentUser } from '../auth/auth.decorators';
+import { ClanFeedService } from './clan-feed.service';
 import { ClansService } from './clans.service';
 
 class ClanPageDto extends createZodDto(clanPageSchema) {}
@@ -39,12 +48,21 @@ class ClanParamsDto extends createZodDto(clanParamsSchema) {}
 class ClanRequestParamsDto extends createZodDto(clanRequestParamsSchema) {}
 class CreateClanDto extends createZodDto(createClanSchema) {}
 class UpdateClanDto extends createZodDto(updateClanSchema) {}
+class ClanMemberParamsDto extends createZodDto(clanMemberParamsSchema) {}
+class UpdateClanMemberDto extends createZodDto(updateClanMemberSchema) {}
+class TransferClanDto extends createZodDto(transferClanSchema) {}
+class ClanTransferResponseDto extends createZodDto(clanTransferResponseSchema) {}
+class ClanFeedPageDto extends createZodDto(clanFeedPageSchema) {}
+class PageQueryDto extends createZodDto(pageQuerySchema) {}
 
 @ApiCookieAuth()
 @ApiBearerAuth()
 @Controller()
 export class ClansController {
-  constructor(private readonly clans: ClansService) {}
+  constructor(
+    private readonly clans: ClansService,
+    private readonly feedService: ClanFeedService,
+  ) {}
 
   /** Clans by name, A–Z; `search` matches part of the name. */
   @Get('clans')
@@ -130,6 +148,47 @@ export class ClansController {
     @Param() params: ClanRequestParamsDto,
   ): Promise<void> {
     await this.clans.reject(user.id, params.id, params.rid);
+  }
+
+  /** Promotes a Member to Officer or demotes an Officer. Owner only. */
+  @Patch('clans/:id/members/:userId')
+  @ZodResponse({ status: 200, type: ClanMembershipResponseDto })
+  updateMember(
+    @CurrentUser() user: AuthUser,
+    @Param() params: ClanMemberParamsDto,
+    @Body() body: UpdateClanMemberDto,
+  ): Promise<ClanMembershipResponse> {
+    return this.clans.updateMember(user.id, params.id, params.userId, body.role);
+  }
+
+  /** Kicks a member. The Owner may kick Officers and Members, Officers only Members. */
+  @Delete('clans/:id/members/:userId')
+  @HttpCode(204)
+  async kick(@CurrentUser() user: AuthUser, @Param() params: ClanMemberParamsDto): Promise<void> {
+    await this.clans.kick(user.id, params.id, params.userId);
+  }
+
+  /** Makes another member the Owner; the caller stays as an Officer. Owner only. */
+  @Post('clans/:id/transfer')
+  @HttpCode(200)
+  @ZodResponse({ status: 200, type: ClanTransferResponseDto })
+  transfer(
+    @CurrentUser() user: AuthUser,
+    @Param() params: ClanParamsDto,
+    @Body() body: TransferClanDto,
+  ): Promise<ClanTransferResponse> {
+    return this.clans.transfer(user.id, params.id, body.userId);
+  }
+
+  /** Toast sessions of the current members, newest first. Members only. */
+  @Get('clans/:id/feed')
+  @ZodResponse({ status: 200, type: ClanFeedPageDto })
+  feed(
+    @CurrentUser() user: AuthUser,
+    @Param() params: ClanParamsDto,
+    @Query() query: PageQueryDto,
+  ): Promise<ClanFeedPage> {
+    return this.feedService.list(user.id, params.id, query);
   }
 
   /** Cancels the caller's pending join request; a no-op without one. */

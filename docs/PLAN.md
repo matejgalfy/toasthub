@@ -50,7 +50,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☑ |
 | M10 | Profile UI | `m10-profile-ui` | M8b, M9 | ☑ |
 | M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☑ |
-| M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☐ |
+| M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☑ |
 | M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☐ |
 | M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☐ |
 | M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☐ |
@@ -612,3 +612,16 @@ milestones._
 - For M16: a banned member keeps the membership, is listed and counts toward the limit; decide whether a ban
   removes it. Gotcha: parallel `app.inject()` calls only race once the pool has open connections (otherwise the
   first commits while the others connect), so concurrency tests call `warmPool()` first (`clans.int.test.ts`).
+- **M12** — Clans: `PATCH`/`DELETE /clans/:id/members/:userId`, `POST /clans/:id/transfer` (in `ClansService`, behind
+  `lockTarget()`; policy asserts `assertMayActOnMembers` + `assertCanActOnMember`) and `GET /clans/:id/feed`
+  (`clan-feed.service.ts`, lead toast via a lateral join). `ClansService.authorize(userId, clanId, action)` is the
+  public 404/403 check for other clan services (M14's clan leaderboard). Rules and shapes: SPEC §12 D48.
+- `ToastsModule` is back for reactions only: `POST`/`DELETE /toasts/:id/like`, `POST /toasts/:id/report` (pure rules
+  in `toasts.policy.ts`; `canSeeToast()` joined `canSeePhoto()` in `users.policy.ts`). `likeStats(db, viewerId, ids)`
+  (`toasts/like-stats.ts`) gives `likeCount`/`likedByMe` for any list of lead toasts: use it for TOTW (M15).
+- For M13: feed items carry `toastId` (the lead toast) for like and report; `likedByMe` is per viewer, so update it
+  optimistically and invalidate `['users']` too (profile photos show likes now). A transfer answers with both new
+  memberships; refetch the clan detail after any member change. For M16: a report's flag has `toast_id`,
+  `reporter_id` and `reason` (`null` when empty); a banned member's sessions already leave the feed.
+- Gotcha: a Drizzle `alias()` inside a raw `sql` template renders only its name, so write
+  `FROM ${toast} AS ${earlier}` (see `ToastsService.load()`). `/me/toast-sessions` items still have no like counts.

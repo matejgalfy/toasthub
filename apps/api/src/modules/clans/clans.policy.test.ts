@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { AppError } from '../../common/errors/app-error';
 import {
   assertCanActOnClan,
+  assertCanActOnMember,
   assertHasRoom,
+  assertMayActOnMembers,
   ClanAction,
   canActOnClan,
   canActOnMember,
@@ -102,6 +104,45 @@ describe('assertCanActOnClan', () => {
   it('passes an allowed action', () => {
     expect(codeOf(assertCanActOnClan, 'officer', ClanAction.decideRequest)).toBeNull();
     expect(codeOf(assertCanActOnClan, 'member', ClanAction.leave)).toBeNull();
+  });
+});
+
+describe('assertMayActOnMembers', () => {
+  // Columns: owner, officer, member, not a member.
+  const matrix: Record<MemberAction, readonly (string | null)[]> = {
+    kick: [null, null, 'FORBIDDEN', 'FORBIDDEN'],
+    changeRole: [null, 'FORBIDDEN', 'FORBIDDEN', 'FORBIDDEN'],
+    transferOwnership: [null, 'FORBIDDEN', 'FORBIDDEN', 'FORBIDDEN'],
+  };
+
+  for (const [action, codes] of Object.entries(matrix)) {
+    it.each(ROLES.map((role, i) => [role, codes[i]] as const))(
+      `${action}: %s → %s`,
+      (role, expected) => {
+        expect(codeOf(assertMayActOnMembers, role, action as MemberAction)).toBe(expected);
+      },
+    );
+  }
+});
+
+describe('assertCanActOnMember', () => {
+  it('is a 403 for an Officer who kicks an Officer', () => {
+    expect(codeOf(assertCanActOnMember, 'officer', MemberAction.kick, 'officer', false)).toBe(
+      'FORBIDDEN',
+    );
+  });
+
+  it('is a 403 on oneself', () => {
+    expect(
+      codeOf(assertCanActOnMember, 'owner', MemberAction.transferOwnership, 'owner', true),
+    ).toBe('FORBIDDEN');
+  });
+
+  it('passes an allowed action', () => {
+    expect(codeOf(assertCanActOnMember, 'officer', MemberAction.kick, 'member', false)).toBeNull();
+    expect(
+      codeOf(assertCanActOnMember, 'owner', MemberAction.changeRole, 'officer', false),
+    ).toBeNull();
   });
 });
 

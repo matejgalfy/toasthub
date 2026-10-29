@@ -2,12 +2,14 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import {
   addDays,
   type ClanDetail,
+  type ClanFeedPage,
   type ClanJoinRequestList,
   type ClanJoinRequestResponse,
   type ClanMembershipResponse,
   type ClanPage,
   type ClanResponse,
   type ClanRole,
+  type ClanTransferResponse,
   type CreateClanResponse,
   localDate,
 } from '@toasthub/shared';
@@ -18,7 +20,16 @@ import { type SignedIn, signIn, WEB_ORIGIN } from '../../../test/auth';
 import { createTestApp } from '../../../test/create-app';
 import { insertToasts } from '../../../test/toasts';
 import { type Database, DB } from '../../db/db.module';
-import { clan, clanJoinRequest, clanMembership, user, userAchievement } from '../../db/schema';
+import {
+  clan,
+  clanJoinRequest,
+  clanMembership,
+  like,
+  toast,
+  toastSession,
+  user,
+  userAchievement,
+} from '../../db/schema';
 import { SettingsService } from '../settings/settings.service';
 
 let app: NestFastifyApplication;
@@ -135,6 +146,10 @@ describe('auth', () => {
     ['GET', `/clans/${UNKNOWN_ID}`],
     ['POST', `/clans/${UNKNOWN_ID}/join`],
     ['DELETE', '/me/clan-request'],
+    ['PATCH', `/clans/${UNKNOWN_ID}/members/${UNKNOWN_ID}`],
+    ['DELETE', `/clans/${UNKNOWN_ID}/members/${UNKNOWN_ID}`],
+    ['POST', `/clans/${UNKNOWN_ID}/transfer`],
+    ['GET', `/clans/${UNKNOWN_ID}/feed`],
   ] as const)('%s %s requires a session', async (method, url) => {
     expectError(await call(null, method, url), 401, 'UNAUTHENTICATED');
   });
@@ -543,5 +558,288 @@ describe('POST /clans/:id/leave', () => {
     await createClan(bob, 'Butter');
     expectError(await call(bob, 'POST', `/clans/${clanId}/leave`), 403, 'FORBIDDEN');
     expect(await roleOf(bob.userId)).not.toBeNull();
+  });
+});
+
+describe('PATCH /clans/:id/members/:userId', () => {
+  let clanId: string;
+
+  beforeEach(async () => {
+    clanId = await createClan(ann);
+    await addMembers(clanId, [{ userId: bob.userId }]);
+  });
+
+  it('lets the Owner promote a Member and demote an Officer', async () => {
+    const url = `/clans/${clanId}/members/${bob.userId}`;
+    const body = await ok<ClanMembershipResponse>(ann, 'PATCH', url, 200, { role: 'officer' });
+    expect(body.membership).toMatchObject({
+      clanId,
+      role: 'officer',
+      user: { id: bob.userId, displayName: 'Bob' },
+    });
+    expect(await roleOf(bob.userId)).toEqual({ clanId, role: 'officer' });
+    await ok(ann, 'PATCH', url, 200, { role: 'member' });
+    expect(await roleOf(bob.userId)).toEqual({ clanId, role: 'member' });
+  });
+
+  it('is a 400 for the owner role, which only a transfer gives', async () => {
+    const url = `/clans/${clanId}/members/${bob.userId}`;
+    expectError(await call(ann, 'PATCH', url, { role: 'owner' }), 400, 'VALIDATION_ERROR');
+  });
+
+  it('is a 403 for an Officer, a non-member and on oneself', async () => {
+    await addMembers(clanId, [{ userId: cyril.userId, role: 'officer' }]);
+    const dana = await signUp('dana@example.com', 'Dana');
+    for (const who of [cyril, dana]) {
+      const url = `/clans/${clanId}/members/${bob.userId}`;
+      expectError(await call(who, 'PATCH', url, { role: 'officer' }), 403, 'FORBIDDEN');
+    }
+    const self = `/clans/${clanId}/members/${ann.userId}`;
+    expectError(await call(ann, 'PATCH', self, { role: 'member' }), 403, 'FORBIDDEN');
+    expect(await roleOf(ann.userId)).toEqual({ clanId, role: 'owner' });
+  });
+
+  it('is a 404 for a user who is not in this clan', async () => {
+    await createClan(cyril, 'Butter');
+    for (const target of [cyril.userId, UNKNOWN_ID]) {
+      const url = `/clans/${clanId}/members/${target}`;
+      expectError(await call(ann, 'PATCH', url, { role: 'officer' }), 404, 'NOT_FOUND');
+    }
+  });
+});
+
+describe('DELETE /clans/:id/members/:userId', () => {
+  let clanId: string;
+  const kickUrl = (userId: string) => `/clans/${clanId}/members/${userId}`;
+
+  beforeEach(async () => {
+    clanId = await createClan(ann);
+    await addMembers(clanId, [{ userId: bob.userId }, { userId: cyril.userId, role: 'officer' }]);
+  });
+
+  it('lets an Officer kick a Member; the toasts stay with the clan (D9)', async () => {
+    const [kept] = await insertToasts(db, [{ userId: bob.userId, clanId }]);
+    expect((await call(cyril, 'DELETE', kickUrl(bob.userId))).statusCode).toBe(204);
+    expect(await roleOf(bob.userId)).toBeNull();
+    const rows = await db
+      .select({ clanId: toast.clanId })
+      .from(toast)
+      .where(eq(toast.id, kept?.id ?? UNKNOWN_ID));
+    expect(rows).toEqual([{ clanId }]);
+  });
+
+  it('lets the Owner kick an Officer', async () => {
+    expect((await call(ann, 'DELETE', kickUrl(cyril.userId))).statusCode).toBe(204);
+    expect(await roleOf(cyril.userId)).toBeNull();
+  });
+
+  it.each([
+    ['an Officer kicks the Owner', 'cyril', 'ann'],
+    ['a Member kicks an Officer', 'bob', 'cyril'],
+    ['the Owner kicks themselves', 'ann', 'ann'],
+    ['an Officer kicks themselves', 'cyril', 'cyril'],
+  ] as const)('is a 403 when %s', async (_, actor, target) => {
+    const users = { ann, bob, cyril };
+    expectError(
+      await call(users[actor], 'DELETE', kickUrl(users[target].userId)),
+      403,
+      'FORBIDDEN',
+    );
+    expect(await roleOf(users[target].userId)).not.toBeNull();
+  });
+
+  it('is a 403 for an Officer kicking another Officer', async () => {
+    const dana = await signUp('dana@example.com', 'Dana');
+    await addMembers(clanId, [{ userId: dana.userId, role: 'officer' }]);
+    expectError(await call(cyril, 'DELETE', kickUrl(dana.userId)), 403, 'FORBIDDEN');
+  });
+
+  it('is a 403 for a Member before the target is looked up, else a 404', async () => {
+    expectError(await call(bob, 'DELETE', kickUrl(UNKNOWN_ID)), 403, 'FORBIDDEN');
+    expectError(await call(cyril, 'DELETE', kickUrl(UNKNOWN_ID)), 404, 'NOT_FOUND');
+  });
+
+  it('is a 404 for a deleted clan', async () => {
+    await call(ann, 'DELETE', `/clans/${clanId}`);
+    expectError(await call(ann, 'DELETE', kickUrl(bob.userId)), 404, 'NOT_FOUND');
+  });
+});
+
+describe('POST /clans/:id/transfer', () => {
+  let clanId: string;
+
+  beforeEach(async () => {
+    clanId = await createClan(ann);
+    await addMembers(clanId, [{ userId: bob.userId }, { userId: cyril.userId, role: 'officer' }]);
+  });
+
+  function transfer(as: SignedIn, to: string) {
+    return call(as, 'POST', `/clans/${clanId}/transfer`, { userId: to });
+  }
+
+  it('swaps the Owner and the target; the former Owner stays as an Officer', async () => {
+    const res = await transfer(ann, bob.userId);
+    expect(res.statusCode, res.body).toBe(200);
+    const body = res.json<ClanTransferResponse>();
+    expect(body.owner).toMatchObject({ clanId, role: 'owner', user: { id: bob.userId } });
+    expect(body.previousOwner).toMatchObject({ clanId, role: 'officer', user: { id: ann.userId } });
+    expect(await roleOf(bob.userId)).toEqual({ clanId, role: 'owner' });
+    expect(await roleOf(ann.userId)).toEqual({ clanId, role: 'officer' });
+    // The former Owner may leave now (BR-CLAN-4).
+    expect((await call(ann, 'POST', `/clans/${clanId}/leave`)).statusCode).toBe(204);
+  });
+
+  it('is a 403 for an Officer and on oneself', async () => {
+    expectError(await transfer(cyril, bob.userId), 403, 'FORBIDDEN');
+    expectError(await transfer(ann, ann.userId), 403, 'FORBIDDEN');
+    expect(await roleOf(ann.userId)).toEqual({ clanId, role: 'owner' });
+  });
+
+  it('is a 404 for a user who is not in this clan', async () => {
+    const dana = await signUp('dana@example.com', 'Dana');
+    expectError(await transfer(ann, dana.userId), 404, 'NOT_FOUND');
+  });
+
+  it('keeps exactly one Owner under concurrent transfers', async () => {
+    await warmPool();
+    const results = await Promise.all([bob, cyril].map((to) => transfer(ann, to.userId)));
+    // The second one runs after the first has made Ann an Officer.
+    expect(results.map((res) => res.statusCode).sort()).toEqual([200, 403]);
+    const owners = await db
+      .select({ userId: clanMembership.userId })
+      .from(clanMembership)
+      .where(and(eq(clanMembership.clanId, clanId), eq(clanMembership.role, 'owner')));
+    expect(owners).toHaveLength(1);
+    expect(await roleOf(ann.userId)).toEqual({ clanId, role: 'officer' });
+  });
+});
+
+describe('GET /clans/:id/feed', () => {
+  let clanId: string;
+
+  beforeEach(async () => {
+    clanId = await createClan(ann);
+    await addMembers(clanId, [{ userId: bob.userId }]);
+  });
+
+  /** A session of `count` toasts logged at `at`, with an optional photo on its lead toast. */
+  async function addSession(
+    userId: string,
+    at: Date,
+    { count = 1, photo = false, hidden = false } = {},
+  ): Promise<{ sessionId: string; leadId: string; toastIds: string[] }> {
+    const [session] = await db.insert(toastSession).values({ userId, createdAt: at }).returning();
+    if (!session) throw new Error('No session');
+    const rows = await db
+      .insert(toast)
+      .values(
+        Array.from({ length: count }, (_, i) => ({
+          userId,
+          sessionId: session.id,
+          clanId,
+          eatenAt: at,
+          photoKey: i === 0 && photo ? `toasts/${userId}/${session.id}.webp` : null,
+          photoHiddenAt: i === 0 && hidden ? at : null,
+        })),
+      )
+      .returning({ id: toast.id });
+    // v7 ids rise in insert order and the toasts share `eaten_at`, so the first is the lead toast.
+    const toastIds = rows.map((row) => row.id);
+    const [leadId] = toastIds;
+    if (!leadId) throw new Error('No toasts');
+    return { sessionId: session.id, leadId, toastIds };
+  }
+
+  const hoursAgo = (hours: number) => new Date(Date.now() - hours * 60 * 60 * 1000);
+
+  function feed(as: SignedIn, query = '') {
+    return ok<ClanFeedPage>(as, 'GET', `/clans/${clanId}/feed${query}`, 200);
+  }
+
+  it('lists current members’ sessions newest first, with count, photo and likes', async () => {
+    await db.update(user).set({ profileVisibility: 'clan' }).where(eq(user.id, bob.userId));
+    const older = await addSession(ann.userId, hoursAgo(3), { count: 3 });
+    const newer = await addSession(bob.userId, hoursAgo(1), { count: 2, photo: true });
+    await db.insert(like).values([
+      { userId: ann.userId, toastId: newer.leadId },
+      { userId: cyril.userId, toastId: newer.leadId },
+    ]);
+
+    const page = await feed(ann);
+    expect(page.nextCursor).toBeNull();
+    expect(page.items).toHaveLength(2);
+    const [first, second] = page.items;
+    expect(first).toMatchObject({
+      sessionId: newer.sessionId,
+      toastId: newer.leadId,
+      user: { id: bob.userId, displayName: 'Bob' },
+      count: 2,
+      likeCount: 2,
+      likedByMe: true,
+    });
+    // Clanmates see the photo of a clan-only profile (§4.8).
+    expect(first?.photoUrl).toContain(`toasts/${bob.userId}/`);
+    expect(second).toMatchObject({
+      sessionId: older.sessionId,
+      toastId: older.leadId,
+      count: 3,
+      photoUrl: null,
+      likeCount: 0,
+      likedByMe: false,
+    });
+    expect((await feed(bob)).items[0]).toMatchObject({ likeCount: 2, likedByMe: false });
+  });
+
+  it('counts only countable toasts and leaves out removed sessions and non-members', async () => {
+    const partly = await addSession(ann.userId, hoursAgo(1), { count: 3 });
+    await db
+      .update(toast)
+      .set({ deletedAt: new Date() })
+      .where(eq(toast.id, partly.toastIds[2] ?? UNKNOWN_ID));
+    const deleted = await addSession(ann.userId, hoursAgo(2));
+    await db
+      .update(toastSession)
+      .set({ deletedAt: new Date() })
+      .where(eq(toastSession.id, deleted.sessionId));
+    const rejected = await addSession(bob.userId, hoursAgo(3));
+    await db.update(toast).set({ status: 'rejected' }).where(eq(toast.id, rejected.leadId));
+    await addSession(cyril.userId, hoursAgo(4));
+
+    const page = await feed(ann);
+    expect(page.items.map((item) => [item.sessionId, item.count])).toEqual([[partly.sessionId, 2]]);
+  });
+
+  it('hides a hidden photo and leaves out former and banned members', async () => {
+    const dana = await signUp('dana@example.com', 'Dana');
+    await addMembers(clanId, [{ userId: cyril.userId }, { userId: dana.userId }]);
+    const hidden = await addSession(ann.userId, hoursAgo(1), { photo: true, hidden: true });
+    await addSession(cyril.userId, hoursAgo(2));
+    await addSession(dana.userId, hoursAgo(3));
+    expect((await call(cyril, 'POST', `/clans/${clanId}/leave`)).statusCode).toBe(204);
+    await db.update(user).set({ status: 'banned' }).where(eq(user.id, dana.userId));
+
+    const page = await feed(ann);
+    expect(page.items.map((item) => [item.sessionId, item.photoUrl])).toEqual([
+      [hidden.sessionId, null],
+    ]);
+  });
+
+  it('pages with a cursor', async () => {
+    const at = hoursAgo(1);
+    // Same instant: the session id breaks the tie.
+    const sessions = [];
+    for (let i = 0; i < 3; i++) sessions.push(await addSession(bob.userId, at));
+    const ids = sessions.map((s) => s.sessionId).reverse();
+    const first = await feed(ann, '?limit=2');
+    expect(first.items.map((item) => item.sessionId)).toEqual(ids.slice(0, 2));
+    expect(first.nextCursor).not.toBeNull();
+    const second = await feed(ann, `?limit=2&cursor=${first.nextCursor ?? ''}`);
+    expect(second.items.map((item) => item.sessionId)).toEqual(ids.slice(2));
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it('is a 403 for a non-member and a 404 for an unknown clan', async () => {
+    expectError(await call(cyril, 'GET', `/clans/${clanId}/feed`), 403, 'FORBIDDEN');
+    expectError(await call(ann, 'GET', `/clans/${UNKNOWN_ID}/feed`), 404, 'NOT_FOUND');
   });
 });

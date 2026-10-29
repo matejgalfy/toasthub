@@ -107,6 +107,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   returns the index name) and answer with the 409 the check gives. Rules that depend on a clan lock its row first.
 - Counts, streaks, stats, leaderboards and achievements filter `toast` with `countableToasts()`
   (`src/modules/toasts/countable-toasts.ts`: not deleted, not rejected, owner not banned). Never re-spell it.
+- Likes live on a session's lead toast. Lists that show them get `likeCount`/`likedByMe` from `likeStats()`
+  (`src/modules/toasts/like-stats.ts`); `canSeeToast()` (`users.policy.ts`) decides who may like.
 - Photos: store and sign through `StorageService` (`src/modules/storage`). Check visibility before you call
   `presignGet()`: `canSeePhoto()` for someone else's photo, `profileAccess()` for profile data (both pure, in
   `src/modules/users/users.policy.ts`). New uploads go through `processPhoto()` (`toasts/photo-pipeline.ts`),

@@ -38,6 +38,7 @@ import { type Database, DB } from '../../db/db.module';
 import { clanMembership, toast, toastOfTheWeek, user, userAchievement } from '../../db/schema';
 import { StorageService } from '../storage/storage.service';
 import { countableToasts } from '../toasts/countable-toasts';
+import { likeStats } from '../toasts/like-stats';
 import { computeStats } from './stats';
 import { canSeePhoto, type ProfileOwner, profileAccess, type Viewer } from './users.policy';
 
@@ -115,7 +116,14 @@ export class UsersService {
       .orderBy(desc(toast.eatenAt), desc(toast.id))
       .limit(limit + 1);
     const page = toPage(rows, limit, (row) => ({ at: row.cursorAt, id: row.id }));
-    const counts = await this.sessionCounts(page.items.map((row) => row.sessionId));
+    const [counts, likesOf] = await Promise.all([
+      this.sessionCounts(page.items.map((row) => row.sessionId)),
+      likeStats(
+        this.db,
+        viewerId,
+        page.items.map((row) => row.id),
+      ),
+    ]);
 
     const items = [];
     for (const row of page.items) {
@@ -135,6 +143,7 @@ export class UsersService {
         localDate: row.localDate,
         count: counts.get(row.sessionId) ?? 0,
         photoUrl: await this.storage.presignGet(row.photoKey),
+        ...likesOf(row.id),
       });
     }
     return { items, nextCursor: page.nextCursor };

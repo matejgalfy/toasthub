@@ -250,6 +250,8 @@ describe('GET /users/:id/toasts', () => {
         localDate: today,
         count: 1,
         photoUrl: expect.stringMatching(/X-Amz-Expires=3600/) as string,
+        likeCount: 0,
+        likedByMe: false,
       },
       expect.objectContaining({ id: older.lead.id, count: 3, localDate: addDays(today, -2) }),
     ]);

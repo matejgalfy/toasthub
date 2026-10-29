@@ -72,6 +72,32 @@ export function assertCanActOnClan(role: ClanRole | null, action: ClanAction): v
   }
 }
 
+/**
+ * 403 for a non-member or a role that may not do `action` to anyone. Checked before the target is looked
+ * up, so a Member gets a 403 rather than learning who else is in the clan.
+ */
+export function assertMayActOnMembers(actor: ClanRole | null, action: MemberAction): void {
+  if (actor === null) throw new AppError('FORBIDDEN', 'You are not a member of this clan');
+  if (memberActionTargets[action][actor] === undefined) {
+    throw new AppError('FORBIDDEN', 'Your clan role does not allow this');
+  }
+}
+
+/** 403 when the actor may not do `action` to this member, or to themselves. */
+export function assertCanActOnMember(
+  actor: ClanRole | null,
+  action: MemberAction,
+  target: ClanRole,
+  self: boolean,
+): void {
+  if (!canActOnMember(actor, action, target, self)) {
+    throw new AppError(
+      'FORBIDDEN',
+      self ? 'You cannot do this to yourself' : 'Your clan role does not allow this',
+    );
+  }
+}
+
 /** 409 when the clan has no room for another member (BR-CLAN-3). */
 export function assertHasRoom(memberCount: number, maxMembers: number): void {
   if (memberCount >= maxMembers) throw new AppError('CONFLICT', 'This clan is full');

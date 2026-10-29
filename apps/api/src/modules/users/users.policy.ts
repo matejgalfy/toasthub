@@ -17,15 +17,18 @@ export interface ProfileOwner {
   clanId: string | null;
 }
 
-export interface PhotoFacts {
+export interface ToastFacts {
   owner: ProfileOwner;
-  hasPhoto: boolean;
-  // An admin hid it (BR-MOD-4).
-  hidden: boolean;
   // The toast doesn't count any more: deleted, rejected, or its owner is banned.
   removed: boolean;
   // The toast won a Toast of the week draw, which shows its photo to everyone (BR-TOTW-2).
   wonToastOfTheWeek: boolean;
+}
+
+export interface PhotoFacts extends ToastFacts {
+  hasPhoto: boolean;
+  // An admin hid it (BR-MOD-4).
+  hidden: boolean;
 }
 
 export function isClanmate(viewer: Viewer, owner: ProfileOwner): boolean {
@@ -40,12 +43,20 @@ export function profileAccess(viewer: Viewer, owner: ProfileOwner): ProfileAcces
 }
 
 /**
+ * Whether the viewer may see the toast itself (its session, count and likes), with or without its photo.
+ * A removed toast is seen by nobody here, not even its owner.
+ */
+export function canSeeToast(viewer: Viewer, toast: ToastFacts): boolean {
+  if (toast.removed) return false;
+  if (toast.wonToastOfTheWeek) return true;
+  return profileAccess(viewer, toast.owner) === ProfileAccess.full;
+}
+
+/**
  * Whether the viewer may get a presigned URL for the photo. A hidden or removed photo is shown to nobody
  * here, not even its owner (admins see it through the moderation routes). Clanmates always see each
  * other's photos (§4.8), and a Toast of the week winner is visible to all.
  */
 export function canSeePhoto(viewer: Viewer, photo: PhotoFacts): boolean {
-  if (!photo.hasPhoto || photo.hidden || photo.removed) return false;
-  if (photo.wonToastOfTheWeek) return true;
-  return profileAccess(viewer, photo.owner) === ProfileAccess.full;
+  return photo.hasPhoto && !photo.hidden && canSeeToast(viewer, photo);
 }

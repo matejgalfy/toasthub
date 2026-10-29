@@ -12,6 +12,7 @@ import { HomeModule } from './modules/home/home.module';
 import { MeModule } from './modules/me/me.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ToastSessionsModule } from './modules/toast-sessions/toast-sessions.module';
+import { ToastsModule } from './modules/toasts/toasts.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -39,6 +40,7 @@ import { UsersModule } from './modules/users/users.module';
     MeModule,
     SettingsModule,
     ToastSessionsModule,
+    ToastsModule,
     UsersModule,
   ],
 })

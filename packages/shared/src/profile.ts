@@ -58,6 +58,9 @@ export const userToastSchema = z.object({
   count: z.int().nonnegative(),
   // Presigned and valid for 1 hour.
   photoUrl: z.url(),
+  // 🍞 likes on the session, stored on its lead toast (SPEC §4.9).
+  likeCount: z.int().nonnegative(),
+  likedByMe: z.boolean(),
 });
 export type UserToast = z.infer<typeof userToastSchema>;
 

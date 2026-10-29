@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   canSeePhoto,
+  canSeeToast,
   type PhotoFacts,
   type ProfileOwner,
   profileAccess,
@@ -69,6 +70,34 @@ describe('canSeePhoto', () => {
     const self: Viewer = { userId: subject.userId, clanId: null };
     expect(canSeePhoto(self, photo(subject, facts))).toBe(false);
     expect(canSeePhoto(viewer(), photo(subject, { ...facts, wonToastOfTheWeek: true }))).toBe(
+      false,
+    );
+  });
+});
+
+describe('canSeeToast', () => {
+  it('follows the profile access, with or without a photo', () => {
+    const noPhoto = { hasPhoto: false };
+    expect(canSeeToast(viewer(), photo(owner('public'), noPhoto))).toBe(true);
+    expect(canSeeToast(viewer(CLAN), photo(owner('clan', CLAN), noPhoto))).toBe(true);
+    expect(canSeeToast(viewer(OTHER_CLAN), photo(owner('clan', CLAN), noPhoto))).toBe(false);
+  });
+
+  it('shows a toast whose photo an admin hid', () => {
+    expect(canSeeToast(viewer(), photo(owner('public'), { hidden: true }))).toBe(true);
+  });
+
+  it('shows a Toast of the week winner to everyone', () => {
+    expect(canSeeToast(viewer(), photo(owner('clan', CLAN), { wonToastOfTheWeek: true }))).toBe(
+      true,
+    );
+  });
+
+  it('never shows a removed toast, not even to its owner or as a winner', () => {
+    const subject = owner('public');
+    const self: Viewer = { userId: subject.userId, clanId: null };
+    expect(canSeeToast(self, photo(subject, { removed: true }))).toBe(false);
+    expect(canSeeToast(viewer(), photo(subject, { removed: true, wonToastOfTheWeek: true }))).toBe(
       false,
     );
   });

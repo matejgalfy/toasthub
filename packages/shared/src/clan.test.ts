@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { clanListQuerySchema, createClanSchema, updateClanSchema } from './clan.js';
+import {
+  clanListQuerySchema,
+  createClanSchema,
+  updateClanMemberSchema,
+  updateClanSchema,
+} from './clan.js';
 
 describe('createClanSchema', () => {
   it('trims the name before checking its length (BR-CLAN-2)', () => {
@@ -37,5 +42,13 @@ describe('clanListQuerySchema', () => {
   it('treats a blank search as none and trims the rest', () => {
     expect(clanListQuerySchema.parse({ search: '   ' }).search).toBeUndefined();
     expect(clanListQuerySchema.parse({ search: ' rye ' }).search).toBe('rye');
+  });
+});
+
+describe('updateClanMemberSchema', () => {
+  it('allows officer and member, but not owner (a transfer gives that)', () => {
+    expect(updateClanMemberSchema.safeParse({ role: 'officer' }).success).toBe(true);
+    expect(updateClanMemberSchema.safeParse({ role: 'member' }).success).toBe(true);
+    expect(updateClanMemberSchema.safeParse({ role: 'owner' }).success).toBe(false);
   });
 });

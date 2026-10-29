@@ -9,14 +9,17 @@ import {
   type ClanJoinRequestResponse,
   type ClanListQuery,
   type ClanMember,
+  type ClanMembership,
   type ClanMembershipResponse,
   type ClanPage,
   type ClanResponse,
   ClanRole,
+  type ClanTransferResponse,
   type CreateClan,
   type CreateClanResponse,
   JoinRequestStatus,
   type UpdateClan,
+  type UpdateClanMember,
   type UserSummary,
 } from '@toasthub/shared';
 import { and, asc, eq, ilike, isNull, type SQL, sql } from 'drizzle-orm';
@@ -30,7 +33,14 @@ import { clan, clanJoinRequest, clanMembership, user } from '../../db/schema';
 import { AchievementsService } from '../achievements/achievements.service';
 import { SettingsService } from '../settings/settings.service';
 import { StreaksService } from '../streaks/streaks.service';
-import { assertCanActOnClan, assertHasRoom, ClanAction } from './clans.policy';
+import {
+  assertCanActOnClan,
+  assertCanActOnMember,
+  assertHasRoom,
+  assertMayActOnMembers,
+  ClanAction,
+  MemberAction,
+} from './clans.policy';
 
 type ClanRow = typeof clan.$inferSelect;
 type LockMode = 'update' | 'share';
@@ -257,8 +267,7 @@ export class ClansService {
 
   /** Pending requests, oldest first. Officers and the Owner only. */
   async listRequests(userId: string, clanId: string): Promise<ClanJoinRequestList> {
-    await this.loadClan(this.db, clanId);
-    assertCanActOnClan(await this.roleIn(this.db, clanId, userId), ClanAction.viewRequests);
+    await this.authorize(userId, clanId, ClanAction.viewRequests);
     const rows = await this.requests(
       this.db,
       and(
@@ -278,9 +287,9 @@ export class ClansService {
     clanId: string,
     requestId: string,
   ): Promise<ClanMembershipResponse> {
-    let joined: { userId: string; joinedAt: Date };
+    let joinedId: string;
     try {
-      joined = await this.db.transaction(async (tx) => {
+      joinedId = await this.db.transaction(async (tx) => {
         await this.loadClan(tx, clanId, 'update');
         assertCanActOnClan(await this.roleIn(tx, clanId, actorId), ClanAction.decideRequest);
         const request = await this.loadPendingRequest(tx, clanId, requestId);
@@ -289,33 +298,19 @@ export class ClansService {
           throw new AppError('CONFLICT', 'This user is already in a clan');
         }
         assertHasRoom(await this.memberCount(tx, clanId), await this.maxMembers(tx));
-        const [membership] = await tx
+        await tx
           .insert(clanMembership)
-          .values({ userId: request.userId, clanId, role: ClanRole.member })
-          .returning({ userId: clanMembership.userId, joinedAt: clanMembership.joinedAt });
-        if (!membership) throw new Error('Membership insert returned no row');
+          .values({ userId: request.userId, clanId, role: ClanRole.member });
         // The one-pending index makes this the user's only pending request (BR-CLAN-5).
         await this.decide(tx, requestId, JoinRequestStatus.approved, actorId);
-        return membership;
+        return request.userId;
       });
     } catch (error) {
       throw this.mapConflict(error, 'This user is already in a clan');
     }
     // The approver gets no achievement list; the new member sees the badge on their profile.
-    await this.evaluateJoined(joined.userId);
-    const [summary] = await this.db
-      .select(userSummaryColumns)
-      .from(user)
-      .where(eq(user.id, joined.userId));
-    if (!summary) throw new Error('Approved user disappeared');
-    return {
-      membership: {
-        clanId,
-        user: summary,
-        role: ClanRole.member,
-        joinedAt: joined.joinedAt.toISOString(),
-      },
-    };
+    await this.evaluateJoined(joinedId);
+    return { membership: await this.membership(this.db, clanId, joinedId) };
   }
 
   /** Officers and the Owner only. */
@@ -331,6 +326,62 @@ export class ClansService {
   /** Cancels the caller's pending request, if there is one (BR-CLAN-5). */
   async cancelMyRequest(userId: string): Promise<void> {
     await this.cancelPendingRequests(this.db, eq(clanJoinRequest.userId, userId), userId);
+  }
+
+  /** Promotes a Member to Officer or demotes an Officer. Owner only. */
+  async updateMember(
+    actorId: string,
+    clanId: string,
+    targetId: string,
+    role: UpdateClanMember['role'],
+  ): Promise<ClanMembershipResponse> {
+    await this.db.transaction(async (tx) => {
+      const current = await this.lockTarget(tx, clanId, actorId, targetId, MemberAction.changeRole);
+      if (current === role) return;
+      await tx.update(clanMembership).set({ role }).where(eq(clanMembership.userId, targetId));
+    });
+    return { membership: await this.membership(this.db, clanId, targetId) };
+  }
+
+  /** Removes a member. The Owner may kick Officers and Members, an Officer only Members. */
+  async kick(actorId: string, clanId: string, targetId: string): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await this.lockTarget(tx, clanId, actorId, targetId, MemberAction.kick);
+      await tx.delete(clanMembership).where(eq(clanMembership.userId, targetId));
+    });
+  }
+
+  /**
+   * Hands the clan to another member; the former Owner stays as an Officer. The Owner is demoted before
+   * the new one is promoted, so the one-owner index holds after each statement.
+   */
+  async transfer(actorId: string, clanId: string, targetId: string): Promise<ClanTransferResponse> {
+    try {
+      await this.db.transaction(async (tx) => {
+        await this.lockTarget(tx, clanId, actorId, targetId, MemberAction.transferOwnership);
+        await tx
+          .update(clanMembership)
+          .set({ role: ClanRole.officer })
+          .where(eq(clanMembership.userId, actorId));
+        await tx
+          .update(clanMembership)
+          .set({ role: ClanRole.owner })
+          .where(eq(clanMembership.userId, targetId));
+      });
+    } catch (error) {
+      throw this.mapConflict(error);
+    }
+    const [owner, previousOwner] = await Promise.all([
+      this.membership(this.db, clanId, targetId),
+      this.membership(this.db, clanId, actorId),
+    ]);
+    return { owner, previousOwner };
+  }
+
+  /** 404 for an unknown or deleted clan, 403 unless the user's role allows `action`. */
+  async authorize(userId: string, clanId: string, action: ClanAction): Promise<void> {
+    await this.loadClan(this.db, clanId);
+    assertCanActOnClan(await this.roleIn(this.db, clanId, userId), action);
   }
 
   /** Members and Officers only; the Owner gets a 409 (BR-CLAN-4). Toasts stay with the clan (D9). */
@@ -366,6 +417,44 @@ export class ClansService {
       .where(and(eq(clanMembership.userId, userId), eq(clanMembership.clanId, clanId)));
     const [row] = lock ? await query.for('update') : await query;
     return row?.role ?? null;
+  }
+
+  /**
+   * Locks the clan and the target's membership and returns the target's role. Checks run 404 (clan) → 403
+   * (the actor's role can't do this to anyone) → 404 (not a member here) → 403 (not to this member).
+   */
+  private async lockTarget(
+    tx: DbExecutor,
+    clanId: string,
+    actorId: string,
+    targetId: string,
+    action: MemberAction,
+  ): Promise<ClanRole> {
+    await this.loadClan(tx, clanId, 'update');
+    const actor = await this.roleIn(tx, clanId, actorId);
+    assertMayActOnMembers(actor, action);
+    const target = await this.roleIn(tx, clanId, targetId, true);
+    if (target === null) throw new AppError('NOT_FOUND', 'Member not found');
+    assertCanActOnMember(actor, action, target, actorId === targetId);
+    return target;
+  }
+
+  private async membership(
+    db: DbExecutor,
+    clanId: string,
+    userId: string,
+  ): Promise<ClanMembership> {
+    const [row] = await db
+      .select({
+        user: userSummaryColumns,
+        role: clanMembership.role,
+        joinedAt: clanMembership.joinedAt,
+      })
+      .from(clanMembership)
+      .innerJoin(user, eq(user.id, clanMembership.userId))
+      .where(and(eq(clanMembership.userId, userId), eq(clanMembership.clanId, clanId)));
+    if (!row) throw new Error('Membership disappeared after a change');
+    return { clanId, ...row, joinedAt: row.joinedAt.toISOString() };
   }
 
   private async membershipOf(db: DbExecutor, userId: string): Promise<{ clanId: string } | null> {
@@ -462,6 +551,9 @@ export class ClansService {
         return new AppError('CONFLICT', membershipMessage);
       case 'clan_join_request_one_pending':
         return this.pendingConflict();
+      // The clan lock serializes transfers, so only a change outside this service can get here.
+      case 'clan_membership_one_owner':
+        return new AppError('CONFLICT', 'This clan already has an owner');
       default:
         return error;
     }

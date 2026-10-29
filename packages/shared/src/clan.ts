@@ -4,6 +4,7 @@ import { achievementCodeSchema } from './achievements.js';
 import { pageQuerySchema, pageSchema } from './pagination.js';
 import { userSummarySchema } from './profile.js';
 import { streakSchema } from './streak.js';
+import { localDateSchema } from './time.js';
 
 export const CLAN_NAME_MAX = 40;
 export const CLAN_DESCRIPTION_MAX = 280;
@@ -116,7 +117,49 @@ export type ClanJoinRequestResponse = z.infer<typeof clanJoinRequestResponseSche
 export const clanJoinRequestListSchema = z.object({ items: z.array(clanJoinRequestSchema) });
 export type ClanJoinRequestList = z.infer<typeof clanJoinRequestListSchema>;
 
-export const clanMembershipResponseSchema = z.object({
-  membership: clanMemberSchema.extend({ clanId: z.uuid() }),
-});
+export const clanMembershipSchema = clanMemberSchema.extend({ clanId: z.uuid() });
+export type ClanMembership = z.infer<typeof clanMembershipSchema>;
+
+export const clanMembershipResponseSchema = z.object({ membership: clanMembershipSchema });
 export type ClanMembershipResponse = z.infer<typeof clanMembershipResponseSchema>;
+
+export const clanMemberParamsSchema = z.object({ id: z.uuid(), userId: z.uuid() });
+export type ClanMemberParams = z.infer<typeof clanMemberParamsSchema>;
+
+// Ownership only changes hands through a transfer.
+export const updateClanMemberSchema = z.strictObject({
+  role: z.enum([ClanRole.officer, ClanRole.member]),
+});
+export type UpdateClanMember = z.infer<typeof updateClanMemberSchema>;
+
+export const transferClanSchema = z.strictObject({ userId: z.uuid() });
+export type TransferClan = z.infer<typeof transferClanSchema>;
+
+export const clanTransferResponseSchema = z.object({
+  owner: clanMembershipSchema,
+  // The former Owner stays in the clan as an Officer.
+  previousOwner: clanMembershipSchema,
+});
+export type ClanTransferResponse = z.infer<typeof clanTransferResponseSchema>;
+
+/** One toast session of a current member in the clan feed (SPEC §4.8). */
+export const clanFeedItemSchema = z.object({
+  sessionId: z.uuid(),
+  // The session's lead toast, which likes and reports refer to.
+  toastId: z.uuid(),
+  user: userSummarySchema,
+  loggedAt: z.iso.datetime(),
+  localDate: localDateSchema,
+  // Countable toasts in the session.
+  count: z.int().positive(),
+  // Presigned and valid for 1 hour; null without a photo or when an admin hid it.
+  photoUrl: z.url().nullable(),
+  // 🍞 likes on the session, stored on its lead toast (SPEC §4.9).
+  likeCount: z.int().nonnegative(),
+  likedByMe: z.boolean(),
+});
+export type ClanFeedItem = z.infer<typeof clanFeedItemSchema>;
+
+/** Newest first. */
+export const clanFeedPageSchema = pageSchema(clanFeedItemSchema);
+export type ClanFeedPage = z.infer<typeof clanFeedPageSchema>;

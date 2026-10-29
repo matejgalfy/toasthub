@@ -116,6 +116,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clans/{id}/members/{userId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['ClansController_kick'];
+    options?: never;
+    head?: never;
+    patch: operations['ClansController_updateMember'];
+    trace?: never;
+  };
+  '/api/v1/clans/{id}/transfer': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ClansController_transfer'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clans/{id}/feed': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['ClansController_feed'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/me/clan-request': {
     parameters: {
       query?: never;
@@ -255,6 +303,38 @@ export interface paths {
     put: operations['ToastSessionsController_setPhoto'];
     post?: never;
     delete: operations['ToastSessionsController_removePhoto'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/toasts/{id}/like': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ToastsController_like'];
+    delete: operations['ToastsController_unlike'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/toasts/{id}/report': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ToastsController_report'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -495,6 +575,68 @@ export interface components {
         clanId: string;
       };
     };
+    UpdateClanMemberDto: {
+      /** @enum {string} */
+      role: 'officer' | 'member';
+    };
+    TransferClanDto: {
+      /** Format: uuid */
+      userId: string;
+    };
+    ClanTransferResponseDto_Output: {
+      owner: {
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** @enum {string} */
+        role: 'owner' | 'officer' | 'member';
+        /** Format: date-time */
+        joinedAt: string;
+        /** Format: uuid */
+        clanId: string;
+      };
+      previousOwner: {
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** @enum {string} */
+        role: 'owner' | 'officer' | 'member';
+        /** Format: date-time */
+        joinedAt: string;
+        /** Format: uuid */
+        clanId: string;
+      };
+    };
+    ClanFeedPageDto_Output: {
+      items: {
+        /** Format: uuid */
+        sessionId: string;
+        /** Format: uuid */
+        toastId: string;
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** Format: date-time */
+        loggedAt: string;
+        /** Format: date */
+        localDate: string;
+        count: number;
+        /** Format: uri */
+        photoUrl: string | null;
+        likeCount: number;
+        likedByMe: boolean;
+      }[];
+      nextCursor: string | null;
+    };
     HealthDto_Output: {
       /** @enum {string} */
       status: 'ok';
@@ -606,6 +748,9 @@ export interface components {
         editable: boolean;
       };
     };
+    ReportToastDto: {
+      reason?: string | null;
+    };
     UserProfileResponseDto_Output: {
       profile: {
         /** Format: uuid */
@@ -634,6 +779,8 @@ export interface components {
         count: number;
         /** Format: uri */
         photoUrl: string;
+        likeCount: number;
+        likedByMe: boolean;
       }[];
       nextCursor: string | null;
     };
@@ -925,6 +1072,101 @@ export interface operations {
       };
     };
   };
+  ClansController_kick: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        userId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClansController_updateMember: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        userId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateClanMemberDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanMembershipResponseDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_transfer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TransferClanDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanTransferResponseDto_Output'];
+        };
+      };
+    };
+  };
+  ClansController_feed: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanFeedPageDto_Output'];
+        };
+      };
+    };
+  };
   ClansController_cancelMyRequest: {
     parameters: {
       query?: never;
@@ -1181,6 +1423,67 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ToastSessionResponseDto_Output'];
         };
+      };
+    };
+  };
+  ToastsController_like: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ToastsController_unlike: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ToastsController_report: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReportToastDto'];
+      };
+    };
+    responses: {
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

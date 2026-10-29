@@ -61,6 +61,8 @@ function photo(n: number): UserToast {
     localDate: today,
     count: n,
     photoUrl: `https://photos.example/${String(n)}.webp`,
+    likeCount: 0,
+    likedByMe: false,
   };
 }
 
