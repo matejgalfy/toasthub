@@ -33,7 +33,8 @@ Run from the repo root:
 | `bun run test`                               | Vitest in every workspace (api integration tests need Docker)     |
 | `bun run db:migrate`                         | Apply Drizzle migrations to `DATABASE_URL` (from `apps/api/.env`) |
 | `bun run db:seed`                            | Idempotent dev sample data (users, a clan, toasts); not in prod   |
-| `bun run openapi`                            | Regenerate `apps/api/openapi.json` (commit it)                    |
+| `bun run openapi`                            | Regenerate `apps/api/openapi.json` + the web client (commit both) |
+| `bun run gen:client`                         | Only the web client: `openapi.json` → `web/src/api/schema.gen.ts` |
 | `bun run --filter @toasthub/<pkg> <script>`  | Run one workspace's script (`api`, `web`, `shared`, `e2e`)        |
 | `bun run --filter @toasthub/api test:unit`   | api unit tests only (no Docker); `test:int` for integration       |
 | `bun run --filter @toasthub/api db:generate` | Generate a migration from the Drizzle schema (drizzle-kit)        |
@@ -113,6 +114,22 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `src/components`. Server state goes through TanStack Query hooks around the generated client in `src/api`.
 - Mobile-first: design at 360 px, then scale up. Accessibility: labels, keyboard navigation, alt text (jsx-a11y
   lint helps, but doesn't replace checking).
+- `@/` is `apps/web/src`. It counts as a relative import: external, then `@toasthub/*`, then `@/…` and `./…`.
+- **Styling:** every colour, the radius, the font and the layout widths are tokens in `src/styles/theme.css`
+  (light + dark side by side; dark follows the system). Use only the semantic classes (`bg-primary`,
+  `text-muted-foreground`, `bg-avatar-3`, `max-w-content`), never raw Tailwind palette colours or hex values, so
+  a redesign stays a one-file change. A new token goes into `theme.css` and the `@theme inline` map in
+  `src/styles/index.css`. Preview tokens and components at `/dev/ui` (dev builds only).
+- shadcn/ui: add components from `apps/web` with `bunx shadcn@4.23.0 add <name>` (they land in
+  `src/components/ui`, which we own and may edit). Replace raw colours they ship with (`text-white`) by tokens.
+  The main sections live in `src/components/layout/nav-items.ts` (tab bar and top nav both read it).
+- i18n: `t()` keys are typed against `en.json`; add every key to `sk.json` too (a test compares them). Dates
+  and numbers go through `useFormat()` (`src/i18n/format.ts`): instants are shown in Europe/Bratislava time,
+  `LocalDate` strings never shift a day.
+- API calls: `unwrap(api.GET('/api/v1/…'))` inside a TanStack Query hook. It throws `ApiError` (`code`,
+  `status`, `fields`); show `t(errorMessageKey(error))`. Never hand-write a request or response type.
+- Route guards (`src/features/auth/guards.tsx`) are layout routes: `RequireAuth` > `RequireOnboarded` >
+  `RequireAdmin`, plus `RedirectIfAuthenticated` for landing and login. Read the user with `useUser()`.
 
 ## Tests
 
@@ -122,6 +139,9 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   Build the app with `createTestApp()` from `apps/api/test/create-app.ts` and call it with `app.inject()`. Get a
   session with `signIn(app, email)` from `test/auth.ts` (real magic link via Mailpit); cookie mutations need
   `origin: WEB_ORIGIN`.
+- Web tests are `*.test.ts(x)` with Vitest + Testing Library in jsdom (config in `apps/web/vite.config.ts`).
+  `src/test/setup.ts` starts i18n in English, so assert on English text. Wrap guarded UI in a
+  `SessionProvider` and a memory router (see `guards.test.tsx`).
 - E2E tests live in `e2e/` (Playwright, mobile viewport, from M5).
 - Business logic named in SPEC §11 (streaks, ranking, achievements, TOTW draw, visibility) must have unit tests.
   Each endpoint needs an integration test.

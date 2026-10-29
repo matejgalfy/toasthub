@@ -1,0 +1,72 @@
+{
+  "app": {
+    "name": "Toasthub",
+    "skipToContent": "Skip to content",
+    "loading": "Loading…"
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Home",
+    "leaderboards": "Leaderboards",
+    "clan": "Clan",
+    "profile": "Profile"
+  },
+  "language": {
+    "label": "Language",
+    "sk": "Slovenčina",
+    "en": "English"
+  },
+  "pages": {
+    "landing": {
+      "title": "Toasthub",
+      "tagline": "Count your toasts, keep your streak and out-toast your friends.",
+      "cta": "Log in with email"
+    },
+    "login": { "title": "Log in" },
+    "authCallback": { "title": "Signing you in" },
+    "onboarding": { "title": "Welcome" },
+    "home": { "title": "Home" },
+    "leaderboards": { "title": "Leaderboards" },
+    "clans": { "title": "Clans" },
+    "clanNew": { "title": "Create a clan" },
+    "clan": { "title": "Clan" },
+    "profile": { "title": "Profile" },
+    "toastOfTheWeek": { "title": "Toast of the week" },
+    "settings": { "title": "Settings" },
+    "admin": { "title": "Admin" },
+    "notFound": {
+      "title": "Page not found",
+      "body": "This page doesn't exist or was moved.",
+      "back": "Back to home"
+    }
+  },
+  "placeholder": {
+    "body": "This page is still in the toaster. Check back soon."
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Some of the details aren't valid. Check them and try again.",
+    "UNAUTHENTICATED": "Your session has ended. Please log in again.",
+    "FORBIDDEN": "You don't have permission to do that.",
+    "NOT_FOUND": "We couldn't find that.",
+    "CONFLICT": "That's no longer possible. Refresh and try again.",
+    "PAYLOAD_TOO_LARGE": "The file is too large.",
+    "RATE_LIMITED": "Too many attempts. Wait a while and try again.",
+    "INTERNAL": "Something went wrong on our side. Try again later.",
+    "NETWORK": "Can't reach Toasthub. Check your connection."
+  },
+  "achievements": {
+    "first_bite": { "name": "First Bite", "description": "Log your first toast" },
+    "shutterbug": { "name": "Shutterbug", "description": "Log your first toast with a photo" },
+    "week_warrior": { "name": "Week Warrior", "description": "Keep a 7-day streak" },
+    "toast_devotee": { "name": "Toast Devotee", "description": "Keep a 30-day streak" },
+    "centurion": { "name": "Centurion", "description": "Log 100 toasts" },
+    "toastmaster": { "name": "Toastmaster", "description": "Log 1,000 toasts" },
+    "clansman": { "name": "Clansman", "description": "Join a clan" },
+    "golden_toast": { "name": "Golden Toast", "description": "Win Toast of the week" },
+    "early_bird": { "name": "Early Bird", "description": "Log a toast before 07:00" },
+    "midnight_snack": {
+      "name": "Midnight Snack",
+      "description": "Log a toast between 00:00 and 03:59"
+    }
+  }
+}

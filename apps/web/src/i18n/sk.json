@@ -1,0 +1,72 @@
+{
+  "app": {
+    "name": "Toasthub",
+    "skipToContent": "Preskočiť na obsah",
+    "loading": "Načítava sa…"
+  },
+  "nav": {
+    "label": "Hlavná navigácia",
+    "home": "Domov",
+    "leaderboards": "Rebríčky",
+    "clan": "Klan",
+    "profile": "Profil"
+  },
+  "language": {
+    "label": "Jazyk",
+    "sk": "Slovenčina",
+    "en": "English"
+  },
+  "pages": {
+    "landing": {
+      "title": "Toasthub",
+      "tagline": "Počítaj svoje toasty, drž si sériu a prekonaj kamarátov.",
+      "cta": "Prihlásiť sa e-mailom"
+    },
+    "login": { "title": "Prihlásenie" },
+    "authCallback": { "title": "Prihlasujeme ťa" },
+    "onboarding": { "title": "Vitaj" },
+    "home": { "title": "Domov" },
+    "leaderboards": { "title": "Rebríčky" },
+    "clans": { "title": "Klany" },
+    "clanNew": { "title": "Nový klan" },
+    "clan": { "title": "Klan" },
+    "profile": { "title": "Profil" },
+    "toastOfTheWeek": { "title": "Toast týždňa" },
+    "settings": { "title": "Nastavenia" },
+    "admin": { "title": "Administrácia" },
+    "notFound": {
+      "title": "Stránka sa nenašla",
+      "body": "Táto stránka neexistuje alebo sa presunula.",
+      "back": "Späť domov"
+    }
+  },
+  "placeholder": {
+    "body": "Táto stránka sa ešte opeká. Pozri sa sem čoskoro."
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Niektoré údaje nie sú platné. Skontroluj ich a skús to znova.",
+    "UNAUTHENTICATED": "Tvoje prihlásenie vypršalo. Prihlás sa znova.",
+    "FORBIDDEN": "Na toto nemáš oprávnenie.",
+    "NOT_FOUND": "Nenašli sme to.",
+    "CONFLICT": "Toto už nie je možné. Obnov stránku a skús to znova.",
+    "PAYLOAD_TOO_LARGE": "Súbor je príliš veľký.",
+    "RATE_LIMITED": "Priveľa pokusov. Chvíľu počkaj a skús to znova.",
+    "INTERNAL": "Niečo sa u nás pokazilo. Skús to neskôr.",
+    "NETWORK": "Toasthub je nedostupný. Skontroluj pripojenie."
+  },
+  "achievements": {
+    "first_bite": { "name": "Prvé hryznutie", "description": "Zapíš svoj prvý toast" },
+    "shutterbug": { "name": "Fotograf", "description": "Zapíš prvý toast s fotkou" },
+    "week_warrior": { "name": "Týždenný bojovník", "description": "Drž sériu 7 dní" },
+    "toast_devotee": { "name": "Oddaný toastu", "description": "Drž sériu 30 dní" },
+    "centurion": { "name": "Centurión", "description": "Zapíš 100 toastov" },
+    "toastmaster": { "name": "Toastmajster", "description": "Zapíš 1 000 toastov" },
+    "clansman": { "name": "Člen klanu", "description": "Pridaj sa ku klanu" },
+    "golden_toast": { "name": "Zlatý toast", "description": "Vyhraj Toast týždňa" },
+    "early_bird": { "name": "Ranné vtáča", "description": "Zapíš toast pred 7:00" },
+    "midnight_snack": {
+      "name": "Polnočná maškrta",
+      "description": "Zapíš toast medzi 0:00 a 3:59"
+    }
+  }
+}

@@ -37,11 +37,12 @@ jobs:
       - run: bun run typecheck
       - run: bun run build
 
-      - name: OpenAPI is up to date
+      # `bun run openapi` also regenerates the web client from it.
+      - name: OpenAPI and web client are up to date
         run: |
           bun run openapi
-          git diff --exit-code apps/api/openapi.json \
-            || (echo "::error::apps/api/openapi.json is stale. Run 'bun run openapi' and commit it." && exit 1)
+          git diff --exit-code apps/api/openapi.json apps/web/src/api/schema.gen.ts \
+            || (echo "::error::openapi.json or the web client is stale. Run 'bun run openapi' and commit both." && exit 1)
 
       - uses: actions/upload-artifact@v7
         with:

@@ -41,7 +41,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M1 | API foundation and local infra | `m01-api-foundation` | M0 | ☑ |
 | M2 | Auth backend (Better Auth) | `m02-auth-api` | M1 | ☑ |
 | M3 | Domain schema, time utils, seeds | `m03-domain-schema` | M2 | ☑ |
-| M4 | Web shell (UI kit, i18n, API client, layout) | `m04-web-shell` | M1 | ☐ |
+| M4 | Web shell (UI kit, i18n, API client, layout) | `m04-web-shell` | M1 | ☑ |
 | M5 | Auth UI, onboarding, settings, E2E harness | `m05-auth-ui` | M2, M4 | ☐ |
 | M6 | Toast logging backend (photos, storage, flags) | `m06-toasts-api` | M3 | ☐ |
 | M7 | Streaks, achievements, facts, `/home` | `m07-home-api` | M6 | ☐ |
@@ -465,3 +465,17 @@ milestones._
   Int tests keep `toast_fact` across the truncate; `app_setting` is emptied, which reads as the defaults.
 - `bun run db:seed`: 5 onboarded sample users (`ann|bob|cyril|dana|emil@example.com`), clan "Breakfast Club"
   (Ann owner) and ~60 days of toasts without photos. Idempotent; sign in with the magic link via Mailpit.
+- **M4** — Web shell: route tree from §9 in `src/routes.tsx` (one `PlaceholderPage` per route until its milestone),
+  `AppLayout` (header + `md` top nav, bottom tab bar on mobile, `wide` for admin) and `PublicLayout`. Sections are
+  configured once in `components/layout/nav-items.ts`. Look and feel = tokens in `src/styles/theme.css` (D34);
+  `/dev/ui` (dev only) previews them and lets you switch the fake session. Conventions: AGENTS.md → Web.
+- **For M5:** the session is a stand-in. `PreviewSessionProvider` (`features/auth/preview-session.tsx`, used in
+  `app.tsx`) fakes a user; replace it with a provider that maps `GET /me` (TanStack Query) to `Session` and delete
+  the file (also its controls on `/dev/ui`). Guards are already tested against all session kinds. `changeLocale()`
+  only stores the locale in `localStorage`: PATCH `/me` too, and apply `me.locale` after login.
+- API client: `unwrap(api.GET('/api/v1/me'))` (D32); `bun run openapi` now also regenerates
+  `web/src/api/schema.gen.ts`. Vite proxies `/api` to `API_PROXY_TARGET` (default http://localhost:3000), and
+  `apps/api/.env.example` now has `BETTER_AUTH_URL=http://localhost:5173`: **update your local `.env`** too.
+- Production JS is 534 kB (165 kB gzip; Zod via `shared` is a large share) and Vite warns about chunk size. Look at
+  it in M20's LCP check (route-level `lazy`, or `zod/mini` for the web). Achievement names/descriptions are in
+  both locale files already (`achievements.<code>.name|description`).

@@ -24,7 +24,8 @@
     "test": "bun run --filter '*' test",
     "db:migrate": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api db:migrate",
     "db:seed": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api db:seed",
-    "openapi": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api openapi",
+    "openapi": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api openapi && bun run gen:client",
+    "gen:client": "bun run --filter @toasthub/web gen:client",
     "prepare": "lefthook install"
   },
   "devDependencies": {

@@ -1,0 +1,92 @@
+/*
+ * Design tokens: the one place to change how Toasthub looks.
+ *
+ * Components only use the semantic names below (`bg-primary`, `text-muted-foreground`, `rounded-lg`,
+ * `max-w-content`, ...), never raw Tailwind colours, so changing a value here restyles the whole app.
+ * Every colour exists twice: light in `:root`, dark in the media query (it follows the system setting).
+ * Keep text/background pairs at WCAG AA contrast (4.5:1). Preview everything at /dev/ui (dev builds).
+ */
+
+:root {
+  /* Shape and type */
+  --radius: 0.75rem;
+  --font-body:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+
+  /* Surfaces: warm crumb-white page, white cards */
+  --background: oklch(0.985 0.012 85);
+  --foreground: oklch(0.26 0.035 55);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  /* Brand: toasted crust for actions, butter for highlights */
+  --primary: oklch(0.52 0.13 55);
+  --primary-foreground: oklch(0.99 0.01 85);
+  --secondary: oklch(0.94 0.03 80);
+  --secondary-foreground: oklch(0.3 0.04 55);
+  --accent: oklch(0.93 0.06 88);
+  --accent-foreground: oklch(0.3 0.04 55);
+  --muted: oklch(0.955 0.015 80);
+  --muted-foreground: oklch(0.47 0.03 60);
+  --destructive: oklch(0.53 0.2 27);
+  --destructive-foreground: oklch(0.99 0.01 85);
+
+  /* Lines and focus */
+  --border: oklch(0.89 0.025 75);
+  --input: oklch(0.86 0.03 75);
+  --ring: oklch(0.62 0.13 60);
+
+  /* Initials avatars: the 6 choices a user can pick (SPEC §4.2), one shared text colour */
+  --avatar-foreground: oklch(0.28 0.04 55);
+  --avatar-1: oklch(0.89 0.1 90);
+  --avatar-2: oklch(0.84 0.08 60);
+  --avatar-3: oklch(0.85 0.07 15);
+  --avatar-4: oklch(0.87 0.08 135);
+  --avatar-5: oklch(0.86 0.05 260);
+  --avatar-6: oklch(0.85 0.06 320);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Surfaces: burnt toast */
+    --background: oklch(0.2 0.02 55);
+    --foreground: oklch(0.95 0.02 85);
+    --card: oklch(0.245 0.022 55);
+    --popover: oklch(0.245 0.022 55);
+
+    /* Brand: golden toast */
+    --primary: oklch(0.8 0.13 78);
+    --primary-foreground: oklch(0.22 0.03 55);
+    --secondary: oklch(0.31 0.03 60);
+    --secondary-foreground: oklch(0.95 0.02 85);
+    --accent: oklch(0.34 0.05 65);
+    --accent-foreground: oklch(0.95 0.02 85);
+    --muted: oklch(0.28 0.025 60);
+    --muted-foreground: oklch(0.74 0.03 75);
+    --destructive: oklch(0.68 0.19 25);
+    --destructive-foreground: oklch(0.2 0.02 55);
+
+    /* Lines and focus */
+    --border: oklch(1 0 0 / 12%);
+    --input: oklch(1 0 0 / 18%);
+    --ring: oklch(0.72 0.12 72);
+
+    /* Initials avatars */
+    --avatar-foreground: oklch(0.96 0.02 85);
+    --avatar-1: oklch(0.45 0.08 90);
+    --avatar-2: oklch(0.43 0.08 60);
+    --avatar-3: oklch(0.43 0.08 15);
+    --avatar-4: oklch(0.43 0.07 135);
+    --avatar-5: oklch(0.43 0.07 260);
+    --avatar-6: oklch(0.43 0.07 320);
+  }
+}
+
+/* Layout widths: `max-w-content` for the app (SPEC §9, ~640 px), `max-w-wide` for admin. */
+@theme {
+  --container-content: 40rem;
+  --container-wide: 72rem;
+}
