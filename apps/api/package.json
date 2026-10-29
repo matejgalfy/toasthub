@@ -14,6 +14,7 @@
     "test:int": "vitest run --project int",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/db/migrate.js",
+    "db:seed": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/db/seed.js",
     "auth:schema": "auth generate --config src/modules/auth/auth.cli.ts --output .generated/auth-schema.ts --yes",
     "openapi": "tsc -p tsconfig.build.json && node dist/openapi.js"
   },

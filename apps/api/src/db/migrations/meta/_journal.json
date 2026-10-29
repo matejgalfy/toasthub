@@ -22,6 +22,20 @@
       "when": 1793274617544,
       "tag": "0002_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793276077270,
+      "tag": "0003_domain",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793276106708,
+      "tag": "0004_seed_reference_data",
+      "breakpoints": true
     }
   ]
 }

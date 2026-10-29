@@ -15,13 +15,14 @@ process.env.WEB_ORIGIN = 'http://localhost:5173';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
 
-// Truncates every table in `public`. Drizzle's migration journal lives in the `drizzle` schema and stays.
+// Truncates every table in `public` except the facts seeded by a migration. `app_setting` is emptied too,
+// which reads as the defaults. Drizzle's migration journal lives in the `drizzle` schema and stays.
 const TRUNCATE_ALL = `
   DO $$
   DECLARE tables text;
   BEGIN
     SELECT string_agg(format('%I.%I', schemaname, tablename), ', ') INTO tables
-    FROM pg_tables WHERE schemaname = 'public';
+    FROM pg_tables WHERE schemaname = 'public' AND tablename <> 'toast_fact';
     IF tables IS NOT NULL THEN
       EXECUTE 'TRUNCATE ' || tables || ' RESTART IDENTITY CASCADE';
     END IF;

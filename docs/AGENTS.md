@@ -32,6 +32,7 @@ Run from the repo root:
 | `bun run typecheck`                          | `tsc --noEmit` in every workspace                                 |
 | `bun run test`                               | Vitest in every workspace (api integration tests need Docker)     |
 | `bun run db:migrate`                         | Apply Drizzle migrations to `DATABASE_URL` (from `apps/api/.env`) |
+| `bun run db:seed`                            | Idempotent dev sample data (users, a clan, toasts); not in prod   |
 | `bun run openapi`                            | Regenerate `apps/api/openapi.json` (commit it)                    |
 | `bun run --filter @toasthub/<pkg> <script>`  | Run one workspace's script (`api`, `web`, `shared`, `e2e`)        |
 | `bun run --filter @toasthub/api test:unit`   | api unit tests only (no Docker); `test:int` for integration       |
@@ -117,9 +118,10 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 
 - Unit tests sit next to the code: `foo.ts` → `foo.test.ts`. Build configs exclude `*.test.ts`.
 - API integration tests use `*.int.test.ts` next to the module they cover. One Testcontainers Postgres runs per
-  test run with migrations applied, and every `public` table is truncated before each test. Build the app with
-  `createTestApp()` from `apps/api/test/create-app.ts` and call it with `app.inject()`. Get a session with
-  `signIn(app, email)` from `test/auth.ts` (real magic link via Mailpit); cookie mutations need `origin: WEB_ORIGIN`.
+  test run with migrations applied, and every `public` table except `toast_fact` is truncated before each test.
+  Build the app with `createTestApp()` from `apps/api/test/create-app.ts` and call it with `app.inject()`. Get a
+  session with `signIn(app, email)` from `test/auth.ts` (real magic link via Mailpit); cookie mutations need
+  `origin: WEB_ORIGIN`.
 - E2E tests live in `e2e/` (Playwright, mobile viewport, from M5).
 - Business logic named in SPEC §11 (streaks, ranking, achievements, TOTW draw, visibility) must have unit tests.
   Each endpoint needs an integration test.

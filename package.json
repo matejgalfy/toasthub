@@ -23,6 +23,7 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun run --filter '*' test",
     "db:migrate": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api db:migrate",
+    "db:seed": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api db:seed",
     "openapi": "bun run --filter @toasthub/shared build && bun run --filter @toasthub/api openapi",
     "prepare": "lefthook install"
   },

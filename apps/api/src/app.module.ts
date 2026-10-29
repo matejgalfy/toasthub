@@ -8,6 +8,7 @@ import { DbModule } from './db/db.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { MeModule } from './modules/me/me.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MeModule } from './modules/me/me.module';
     AuthModule,
     HealthModule,
     MeModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

@@ -4,17 +4,17 @@ import {
   bigint,
   boolean,
   check,
-  customType,
   index,
   integer,
   pgEnum,
   pgTable,
   smallint,
   text,
-  timestamp,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+
+import { citext, enumValues, id, timestamptz } from './columns';
 
 /*
  * Better Auth tables (SPEC §7), adapted by hand from the CLI output. After a Better Auth upgrade, run
@@ -26,27 +26,10 @@ import {
  * - `display_name` is varchar(30). It is '' until onboarding, because Better Auth's `name` can't be null.
  */
 
-const citext = customType<{ data: string }>({ dataType: () => 'citext' });
-
-const id = () =>
-  uuid()
-    .default(sql`uuidv7()`)
-    .primaryKey();
-const timestamptz = () => timestamp({ withTimezone: true });
-
-export const localeEnum = pgEnum('locale', Object.values(Locale) as [Locale, ...Locale[]]);
-export const profileVisibilityEnum = pgEnum(
-  'profile_visibility',
-  Object.values(ProfileVisibility) as [ProfileVisibility, ...ProfileVisibility[]],
-);
-export const userRoleEnum = pgEnum(
-  'user_role',
-  Object.values(UserRole) as [UserRole, ...UserRole[]],
-);
-export const userStatusEnum = pgEnum(
-  'user_status',
-  Object.values(UserStatus) as [UserStatus, ...UserStatus[]],
-);
+export const localeEnum = pgEnum('locale', enumValues(Locale));
+export const profileVisibilityEnum = pgEnum('profile_visibility', enumValues(ProfileVisibility));
+export const userRoleEnum = pgEnum('user_role', enumValues(UserRole));
+export const userStatusEnum = pgEnum('user_status', enumValues(UserStatus));
 
 export const user = pgTable(
   'user',
