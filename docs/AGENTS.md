@@ -36,6 +36,7 @@ Run from the repo root:
 | `bun run --filter @toasthub/<pkg> <script>`  | Run one workspace's script (`api`, `web`, `shared`, `e2e`)        |
 | `bun run --filter @toasthub/api test:unit`   | api unit tests only (no Docker); `test:int` for integration       |
 | `bun run --filter @toasthub/api db:generate` | Generate a migration from the Drizzle schema (drizzle-kit)        |
+| `bun run --filter @toasthub/api auth:schema` | Print Better Auth's tables to `.generated/` to diff (SPEC D25)    |
 
 Local services: `docker compose -f infra/docker/docker-compose.yml up -d` (Postgres, MinIO + bucket, Mailpit),
 then `cp apps/api/.env.example apps/api/.env` once and `bun run db:migrate`.
@@ -102,6 +103,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 - Any new app instance (scripts, tests) uses `createFastifyAdapter()` + `configureApp()` from `src/app.setup.ts`.
 - Don't log emails, tokens or auth headers (the pino redaction from M1 is a safety net, not a licence).
 - Don't use `import type` for classes that Nest injects. DI needs the runtime reference for decorator metadata.
+- Every route needs an active session unless marked `@Public()` (global `SessionGuard`). Admin routes add
+  `@UseGuards(AdminGuard)`. Get the caller with `@CurrentUser()`. Never return another user's email.
 
 **Web (`apps/web`)**
 
@@ -115,7 +118,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 - Unit tests sit next to the code: `foo.ts` → `foo.test.ts`. Build configs exclude `*.test.ts`.
 - API integration tests use `*.int.test.ts` next to the module they cover. One Testcontainers Postgres runs per
   test run with migrations applied, and every `public` table is truncated before each test. Build the app with
-  `createTestApp()` from `apps/api/test/create-app.ts` and call it with `app.inject()`.
+  `createTestApp()` from `apps/api/test/create-app.ts` and call it with `app.inject()`. Get a session with
+  `signIn(app, email)` from `test/auth.ts` (real magic link via Mailpit); cookie mutations need `origin: WEB_ORIGIN`.
 - E2E tests live in `e2e/` (Playwright, mobile viewport, from M5).
 - Business logic named in SPEC §11 (streaks, ranking, achievements, TOTW draw, visibility) must have unit tests.
   Each endpoint needs an integration test.

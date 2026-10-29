@@ -5,7 +5,9 @@ import { pinoHttpOptions } from './common/logging';
 import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
 import { DbModule } from './db/db.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { MeModule } from './modules/me/me.module';
 
 @Module({
   imports: [
@@ -25,7 +27,9 @@ import { HealthModule } from './modules/health/health.module';
       }),
     }),
     DbModule,
+    AuthModule,
     HealthModule,
+    MeModule,
   ],
 })
 export class AppModule {}

@@ -4,10 +4,12 @@ import { sql } from 'drizzle-orm';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 
 import { type Database, DB } from '../../db/db.module';
+import { Public } from '../auth/auth.decorators';
 
 class HealthDto extends createZodDto(healthSchema) {}
 
 // Kubernetes probes, outside the /api/v1 prefix.
+@Public()
 @Controller()
 export class HealthController {
   constructor(@Inject(DB) private readonly db: Database) {}

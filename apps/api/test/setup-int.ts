@@ -1,11 +1,17 @@
 import { Pool } from 'pg';
 import { afterAll, beforeEach, inject } from 'vitest';
 
-// Runs before every integration test file: point the app at the test container and start each test
-// from empty tables.
+import { clearMailbox } from './mailpit';
+
+// Runs before every integration test file: point the app at the test containers and start each test
+// from empty tables and an empty mailbox.
 process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'silent';
 process.env.DATABASE_URL = inject('databaseUrl');
+process.env.SMTP_URL = inject('smtpUrl');
+process.env.BETTER_AUTH_SECRET = 'integration-test-secret-that-is-long-enough';
+process.env.BETTER_AUTH_URL = 'http://localhost:3000';
+process.env.WEB_ORIGIN = 'http://localhost:5173';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
 
@@ -23,7 +29,7 @@ const TRUNCATE_ALL = `
 `;
 
 beforeEach(async () => {
-  await pool.query(TRUNCATE_ALL);
+  await Promise.all([pool.query(TRUNCATE_ALL), clearMailbox()]);
 });
 
 afterAll(async () => {

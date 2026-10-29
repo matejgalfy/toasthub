@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import { Logger, LoggerModule } from 'nestjs-pino';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { testConfigProvider } from '../../test/config-provider';
 import { configureApp, createFastifyAdapter } from '../app.setup';
 import { pinoHttpOptions, redactUrl } from './logging';
 
@@ -52,6 +53,7 @@ beforeAll(async () => {
       }),
     ],
     controllers: [EchoController],
+    providers: [testConfigProvider()],
   }).compile();
   app = moduleRef.createNestApplication<NestFastifyApplication>(createFastifyAdapter(), {
     bufferLogs: true,

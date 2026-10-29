@@ -13,6 +13,7 @@ import { buildOpenApiDocument, configureApp, createFastifyAdapter } from './app.
 async function main(): Promise<void> {
   // Building the document never queries the database (the pool connects lazily), so any URL will do.
   process.env.DATABASE_URL ??= 'postgres://openapi@localhost:5432/openapi';
+  process.env.BETTER_AUTH_SECRET ??= 'openapi-only-secret-never-used-for-signing';
   process.env.LOG_LEVEL = 'silent';
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, createFastifyAdapter(), {

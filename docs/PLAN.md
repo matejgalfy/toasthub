@@ -39,7 +39,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 |---|-----------|--------|------------|--------|
 | M0 | Monorepo scaffold, tooling, CI | `m00-scaffold` | — | ☑ |
 | M1 | API foundation and local infra | `m01-api-foundation` | M0 | ☑ |
-| M2 | Auth backend (Better Auth) | `m02-auth-api` | M1 | ☐ |
+| M2 | Auth backend (Better Auth) | `m02-auth-api` | M1 | ☑ |
 | M3 | Domain schema, time utils, seeds | `m03-domain-schema` | M2 | ☐ |
 | M4 | Web shell (UI kit, i18n, API client, layout) | `m04-web-shell` | M1 | ☐ |
 | M5 | Auth UI, onboarding, settings, E2E harness | `m05-auth-ui` | M2, M4 | ☐ |
@@ -434,3 +434,20 @@ milestones._
   `pgsty/minio` image because upstream MinIO images are gone (D23); compose creates the `toasthub-photos` bucket.
 - Gotcha (Windows): if `bun add` ends in `EEXIST ... failed to symlink`, delete every `node_modules` folder and run
   `bun install` again.
+- **M2** — Better Auth lives in `src/modules/auth`: `auth.config.ts` (plain factory, also loaded by the CLI via
+  `auth.cli.ts`), `auth.handler.ts` (Fastify route at `/api/v1/auth/*`, allowlist of 4 endpoints, D26), global
+  `SessionGuard` + `@Public()`, `@UseGuards(AdminGuard)`, `@CurrentUser()` (Better Auth user; read fresh rows from
+  the DB when you need typed fields). `AuthService.setStatus(userId, status, tx?)` bans + revokes sessions (for M16).
+  Mail is `src/modules/mail` (nodemailer, SK/EN template). New env: `BETTER_AUTH_SECRET` (required),
+  `BETTER_AUTH_URL`, `WEB_ORIGIN`, `SMTP_URL`, `MAIL_FROM`; `configureApp()` now needs `ConfigService` in the app
+  (unit tests: `testConfigProvider()` from `test/config-provider.ts`).
+- Int tests also get a Mailpit container (inbox cleared before each test). `signIn(app, email)` in `test/auth.ts`
+  runs the real magic-link flow and returns `{ userId, cookie }`; cookie mutations need `origin: WEB_ORIGIN`.
+- For M4/M5: magic links point at `BETTER_AUTH_URL` + `/api/v1/auth/magic-link/verify`. Once the Vite proxy exists,
+  set `BETTER_AUTH_URL` to the web origin (http://localhost:5173) so the session cookie is first-party on the web
+  origin, and pass absolute `callbackURL`/`errorCallbackURL` on the web origin (verify redirects there with
+  `?error=INVALID_TOKEN` for used/expired links). Auth errors use the §8 shape, so prefer plain fetch over
+  `better-auth/client`. `locale` starts as `en`; onboarding should PATCH the browser language.
+- For M19: Fastify `trustProxy` is still off, so behind the ingress `request.ip` (and the per-IP auth limit) would
+  be the proxy's IP. Set `trustProxy` in `createFastifyAdapter()` when deploying. Prod needs `SMTP_URL` (Resend),
+  an https `BETTER_AUTH_URL` (cookies become `__Secure-`) and a real secret.

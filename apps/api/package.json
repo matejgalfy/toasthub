@@ -14,6 +14,7 @@
     "test:int": "vitest run --project int",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/db/migrate.js",
+    "auth:schema": "auth generate --config src/modules/auth/auth.cli.ts --output .generated/auth-schema.ts --yes",
     "openapi": "tsc -p tsconfig.build.json && node dist/openapi.js"
   },
   "dependencies": {
@@ -23,10 +24,12 @@
     "@nestjs/platform-fastify": "11.2.8",
     "@nestjs/swagger": "11.4.7",
     "@toasthub/shared": "workspace:*",
+    "better-auth": "1.7.14",
     "drizzle-orm": "0.45.4",
     "fastify": "5.11.3",
     "nestjs-pino": "5.3.1",
     "nestjs-zod": "5.5.0",
+    "nodemailer": "10.2.1",
     "pg": "8.23.1",
     "pino": "10.4.0",
     "pino-http": "11.0.0",
@@ -38,6 +41,7 @@
     "@nestjs/testing": "11.2.8",
     "@testcontainers/postgresql": "12.2.1",
     "@types/pg": "8.23.1",
+    "auth": "1.7.14",
     "drizzle-kit": "0.31.11",
     "pino-pretty": "13.2.0",
     "testcontainers": "12.2.1",

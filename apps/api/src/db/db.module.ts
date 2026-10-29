@@ -10,6 +10,9 @@ export const PG_POOL = Symbol('PG_POOL');
 
 export type Database = NodePgDatabase<typeof schema>;
 
+/** The database or an open transaction, so callers can run a service method inside their transaction. */
+export type DbExecutor = Database | Parameters<Parameters<Database['transaction']>[0]>[0];
+
 export function createDatabase(pool: Pool): Database {
   return drizzle(pool, { schema, casing: 'snake_case' });
 }

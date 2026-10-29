@@ -8,6 +8,20 @@
       "when": 1793272674847,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793274606623,
+      "tag": "0001_enable_citext",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793274617544,
+      "tag": "0002_auth",
+      "breakpoints": true
     }
   ]
 }

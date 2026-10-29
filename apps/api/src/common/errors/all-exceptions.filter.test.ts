@@ -17,6 +17,7 @@ import { createZodDto } from 'nestjs-zod';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+import { testConfigProvider } from '../../../test/config-provider';
 import { configureApp, createFastifyAdapter } from '../../app.setup';
 import { AppError } from './app-error';
 
@@ -75,7 +76,10 @@ class ThrowingController {
 let app: NestFastifyApplication;
 
 beforeAll(async () => {
-  const moduleRef = await Test.createTestingModule({ controllers: [ThrowingController] }).compile();
+  const moduleRef = await Test.createTestingModule({
+    controllers: [ThrowingController],
+    providers: [testConfigProvider()],
+  }).compile();
   app = moduleRef.createNestApplication<NestFastifyApplication>(createFastifyAdapter(), {
     logger: false,
   });
