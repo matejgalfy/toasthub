@@ -1,0 +1,9 @@
+bun.lock
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Hand-wrapped planning docs; Prettier would realign every table.
+docs/SPEC.md
+docs/PLAN.md

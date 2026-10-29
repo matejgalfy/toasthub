@@ -1,0 +1,21 @@
+{
+  "name": "@toasthub/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json && bun run --parallel dev:compile dev:run",
+    "dev:compile": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "dev:run": "node --watch --enable-source-maps dist/main.js",
+    "start": "node --enable-source-maps dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.2.8",
+    "@nestjs/core": "11.2.8",
+    "@nestjs/platform-fastify": "11.2.8",
+    "@toasthub/shared": "workspace:*",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  }
+}

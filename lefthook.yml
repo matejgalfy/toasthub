@@ -1,0 +1,9 @@
+pre-commit:
+  jobs:
+    - name: prettier
+      glob: '*.{js,ts,tsx,json,md,css,html,yml,yaml}'
+      run: bun x prettier --write --ignore-unknown {staged_files}
+      stage_fixed: true
+    - name: eslint
+      glob: '*.{js,ts,tsx}'
+      run: bun x eslint --max-warnings 0 --no-warn-ignored {staged_files}

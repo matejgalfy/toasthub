@@ -1,0 +1,39 @@
+{
+  "name": "toasthub",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.4",
+  "engines": {
+    "node": ">=24.22.2 <25"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "e2e"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @toasthub/shared build && bun run --parallel dev:shared dev:api dev:web",
+    "dev:shared": "bun run --filter @toasthub/shared dev",
+    "dev:api": "bun run --filter @toasthub/api dev",
+    "dev:web": "bun run --filter @toasthub/web dev",
+    "build": "bun run --filter '*' build",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "eslint": "10.13.0",
+    "eslint-plugin-jsx-a11y-x": "0.2.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "lefthook": "2.2.2",
+    "prettier": "3.9.10",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1"
+  }
+}

@@ -1,1 +1,23 @@
 SELFNOTES.md
+
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+coverage/
+
+# env
+.env
+.env.*
+!.env.example
+
+# tooling
+.eslintcache
+playwright-report/
+test-results/
+
+# OS / editor
+.DS_Store
+.idea/

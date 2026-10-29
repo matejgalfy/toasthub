@@ -463,6 +463,9 @@ A feature is done when:
 | D16 | Only `dev` and `prod` environments | Small team, zero budget; staging can be added as another namespace later |
 | D17 | Zero spend apart from hosting and domain | Only open-source tools and permanent free tiers (Sentry, Resend) |
 | D18 | Prettier + ESLint (typescript-eslint strict type-checked) over Biome / Oxc | Most standard, strongest type-aware rules, best known to AI agents; enforced in editor, pre-commit (lefthook) and CI |
+| D19 | Version pins checked at scaffold (2026-10-29): Node 24 LTS (not 26), NestJS 11 (not 12), TypeScript 6.0 (not 7), Postgres 18 (19 is RC) | Node 26 became LTS the day before. nestjs-zod supports only Nest ≤ 11. typescript-eslint needs TS < 6.1 and @nestjs/swagger needs TS ≤ 6. Revisit when these peer ranges allow it |
+| D20 | ESLint 10 with `eslint-plugin-jsx-a11y-x` (maintained fork) instead of ESLint 9 + `eslint-plugin-jsx-a11y` | ESLint 9 is EOL since 2026-08-06. The original jsx-a11y has had no release since 2024 and doesn't support ESLint 10. The fork has the same rules |
+| D21 | `@toasthub/shared` is ESM, built with `tsc`, with a `@toasthub/source` export condition for source-level use. The api is CommonJS, built with plain `tsc` (no Nest CLI) | Typecheck, lint, Vite and Vitest need no prior build of `shared`. The api runtime loads `shared/dist` via Node's `require(esm)`. One TypeScript version, no extra build tooling |
 
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)
