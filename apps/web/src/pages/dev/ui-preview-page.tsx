@@ -22,6 +22,10 @@ const SWATCHES = [
   { name: 'muted', className: 'bg-muted text-muted-foreground' },
   { name: 'destructive', className: 'bg-destructive text-destructive-foreground' },
   { name: 'border / input / ring', className: 'border-4 border-ring bg-input text-foreground' },
+  { name: 'heat-1', className: 'bg-heat-1 text-foreground' },
+  { name: 'heat-2', className: 'bg-heat-2 text-foreground' },
+  { name: 'heat-3', className: 'bg-heat-3 text-foreground' },
+  { name: 'heat-4', className: 'bg-heat-4 text-background' },
 ] as const;
 
 const BUTTON_VARIANTS = [

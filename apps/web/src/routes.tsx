@@ -15,6 +15,7 @@ import { MyToastsPage } from '@/pages/my-toasts-page';
 import { NotFoundPage } from '@/pages/not-found-page';
 import { OnboardingPage } from '@/pages/onboarding-page';
 import { PlaceholderPage } from '@/pages/placeholder-page';
+import { ProfilePage } from '@/pages/profile-page';
 import { SettingsPage } from '@/pages/settings-page';
 
 // The route tree from SPEC §9. Milestones replace each PlaceholderPage with the real page.
@@ -48,7 +49,7 @@ export const routes: RouteObject[] = [
           { path: 'clans', element: <PlaceholderPage page="clans" /> },
           { path: 'clans/new', element: <PlaceholderPage page="clanNew" /> },
           { path: 'clans/:id', element: <PlaceholderPage page="clan" /> },
-          { path: 'u/:id', element: <PlaceholderPage page="profile" /> },
+          { path: 'u/:id', element: <ProfilePage /> },
           { path: 'toast-of-the-week', element: <PlaceholderPage page="toastOfTheWeek" /> },
           { path: 'settings', element: <SettingsPage /> },
         ],

@@ -1,12 +1,12 @@
 import { Lightbulb, Trophy } from 'lucide-react';
-import { useId, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { HomeResponse, Streak } from '@toasthub/shared';
 
+import { StatCard } from '@/components/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFormat } from '@/i18n/format';
-import { cn } from '@/lib/utils';
 
 /** Today's count, the streaks, the fact of the day and the Toast of the week (SPEC §9 `/home`). */
 export function HomeCards({ home }: { home: HomeResponse }) {
@@ -63,36 +63,6 @@ function StreakCard({
       hint={t('home.streak.longest', { value: format.number(streak.longest) })}
       className={className}
     />
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  unit,
-  hint,
-  live = false,
-  className,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  hint?: string;
-  live?: boolean;
-  className?: string;
-}) {
-  const id = useId();
-  return (
-    <Card role="group" aria-labelledby={id} className={cn('gap-1 px-5 py-4', className)}>
-      <p id={id} className="text-sm font-medium text-muted-foreground">
-        {label}
-      </p>
-      <p className="flex items-baseline gap-1.5" aria-live={live ? 'polite' : undefined}>
-        <span className="text-4xl font-bold tabular-nums">{value}</span>
-        <span className="text-muted-foreground">{unit}</span>
-      </p>
-      {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
-    </Card>
   );
 }
 

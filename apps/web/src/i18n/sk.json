@@ -163,6 +163,53 @@
       "done": "Toasty sú vymazané."
     }
   },
+  "profilePage": {
+    "myToasts": "Moje toasty",
+    "notFound": "Tento profil sme nenašli.",
+    "reduced": "{{name}} ukazuje štatistiky, úspechy a fotky len členom svojho klanu.",
+    "counts": {
+      "week": "Tento týždeň",
+      "month": "Tento mesiac",
+      "year": "Tento rok"
+    },
+    "stats": {
+      "title": "Štatistiky",
+      "total": "Spolu",
+      "unit_one": "toast",
+      "unit_few": "toasty",
+      "unit_many": "toastu",
+      "unit_other": "toastov",
+      "since": "Od {{date}}",
+      "bestDay": "Najlepší deň",
+      "noToasts": "Zatiaľ žiadne toasty",
+      "averages": "Priemery",
+      "perDay": "Za deň",
+      "perWeek": "Za týždeň",
+      "perMonth": "Za mesiac"
+    },
+    "heatmap": {
+      "title": "Toastový kalendár",
+      "year": "Rok",
+      "previousYear": "Predchádzajúci rok",
+      "nextYear": "Nasledujúci rok",
+      "summary": "{{toasts}} v roku {{year}}",
+      "day": "{{date}}: {{toasts}}",
+      "less": "Menej",
+      "more": "Viac"
+    },
+    "achievements": {
+      "title": "Úspechy",
+      "summary": "Získané: {{earned}} z {{total}}",
+      "earned": "Získané {{date}}",
+      "locked": "Zatiaľ nezískané"
+    },
+    "photos": {
+      "title": "Fotky",
+      "alt": "{{toasts}} dňa {{date}}",
+      "empty": "Zatiaľ žiadne fotky.",
+      "loadMore": "Zobraziť ďalšie fotky"
+    }
+  },
   "auth": {
     "email": {
       "label": "E-mail",

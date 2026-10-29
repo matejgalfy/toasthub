@@ -10,15 +10,20 @@ interface RenderOptions {
   session: Session;
   /** Start URL; defaults to `/`. */
   path?: string;
+  /** Route pattern `ui` is mounted at, e.g. `/u/:id` for `useParams()`; defaults to the path of `path`. */
+  routePath?: string;
   /** Extra routes, e.g. `{ path: '/home', element: <p>home</p> }` to see where a redirect lands. */
   routes?: RouteObject[];
 }
 
 /** Renders `ui` at `path` with a fresh query client, a fixed session and a memory router. */
-export function renderWithApp(ui: ReactNode, { session, path = '/', routes = [] }: RenderOptions) {
+export function renderWithApp(
+  ui: ReactNode,
+  { session, path = '/', routePath, routes = [] }: RenderOptions,
+) {
   const queryClient = createQueryClient();
   const router = createMemoryRouter(
-    [{ path: new URL(path, 'http://x').pathname, element: ui }, ...routes],
+    [{ path: routePath ?? new URL(path, 'http://x').pathname, element: ui }, ...routes],
     {
       initialEntries: [path],
     },

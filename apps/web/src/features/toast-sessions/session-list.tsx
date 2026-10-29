@@ -1,10 +1,9 @@
 import { EyeOff, Pencil, Sandwich } from 'lucide-react';
-import { useEffect, useId, useRef } from 'react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type LocalDate, localDate, type ToastSession } from '@toasthub/shared';
 
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useFormat } from '@/i18n/format';
 
@@ -132,32 +131,5 @@ function Thumbnail({ session, time }: { session: ToastSession; time: string }) {
     <span className={box}>
       <Sandwich className="size-5 text-muted-foreground" aria-hidden="true" />
     </span>
-  );
-}
-
-/** Loads the next page when it scrolls into view; the button does it without scrolling. */
-export function LoadMore({ onLoad, loading }: { onLoad: () => void; loading: boolean }) {
-  const { t } = useTranslation();
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const element = ref.current;
-    if (!element || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) onLoad();
-      },
-      { rootMargin: '200px' },
-    );
-    observer.observe(element);
-    return () => {
-      observer.disconnect();
-    };
-  }, [onLoad]);
-  return (
-    <div ref={ref} className="flex justify-center">
-      <Button variant="outline" disabled={loading} onClick={onLoad}>
-        {loading ? t('app.loading') : t('toasts.loadMore')}
-      </Button>
-    </div>
   );
 }

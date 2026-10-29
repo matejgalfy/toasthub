@@ -3,13 +3,14 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-import { errorMessageKey } from '@/api/errors';
+import { LoadMore } from '@/components/load-more';
 import { PageHeader } from '@/components/page-header';
 import { PageSpinner } from '@/components/page-spinner';
+import { QueryError } from '@/components/query-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EditSessionDialog } from '@/features/toast-sessions/edit-session-dialog';
-import { LoadMore, SessionList } from '@/features/toast-sessions/session-list';
+import { SessionList } from '@/features/toast-sessions/session-list';
 import { toastSessionsQueryOptions } from '@/features/toast-sessions/toast-sessions-api';
 
 /** The own toast sessions, newest first; today's can be edited (SPEC §9 `/toasts`). */
@@ -32,19 +33,7 @@ export function MyToastsPage() {
       {sessions.isPending ? (
         <PageSpinner />
       ) : sessions.isError ? (
-        <Card>
-          <CardContent className="flex flex-col items-start gap-4">
-            <p role="alert">{t(errorMessageKey(sessions.error))}</p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                void sessions.refetch();
-              }}
-            >
-              {t('app.retry')}
-            </Button>
-          </CardContent>
-        </Card>
+        <QueryError error={sessions.error} onRetry={() => void sessions.refetch()} />
       ) : items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-start gap-4">
@@ -62,7 +51,9 @@ export function MyToastsPage() {
               setEditingId(session.id);
             }}
           />
-          {hasNextPage && <LoadMore onLoad={loadMore} loading={isFetchingNextPage} />}
+          {hasNextPage && (
+            <LoadMore label={t('toasts.loadMore')} onLoad={loadMore} loading={isFetchingNextPage} />
+          )}
         </div>
       )}
       <EditSessionDialog

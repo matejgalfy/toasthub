@@ -7,6 +7,7 @@ import { type AchievementCode, PHOTO_FIELD } from '@toasthub/shared';
 
 import { api, unwrap } from '@/api/client';
 import { homeQueryKey } from '@/features/home/home-query';
+import { usersQueryKey } from '@/features/profile/profile-api';
 
 export const toastSessionsQueryKey = ['toast-sessions'] as const;
 
@@ -41,8 +42,8 @@ export function announceAchievements(t: TFunction, codes: readonly AchievementCo
 }
 
 /**
- * A change to a session. Counts and streaks follow it, so home and the list are refetched whatever the
- * outcome; achievements it earned pop a toast.
+ * A change to a session. Counts and streaks follow it, so home, the list and the profile are refetched
+ * whatever the outcome; achievements it earned pop a toast.
  */
 function useSessionMutation<Input, Result>(
   mutationFn: (input: Input) => Promise<Result>,
@@ -59,6 +60,7 @@ function useSessionMutation<Input, Result>(
       Promise.all([
         queryClient.invalidateQueries({ queryKey: homeQueryKey }),
         queryClient.invalidateQueries({ queryKey: toastSessionsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKey }),
       ]),
   });
 }

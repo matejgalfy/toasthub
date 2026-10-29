@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { HomeResponse } from '@toasthub/shared';
 
 import { api, unwrap } from '@/api/client';
+import { usersQueryKey } from '@/features/profile/profile-api';
 import {
   announceAchievements,
   sessionForm,
@@ -50,6 +51,7 @@ export function useLogToasts() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: homeQueryKey }),
         queryClient.invalidateQueries({ queryKey: toastSessionsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: usersQueryKey }),
       ]),
   });
 }

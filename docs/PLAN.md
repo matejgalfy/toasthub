@@ -48,7 +48,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M8 | Home screen UI and PWA | `m08-home-ui` | M5, M7 | ☑ |
 | M8b | Toast sessions: history and editing (API + UI) | `m08b-toast-sessions` | M8 | ☑ |
 | M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☑ |
-| M10 | Profile UI | `m10-profile-ui` | M8b, M9 | ☐ |
+| M10 | Profile UI | `m10-profile-ui` | M8b, M9 | ☑ |
 | M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☐ |
 | M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☐ |
 | M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☐ |
@@ -591,3 +591,12 @@ milestones._
   `UsersService` (and make `resolveAccess()` public) if another module needs it.
 - Gotcha: `migrate.int.test.ts`'s fresh-database tests got slower as more int files ran before them (over 5 s in a
   full run after this milestone's tests), so they now have a 30 s timeout.
+- **M10** — `/u/:id` is live: `pages/profile-page.tsx` + `features/profile` (`profile-api.ts` = query options under
+  `usersQueryKey` `['users', id, …]`, pure `heatmap.ts` (`heatmapMonths()`, `heatLevel()`), `YearHeatmap`,
+  `ProfileStats`, `AchievementGrid`, `PhotoGrid`, `ProfileSummary`). Layout and colour rules: SPEC §12 D46; new tokens
+  `--heat-1…4`. A reduced profile calls only `GET /users/:id`; a bad id or a 404 shows "couldn't find this profile".
+- Shared UI moved to `src/components`: `StatCard` (was in home), `LoadMore` (was in `session-list.tsx`, now takes a
+  `label`), `QueryError` (error + retry card, used by home, My toasts and the profile); `PageSpinner` takes a
+  `className` for section-sized spinners. `renderWithApp()` has a `routePath` option for pages that read `useParams()`.
+- Any mutation that changes toasts must also invalidate `usersQueryKey` (M16 reject/ban, M13 clan join changes a
+  clan-only profile's `access`: invalidate `['users']` there too). For M13: link member names to `/u/:id`.

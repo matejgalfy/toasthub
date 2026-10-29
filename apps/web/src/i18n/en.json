@@ -153,6 +153,51 @@
       "done": "Toasts deleted."
     }
   },
+  "profilePage": {
+    "myToasts": "My toasts",
+    "notFound": "We couldn't find this profile.",
+    "reduced": "{{name}} shares stats, achievements and photos with clanmates only.",
+    "counts": {
+      "week": "This week",
+      "month": "This month",
+      "year": "This year"
+    },
+    "stats": {
+      "title": "Stats",
+      "total": "Total",
+      "unit_one": "toast",
+      "unit_other": "toasts",
+      "since": "Since {{date}}",
+      "bestDay": "Best day",
+      "noToasts": "No toasts yet",
+      "averages": "Averages",
+      "perDay": "Per day",
+      "perWeek": "Per week",
+      "perMonth": "Per month"
+    },
+    "heatmap": {
+      "title": "Toast calendar",
+      "year": "Year",
+      "previousYear": "Previous year",
+      "nextYear": "Next year",
+      "summary": "{{toasts}} in {{year}}",
+      "day": "{{date}}: {{toasts}}",
+      "less": "Less",
+      "more": "More"
+    },
+    "achievements": {
+      "title": "Achievements",
+      "summary": "{{earned}} of {{total}} earned",
+      "earned": "Earned {{date}}",
+      "locked": "Not earned yet"
+    },
+    "photos": {
+      "title": "Photos",
+      "alt": "{{toasts}} on {{date}}",
+      "empty": "No photos yet.",
+      "loadMore": "Show more photos"
+    }
+  },
   "auth": {
     "email": {
       "label": "Email",
