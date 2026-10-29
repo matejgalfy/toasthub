@@ -1,7 +1,8 @@
+import multipart from '@fastify/multipart';
 import { Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, type OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
-import { errorResponseSchema } from '@toasthub/shared';
+import { errorResponseSchema, PHOTO_MAX_BYTES } from '@toasthub/shared';
 import {
   cleanupOpenApiDoc,
   createZodDto,
@@ -41,7 +42,11 @@ export function createFastifyAdapter(): FastifyAdapter {
  * Everything that shapes request handling. Shared by `main.ts`, `bun run openapi` and tests. Needs
  * `ConfigService` in the app.
  */
-export function configureApp(app: NestFastifyApplication): void {
+export async function configureApp(app: NestFastifyApplication): Promise<void> {
+  // Only toast photos are uploaded: one file per request. A route reads the file itself (`request.file()`);
+  // a bigger file fails there with a 413.
+  await app.register(multipart, { limits: { files: 1, fileSize: PHOTO_MAX_BYTES } });
+
   const config = app.get(ConfigService);
   const webOrigin = config.get('WEB_ORIGIN');
   // The API's own origin too, for the Swagger UI it serves in dev.

@@ -59,7 +59,7 @@ beforeAll(async () => {
     bufferLogs: true,
   });
   app.useLogger(app.get(Logger));
-  configureApp(app);
+  await configureApp(app);
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 });

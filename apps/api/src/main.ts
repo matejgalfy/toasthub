@@ -15,7 +15,7 @@ async function bootstrap(): Promise<void> {
   });
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
-  configureApp(app);
+  await configureApp(app);
 
   const config = app.get(ConfigService);
   if (!config.isProduction) {

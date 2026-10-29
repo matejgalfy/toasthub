@@ -16,6 +16,15 @@ export const envSchema = z.object({
   WEB_ORIGIN: httpUrl.transform((url) => new URL(url).origin).default('http://localhost:5173'),
   SMTP_URL: z.url({ protocol: /^smtps?$/ }).default('smtp://localhost:1025'),
   MAIL_FROM: z.string().min(3).default('Toasthub <no-reply@toasthub.local>'),
+  // Photo storage: any S3-compatible API. Without an endpoint the AWS SDK uses AWS S3 in the region.
+  // Browsers load photos from presigned URLs on this endpoint, so it must be reachable from them too.
+  S3_ENDPOINT: httpUrl.optional(),
+  S3_REGION: z.string().min(1).default('us-east-1'),
+  S3_BUCKET: z.string().min(3).default('toasthub-photos'),
+  S3_ACCESS_KEY_ID: z.string().min(1),
+  S3_SECRET_ACCESS_KEY: z.string().min(1),
+  // MinIO serves buckets under the path (`/bucket/key`) instead of as a subdomain.
+  S3_FORCE_PATH_STYLE: z.stringbool().default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;

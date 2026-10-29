@@ -52,6 +52,38 @@ export interface paths {
     patch: operations['MeController_update'];
     trace?: never;
   };
+  '/api/v1/toasts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ToastsController_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/toasts/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['ToastsController_delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -86,6 +118,34 @@ export interface components {
       locale?: 'sk' | 'en';
       /** @enum {string} */
       profileVisibility?: 'public' | 'clan';
+    };
+    CreateToastResponseDto_Output: {
+      toast: {
+        /** Format: uuid */
+        id: string;
+        /** Format: uuid */
+        userId: string;
+        /** Format: uuid */
+        clanId: string | null;
+        /** Format: date-time */
+        eatenAt: string;
+        /** Format: date */
+        localDate: string;
+        /** Format: uri */
+        photoUrl: string | null;
+      };
+      newAchievements: (
+        | 'first_bite'
+        | 'shutterbug'
+        | 'week_warrior'
+        | 'toast_devotee'
+        | 'centurion'
+        | 'toastmaster'
+        | 'clansman'
+        | 'golden_toast'
+        | 'early_bird'
+        | 'midnight_snack'
+      )[];
     };
     ErrorResponse: {
       error: {
@@ -191,6 +251,51 @@ export interface operations {
         content: {
           'application/json': components['schemas']['MeResponseDto_Output'];
         };
+      };
+    };
+  };
+  ToastsController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'multipart/form-data': {
+          /** Format: binary */
+          photo?: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CreateToastResponseDto_Output'];
+        };
+      };
+    };
+  };
+  ToastsController_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

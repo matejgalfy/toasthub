@@ -21,7 +21,7 @@ export async function createTestApp(env: Partial<Record<keyof Env, string>> = {}
     bufferLogs: true,
   });
   app.useLogger(app.get(Logger));
-  configureApp(app);
+  await configureApp(app);
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
   return app;

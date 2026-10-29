@@ -103,7 +103,11 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `src/db/schema/index.ts`; generate migrations with `db:generate`, never edit an applied one.
 - Lists: parse `pageQuerySchema` from `shared`, fetch `limit + 1` rows ordered by a unique keyset, and return
   `toPage(rows, limit, keysetOf)`. Read the cursor with `decodeCursor(cursor, keysetSchema)` (`src/common/pagination.ts`).
-- Any new app instance (scripts, tests) uses `createFastifyAdapter()` + `configureApp()` from `src/app.setup.ts`.
+- Counts, streaks, stats, leaderboards and achievements filter `toast` with `countableToasts()`
+  (`src/modules/toasts/countable-toasts.ts`: not deleted, not rejected, owner not banned). Never re-spell it.
+- Photos: store and sign through `StorageService` (`src/modules/storage`). Check visibility before you call
+  `presignGet()`. New uploads go through `processPhoto()` (`toasts/photo-pipeline.ts`), never stored raw.
+- Any new app instance (scripts, tests) uses `createFastifyAdapter()` + `await configureApp()` from `src/app.setup.ts`.
 - Don't log emails, tokens or auth headers (the pino redaction from M1 is a safety net, not a licence).
 - Don't use `import type` for classes that Nest injects. DI needs the runtime reference for decorator metadata.
 - Every route needs an active session unless marked `@Public()` (global `SessionGuard`). Admin routes add
@@ -143,7 +147,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   test run with migrations applied, and every `public` table except `toast_fact` is truncated before each test.
   Build the app with `createTestApp()` from `apps/api/test/create-app.ts` and call it with `app.inject()`. Get a
   session with `signIn(app, email)` from `test/auth.ts` (real magic link via Mailpit); cookie mutations need
-  `origin: WEB_ORIGIN`.
+  `origin: WEB_ORIGIN`. A MinIO container with the photo bucket runs alongside (objects are not cleared between
+  tests); presigned URLs from responses can be fetched directly.
 - Web tests are `*.test.ts(x)` with Vitest + Testing Library in jsdom (config in `apps/web/vite.config.ts`).
   `src/test/setup.ts` starts i18n in English, so assert on English text. Render pages with
   `renderWithApp(ui, { session: testSession('user'), path })` (`src/test/render.tsx`, `src/test/sessions.ts`)

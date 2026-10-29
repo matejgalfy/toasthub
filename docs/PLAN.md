@@ -43,7 +43,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M3 | Domain schema, time utils, seeds | `m03-domain-schema` | M2 | ☑ |
 | M4 | Web shell (UI kit, i18n, API client, layout) | `m04-web-shell` | M1 | ☑ |
 | M5 | Auth UI, onboarding, settings, E2E harness | `m05-auth-ui` | M2, M4 | ☑ |
-| M6 | Toast logging backend (photos, storage, flags) | `m06-toasts-api` | M3 | ☐ |
+| M6 | Toast logging backend (photos, storage, flags) | `m06-toasts-api` | M3 | ☑ |
 | M7 | Streaks, achievements, facts, `/home` | `m07-home-api` | M6 | ☐ |
 | M8 | Home screen UI and PWA | `m08-home-ui` | M5, M7 | ☐ |
 | M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☐ |
@@ -490,3 +490,17 @@ milestones._
   logout. Not covered: an *expired* link (same `INVALID_TOKEN` path as a used one; the api int test covers it).
 - For M8: the E2E CI job starts only Postgres and Mailpit; add `minio` to its `docker compose up` for the photo
   test. `/home` is still a placeholder, the onboarding E2E asserts only its heading.
+- **M6** — `POST /toasts` (no body, or multipart with one `photo` part) and `DELETE /toasts/:id` live in
+  `src/modules/toasts`. `countableToasts()` (`countable-toasts.ts`) is the `WHERE` fragment every later aggregate
+  must use. `StorageModule` (`put`, `delete`, `presignGet` for 1 h) signs without a visibility check; M9 adds it.
+  The image pipeline is `photo-pipeline.ts`. HEIC goes through `heic-decode` because prebuilt sharp has no HEVC (D38).
+- New env: `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` + `S3_SECRET_ACCESS_KEY` (required),
+  `S3_FORCE_PATH_STYLE`. **Update your local `.env`** from `.env.example`. Int tests start a MinIO container too.
+  `configureApp()` is now async (it registers `@fastify/multipart`), so `await` it. The api Vitest config dropped
+  Vite's `module` resolve condition, which picked the AWS SDK's bundler-only build.
+- The 30/h limit (every attempt counts) is the in-memory `RateLimiter` in `src/common`, one per replica, so
+  **Q4 is still open**: decide shared storage before running more than one api replica. M12's report limit can
+  reuse the class.
+- For M7: `ToastsService.create` returns `newAchievements: []`; call the evaluator after the insert transaction.
+  For M8: the generated client types the multipart body, but openapi-fetch needs a `FormData` `bodySerializer`.
+  Soft-deleted toasts keep their photo object (D7, D39); nothing removes orphaned photos yet.

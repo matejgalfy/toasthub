@@ -4,7 +4,9 @@ import { parseEnv } from './env';
 
 const DATABASE_URL = 'postgres://toasthub:secret@localhost:5432/toasthub';
 const BETTER_AUTH_SECRET = 'a-test-secret-that-is-long-enough-123';
-const required = { DATABASE_URL, BETTER_AUTH_SECRET };
+const S3_ACCESS_KEY_ID = 'toasthub';
+const S3_SECRET_ACCESS_KEY = 'toasthub-secret';
+const required = { DATABASE_URL, BETTER_AUTH_SECRET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY };
 
 describe('parseEnv', () => {
   it('applies defaults', () => {
@@ -19,6 +21,11 @@ describe('parseEnv', () => {
       WEB_ORIGIN: 'http://localhost:5173',
       SMTP_URL: 'smtp://localhost:1025',
       MAIL_FROM: 'Toasthub <no-reply@toasthub.local>',
+      S3_REGION: 'us-east-1',
+      S3_BUCKET: 'toasthub-photos',
+      S3_ACCESS_KEY_ID,
+      S3_SECRET_ACCESS_KEY,
+      S3_FORCE_PATH_STYLE: false,
     });
   });
 
@@ -37,6 +44,13 @@ describe('parseEnv', () => {
       /PORT[\s\S]*NODE_ENV|NODE_ENV[\s\S]*PORT/,
     );
     expect(() => parseEnv({})).toThrow(/DATABASE_URL[\s\S]*BETTER_AUTH_SECRET/);
+  });
+
+  it('parses the S3 path-style flag', () => {
+    expect(parseEnv({ ...required, S3_FORCE_PATH_STYLE: 'true' }).S3_FORCE_PATH_STYLE).toBe(true);
+    expect(() => parseEnv({ ...required, S3_FORCE_PATH_STYLE: 'yes please' })).toThrow(
+      /S3_FORCE_PATH_STYLE/,
+    );
   });
 
   it('rejects a short auth secret', () => {

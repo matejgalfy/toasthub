@@ -1,7 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
-// Read @toasthub/shared from source (see docs/AGENTS.md) on top of Vite's default server conditions.
-const conditions = ['@toasthub/source', 'module', 'node', 'development|production'];
+// Read @toasthub/shared from source (see docs/AGENTS.md). Otherwise resolve like Node does: Vite's default
+// `module` condition would pick bundler-only builds (the AWS SDK's `dist-es` has extensionless imports).
+const conditions = ['@toasthub/source', 'node', 'development|production'];
 
 export default defineConfig({
   resolve: { conditions },

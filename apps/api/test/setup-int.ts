@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeEach, inject } from 'vitest';
 
 import { clearMailbox } from './mailpit';
+import { TEST_S3 } from './s3';
 
 // Runs before every integration test file: point the app at the test containers and start each test
 // from empty tables and an empty mailbox.
@@ -12,6 +13,11 @@ process.env.SMTP_URL = inject('smtpUrl');
 process.env.BETTER_AUTH_SECRET = 'integration-test-secret-that-is-long-enough';
 process.env.BETTER_AUTH_URL = 'http://localhost:3000';
 process.env.WEB_ORIGIN = 'http://localhost:5173';
+process.env.S3_ENDPOINT = inject('s3Endpoint');
+process.env.S3_BUCKET = TEST_S3.bucket;
+process.env.S3_ACCESS_KEY_ID = TEST_S3.accessKeyId;
+process.env.S3_SECRET_ACCESS_KEY = TEST_S3.secretAccessKey;
+process.env.S3_FORCE_PATH_STYLE = 'true';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
 
