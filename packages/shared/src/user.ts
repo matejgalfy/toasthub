@@ -37,6 +37,8 @@ export const meSchema = z.object({
   profileVisibility: profileVisibilitySchema,
   role: userRoleSchema,
   onboarded: z.boolean(),
+  // The clan the user is in right now; null when in none (the Clan tab links here).
+  clanId: z.uuid().nullable(),
   createdAt: z.iso.datetime(),
 });
 export type Me = z.infer<typeof meSchema>;

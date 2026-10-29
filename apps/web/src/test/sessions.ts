@@ -14,6 +14,7 @@ export const testUser: Me = {
   profileVisibility: 'public',
   role: 'user',
   onboarded: true,
+  clanId: null,
   createdAt: '2026-10-01T08:00:00.000Z',
 };
 

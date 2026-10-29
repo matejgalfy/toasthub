@@ -672,6 +672,8 @@ export interface components {
         /** @enum {string} */
         role: 'user' | 'admin';
         onboarded: boolean;
+        /** Format: uuid */
+        clanId: string | null;
         /** Format: date-time */
         createdAt: string;
       };

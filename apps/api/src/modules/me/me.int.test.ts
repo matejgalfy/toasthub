@@ -35,8 +35,24 @@ describe('GET /me', () => {
     const res = await app.inject({ url: '/api/v1/me', headers: { cookie: ann.cookie } });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({
-      user: { id: ann.userId, email: 'ann@example.com', onboarded: false },
+      user: { id: ann.userId, email: 'ann@example.com', onboarded: false, clanId: null },
     });
+  });
+
+  it('names the clan the user is in', async () => {
+    await patchMe({ displayName: 'Ann' });
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/clans',
+      headers: { cookie: ann.cookie, origin: WEB_ORIGIN },
+      payload: { name: 'Crumbs' },
+    });
+    const { clan } = created.json<{ clan: { id: string } }>();
+
+    const res = await app.inject({ url: '/api/v1/me', headers: { cookie: ann.cookie } });
+    expect(res.json()).toMatchObject({ user: { clanId: clan.id } });
+    // PATCH answers with the same shape.
+    expect((await patchMe({ locale: 'sk' })).json()).toMatchObject({ user: { clanId: clan.id } });
   });
 
   it('uses UUID v7 ids', () => {

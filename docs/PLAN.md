@@ -51,7 +51,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M10 | Profile UI | `m10-profile-ui` | M8b, M9 | ☑ |
 | M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☑ |
 | M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☑ |
-| M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☐ |
+| M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☑ |
 | M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☐ |
 | M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☐ |
 | M16 | Admin backend | `m16-admin-api` | M15 | ☐ |
@@ -625,3 +625,17 @@ milestones._
   `reporter_id` and `reason` (`null` when empty); a banned member's sessions already leave the feed.
 - Gotcha: a Drizzle `alias()` inside a raw `sql` template renders only its name, so write
   `FROM ${toast} AS ${earlier}` (see `ToastsService.load()`). `/me/toast-sessions` items still have no like counts.
+- **M13** — Clan UI: pages `/clans` (`clans-page.tsx`, debounced search), `/clans/new` and `/clans/:id` (`clan-page.tsx`),
+  parts in `features/clans` (`clans-api.ts` = query options under `clansQueryKey` `['clans']` + mutation hooks,
+  `ClanHeader`, `JoinRequests`, `ClanFeed` with likes and the report dialog, `ClanMembers` with role menus,
+  `ClanSettings`, `ClanForm`). Shapes and choices: SPEC §12 D49. New shadcn `tabs`, `dropdown-menu`, `textarea`
+  (the `cn` import fix again) and `components/confirm-dialog.tsx` for any "are you sure" step; `app.cancel` key.
+- `GET /me` now has `clanId` (`Me` in `shared`, `toMe(row, clanId)`); web test sessions have `clanId: null`. The clan
+  role tables moved to `shared/clan-policy.ts` (`canActOnClan`, `canActOnMember`, `mayActOnMembers`); the api policy
+  keeps only the `assert*` wrappers and re-exports the rest. Deviation: transfer is the "Make owner" member menu item.
+- For M14: replace the Leaderboard tab's placeholder in `clan-page.tsx`. For M17: the admin clan views can reuse
+  `ClanForm` and `ConfirmDialog`. A Radix `DropdownMenu` that opens a dialog must be `modal={false}` (otherwise the
+  page can stay unclickable).
+- E2E `clans.spec.ts` uses two browser contexts (`browser.newContext()` inherits the config's `use`). With 10
+  sign-ups per run, verifies hit Better Auth's 5/min limit (429) or a 500 even after the reset, so `openMagicLink()`
+  now resets and reopens the link up to 3 times on a 429 or 5xx (the token isn't used by then).

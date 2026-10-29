@@ -8,6 +8,9 @@ import {
   RequireOnboarded,
 } from '@/features/auth/guards';
 import { AuthCallbackPage } from '@/pages/auth-callback-page';
+import { ClanNewPage } from '@/pages/clan-new-page';
+import { ClanPage } from '@/pages/clan-page';
+import { ClansPage } from '@/pages/clans-page';
 import { HomePage } from '@/pages/home-page';
 import { LandingPage } from '@/pages/landing-page';
 import { LoginPage } from '@/pages/login-page';
@@ -46,9 +49,9 @@ export const routes: RouteObject[] = [
           { path: 'home', element: <HomePage /> },
           { path: 'toasts', element: <MyToastsPage /> },
           { path: 'leaderboards', element: <PlaceholderPage page="leaderboards" /> },
-          { path: 'clans', element: <PlaceholderPage page="clans" /> },
-          { path: 'clans/new', element: <PlaceholderPage page="clanNew" /> },
-          { path: 'clans/:id', element: <PlaceholderPage page="clan" /> },
+          { path: 'clans', element: <ClansPage /> },
+          { path: 'clans/new', element: <ClanNewPage /> },
+          { path: 'clans/:id', element: <ClanPage /> },
           { path: 'u/:id', element: <ProfilePage /> },
           { path: 'toast-of-the-week', element: <PlaceholderPage page="toastOfTheWeek" /> },
           { path: 'settings', element: <SettingsPage /> },

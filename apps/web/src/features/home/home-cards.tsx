@@ -1,16 +1,19 @@
 import { Lightbulb, Trophy } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import type { HomeResponse, Streak } from '@toasthub/shared';
 
 import { StatCard } from '@/components/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useUser } from '@/features/auth/session';
 import { useFormat } from '@/i18n/format';
 
 /** Today's count, the streaks, the fact of the day and the Toast of the week (SPEC §9 `/home`). */
 export function HomeCards({ home }: { home: HomeResponse }) {
   const { t } = useTranslation();
+  const me = useUser();
   const format = useFormat();
   return (
     <>
@@ -23,13 +26,22 @@ export function HomeCards({ home }: { home: HomeResponse }) {
           live
         />
         <StreakCard label={t('home.streak.label')} streak={home.streak} />
-        {home.clanStreak && (
-          <StreakCard
-            label={t('home.clanStreak.label')}
-            streak={home.clanStreak}
-            className="col-span-2"
-          />
-        )}
+        {home.clanStreak &&
+          (me.clanId ? (
+            <Link
+              to={`/clans/${me.clanId}`}
+              className="col-span-2 rounded-xl transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&>*]:hover:bg-accent"
+            >
+              <StreakCard label={t('home.clanStreak.label')} streak={home.clanStreak} />
+            </Link>
+          ) : (
+            // `/me` hasn't caught up with a clan joined meanwhile; the link follows on its refetch.
+            <StreakCard
+              label={t('home.clanStreak.label')}
+              streak={home.clanStreak}
+              className="col-span-2"
+            />
+          ))}
       </div>
       {home.fact && (
         <InfoCard icon={<Lightbulb aria-hidden="true" />} title={t('home.fact.title')}>

@@ -14,8 +14,8 @@ export function navItems(user: Me): NavItem[] {
   return [
     { id: 'home', to: '/home', icon: House },
     { id: 'leaderboards', to: '/leaderboards', icon: Trophy },
-    // M13 sends clan members to their own clan instead of the browser.
-    { id: 'clan', to: '/clans', icon: Users },
+    // Members go straight to their own clan, everyone else to the browser.
+    { id: 'clan', to: user.clanId ? `/clans/${user.clanId}` : '/clans', icon: Users },
     { id: 'profile', to: `/u/${user.id}`, icon: UserRound },
   ];
 }

@@ -68,6 +68,7 @@ describe('magic-link sign-in', () => {
         profileVisibility: 'public',
         role: 'user',
         onboarded: false,
+        clanId: null,
         createdAt: expect.any(String) as string,
       },
     });

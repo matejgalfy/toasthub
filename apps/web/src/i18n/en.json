@@ -4,7 +4,8 @@
     "skipToContent": "Skip to content",
     "loading": "Loading…",
     "retry": "Try again",
-    "close": "Close"
+    "close": "Close",
+    "cancel": "Cancel"
   },
   "nav": {
     "label": "Main",
@@ -196,6 +197,107 @@
       "alt": "{{toasts}} on {{date}}",
       "empty": "No photos yet.",
       "loadMore": "Show more photos"
+    }
+  },
+  "clans": {
+    "create": "Create clan",
+    "myClan": "Your clan",
+    "browse": "Browse clans",
+    "search": "Search clans",
+    "searchPlaceholder": "Part of the name",
+    "memberCount_one": "{{count}} member",
+    "memberCount_other": "{{count}} members",
+    "empty": "No clans yet. Create the first one!",
+    "noMatch": "No clan name contains “{{search}}”.",
+    "loadMore": "Show more clans",
+    "notFound": "We couldn't find this clan. It may have been deleted.",
+    "form": {
+      "name": "Name",
+      "nameHint": "3 to 40 characters.",
+      "nameInvalid": "Use 3 to 40 characters.",
+      "nameTaken": "Another clan already has this name.",
+      "description": "Description",
+      "descriptionHint": "Optional. Up to {{max}} characters.",
+      "create": "Create clan",
+      "save": "Save changes",
+      "saved": "Saved."
+    },
+    "streak": {
+      "current": "Clan streak 🔥",
+      "longest": "Longest streak"
+    },
+    "join": {
+      "request": "Request to join",
+      "pending": "Your request to join is waiting for an officer.",
+      "cancel": "Cancel request",
+      "inOtherClan": "You're already in a clan. Leave it to join this one.",
+      "conflict": "You can't join right now: you're in a clan or waiting on another request, or this clan is full."
+    },
+    "leave": {
+      "button": "Leave clan",
+      "title": "Leave {{name}}?",
+      "description": "You won't see the clan feed any more. To come back, request to join again.",
+      "confirm": "Leave",
+      "ownerHint": "You're the owner. To leave, make another member the owner (Members tab) or delete the clan."
+    },
+    "tabs": {
+      "label": "Clan sections",
+      "feed": "Feed",
+      "leaderboard": "Leaderboard",
+      "members": "Members",
+      "settings": "Settings"
+    },
+    "feed": {
+      "empty": "No toasts in this clan yet.",
+      "photoAlt": "{{name}}'s photo: {{toasts}}",
+      "like": "Like ({{likes}})",
+      "report": "Report",
+      "loadMore": "Show older toasts"
+    },
+    "report": {
+      "title": "Report this photo?",
+      "description": "An admin will look at it. You can tell them what's wrong.",
+      "reason": "Reason (optional)",
+      "submit": "Report photo",
+      "done": "Thanks. An admin will take a look.",
+      "gone": "This photo can't be reported any more."
+    },
+    "roles": {
+      "owner": "Owner",
+      "officer": "Officer",
+      "member": "Member"
+    },
+    "members": {
+      "actions": "Actions for {{name}}",
+      "promote": "Make officer",
+      "demote": "Make member",
+      "transfer": "Make owner",
+      "kick": "Remove from clan",
+      "kickTitle": "Remove {{name}}?",
+      "kickDescription": "{{name}} leaves the clan and can request to join again.",
+      "kickConfirm": "Remove",
+      "transferTitle": "Make {{name}} the owner?",
+      "transferDescription": "You become an officer, and only {{name}} can edit or delete the clan from then on.",
+      "transferConfirm": "Make owner"
+    },
+    "requests": {
+      "title": "Join requests",
+      "empty": "No one is waiting to join.",
+      "asked": "Asked {{date}}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approveLabel": "Approve {{name}}",
+      "rejectLabel": "Reject {{name}}",
+      "conflict": "This request can't be approved: the clan is full or the request is no longer open."
+    },
+    "settings": {
+      "deleteHeading": "Delete the clan",
+      "deleteHint": "Everyone leaves the clan and open join requests are cancelled.",
+      "delete": "Delete clan",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteDescription": "Every member leaves the clan and open join requests are cancelled. You can't undo it.",
+      "deleteConfirm": "Delete clan",
+      "deleted": "Clan deleted."
     }
   },
   "auth": {

@@ -4,7 +4,8 @@
     "skipToContent": "Preskočiť na obsah",
     "loading": "Načítava sa…",
     "retry": "Skúsiť znova",
-    "close": "Zavrieť"
+    "close": "Zavrieť",
+    "cancel": "Zrušiť"
   },
   "nav": {
     "label": "Hlavná navigácia",
@@ -208,6 +209,109 @@
       "alt": "{{toasts}} dňa {{date}}",
       "empty": "Zatiaľ žiadne fotky.",
       "loadMore": "Zobraziť ďalšie fotky"
+    }
+  },
+  "clans": {
+    "create": "Založiť klan",
+    "myClan": "Tvoj klan",
+    "browse": "Prehliadať klany",
+    "search": "Hľadať klany",
+    "searchPlaceholder": "Časť názvu",
+    "memberCount_one": "{{count}} člen",
+    "memberCount_few": "{{count}} členovia",
+    "memberCount_many": "{{count}} člena",
+    "memberCount_other": "{{count}} členov",
+    "empty": "Zatiaľ tu nie sú žiadne klany. Založ prvý!",
+    "noMatch": "Žiadny názov klanu neobsahuje „{{search}}“.",
+    "loadMore": "Zobraziť ďalšie klany",
+    "notFound": "Tento klan sme nenašli. Možno bol zmazaný.",
+    "form": {
+      "name": "Názov",
+      "nameHint": "3 až 40 znakov.",
+      "nameInvalid": "Použi 3 až 40 znakov.",
+      "nameTaken": "Tento názov už má iný klan.",
+      "description": "Popis",
+      "descriptionHint": "Nepovinné. Najviac {{max}} znakov.",
+      "create": "Založiť klan",
+      "save": "Uložiť zmeny",
+      "saved": "Uložené."
+    },
+    "streak": {
+      "current": "Séria klanu 🔥",
+      "longest": "Najdlhšia séria"
+    },
+    "join": {
+      "request": "Požiadať o vstup",
+      "pending": "Tvoja žiadosť o vstup čaká na schválenie.",
+      "cancel": "Zrušiť žiadosť",
+      "inOtherClan": "Už si v klane. Ak chceš vstúpiť sem, najprv ho opusti.",
+      "conflict": "Teraz sa nedá pridať: už si v klane alebo čakáš na inú žiadosť, alebo je tento klan plný."
+    },
+    "leave": {
+      "button": "Opustiť klan",
+      "title": "Opustiť {{name}}?",
+      "description": "Prestaneš vidieť feed klanu. Ak sa chceš vrátiť, znova požiadaj o vstup.",
+      "confirm": "Opustiť",
+      "ownerHint": "Si vlastník. Ak chceš odísť, urob vlastníkom iného člena (karta Členovia) alebo klan zmaž."
+    },
+    "tabs": {
+      "label": "Časti klanu",
+      "feed": "Feed",
+      "leaderboard": "Rebríček",
+      "members": "Členovia",
+      "settings": "Nastavenia"
+    },
+    "feed": {
+      "empty": "V tomto klane zatiaľ nikto nezapísal toast.",
+      "photoAlt": "Fotka od {{name}}: {{toasts}}",
+      "like": "Páči sa mi ({{likes}})",
+      "report": "Nahlásiť",
+      "loadMore": "Zobraziť staršie toasty"
+    },
+    "report": {
+      "title": "Nahlásiť túto fotku?",
+      "description": "Pozrie sa na ňu admin. Môžeš mu napísať, čo je zle.",
+      "reason": "Dôvod (nepovinné)",
+      "submit": "Nahlásiť fotku",
+      "done": "Ďakujeme. Admin sa na to pozrie.",
+      "gone": "Túto fotku už nie je možné nahlásiť."
+    },
+    "roles": {
+      "owner": "Vlastník",
+      "officer": "Dôstojník",
+      "member": "Člen"
+    },
+    "members": {
+      "actions": "Akcie pre {{name}}",
+      "promote": "Urobiť dôstojníkom",
+      "demote": "Urobiť členom",
+      "transfer": "Urobiť vlastníkom",
+      "kick": "Odstrániť z klanu",
+      "kickTitle": "Odstrániť {{name}}?",
+      "kickDescription": "{{name}} opustí klan a môže znova požiadať o vstup.",
+      "kickConfirm": "Odstrániť",
+      "transferTitle": "Urobiť {{name}} vlastníkom?",
+      "transferDescription": "Staneš sa dôstojníkom a odteraz môže klan upraviť alebo zmazať iba {{name}}.",
+      "transferConfirm": "Urobiť vlastníkom"
+    },
+    "requests": {
+      "title": "Žiadosti o vstup",
+      "empty": "Nikto nečaká na vstup.",
+      "asked": "Žiadosť z {{date}}",
+      "approve": "Schváliť",
+      "reject": "Zamietnuť",
+      "approveLabel": "Schváliť {{name}}",
+      "rejectLabel": "Zamietnuť {{name}}",
+      "conflict": "Túto žiadosť nie je možné schváliť: klan je plný alebo žiadosť už nie je otvorená."
+    },
+    "settings": {
+      "deleteHeading": "Zmazať klan",
+      "deleteHint": "Všetci opustia klan a otvorené žiadosti o vstup sa zrušia.",
+      "delete": "Zmazať klan",
+      "deleteTitle": "Zmazať {{name}}?",
+      "deleteDescription": "Všetci členovia opustia klan a otvorené žiadosti o vstup sa zrušia. Nedá sa to vrátiť späť.",
+      "deleteConfirm": "Zmazať klan",
+      "deleted": "Klan bol zmazaný."
     }
   },
   "auth": {
