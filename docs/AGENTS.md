@@ -7,8 +7,9 @@ How to work in this repo. `docs/SPEC.md` says **what** to build, `docs/PLAN.md` 
 
 1. Read `docs/PLAN.md` → the milestone you are implementing and the **Handoff notes** section.
 2. Read only the SPEC sections the milestone lists. Look at existing code only where the milestone touches it.
-3. Branch `m<nn>-<slug>` from an up-to-date `main`. One milestone = one branch = one PR.
-4. Before opening the PR: all checks green (see below), tick the milestone in PLAN **Status**, add 2–5 lines to
+3. Work directly on an up-to-date `main`. A branch `m<nn>-<slug>` with a PR into `main` is optional: use one for
+   parallel milestones or when you want a review first.
+4. Before the milestone's final commit (or PR): all checks green (see below), tick the milestone in PLAN **Status**, add 2–5 lines to
    **Handoff notes**, and add new decisions to SPEC §12.
 
 ## Toolchain
@@ -125,5 +126,6 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `refactor`, `test`, `docs`, `build`, `ci`, `chore`. Scope: `web`, `api`, `shared`, `e2e`, `infra`, or
   omit it.
   Example: `feat(api): add GET /healthz`.
-- PR title: `M<n>: <milestone name>`. The body lists what changed, how it was verified, and any deviations
+- A milestone's main commit ends its summary with `(M<n>)`, e.g. `feat(api): add clan join requests (M11)`.
+- PR title (when a branch is used): `M<n>: <milestone name>`. The body lists what changed, how it was verified, and any deviations
   from PLAN (also recorded in Handoff notes).

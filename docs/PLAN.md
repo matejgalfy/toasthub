@@ -7,8 +7,8 @@
 
 ## How to use this plan
 
-Each milestone fits in **one chat, on one branch, one PR**. The scope is set so that an agent does not have to read the
-whole codebase or the whole spec.
+Each milestone fits in **one chat** and lands on `main` as one commit (or a short series). The scope is set so that an
+agent does not have to read the whole codebase or the whole spec.
 
 **Starting a milestone (new chat):**
 ```
@@ -17,14 +17,15 @@ and only the SPEC sections listed for the milestone.
 ```
 
 **Rules for every milestone**
-1. Branch `m<nn>-<slug>` from an up-to-date `main` (the name is given for each milestone).
+1. Work directly on an up-to-date `main`; no milestone branch is needed. Use the branch name from the **Status**
+   table and open a PR into `main` only when milestones run in parallel or the work needs review first.
 2. Read only the SPEC sections listed under **Read**. Look at existing code only where the milestone touches it.
 3. Stay inside **Scope**. If something is missing or a choice is needed, write it in Handoff notes. Don't grow the
    milestone.
 4. The SPEC §11 Definition of Done applies, scoped to the milestone: tests, lint/format/typecheck green, SK + EN
    strings, OpenAPI regenerated, no stray TODOs. Backend-only milestones have no E2E test; the matching UI
    milestone adds it.
-5. Before opening the PR: tick the milestone in the **Status** table, add 2–5 lines to **Handoff notes** (what
+5. Before the milestone's final commit (or before opening the PR, if you used a branch): tick the milestone in the **Status** table, add 2–5 lines to **Handoff notes** (what
    changed, new conventions, gotchas), and add any new decision to SPEC §12.
 
 **Sizing guardrails.** About ≤ 25 files touched and one feature area per milestone. If a milestone is clearly too
@@ -34,7 +35,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 
 ## Status
 
-| # | Milestone | Branch | Depends on | Status |
+| # | Milestone | Branch (optional) | Depends on | Status |
 |---|-----------|--------|------------|--------|
 | M0 | Monorepo scaffold, tooling, CI | `m00-scaffold` | — | ☑ |
 | M1 | API foundation and local infra | `m01-api-foundation` | M0 | ☑ |
@@ -432,4 +433,4 @@ milestones._
 - Not done here (left to the milestone that needs it): CORS, `trustProxy`, S3/SMTP env vars. Local S3 uses the
   `pgsty/minio` image because upstream MinIO images are gone (D23); compose creates the `toasthub-photos` bucket.
 - Gotcha (Windows): if `bun add` ends in `EEXIST ... failed to symlink`, delete every `node_modules` folder and run
-  `bun install` again. This branch is stacked on `m00-scaffold`, which was not merged to `main` yet.
+  `bun install` again.
