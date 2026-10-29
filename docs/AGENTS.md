@@ -106,7 +106,9 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 - Counts, streaks, stats, leaderboards and achievements filter `toast` with `countableToasts()`
   (`src/modules/toasts/countable-toasts.ts`: not deleted, not rejected, owner not banned). Never re-spell it.
 - Photos: store and sign through `StorageService` (`src/modules/storage`). Check visibility before you call
-  `presignGet()`. New uploads go through `processPhoto()` (`toasts/photo-pipeline.ts`), never stored raw.
+  `presignGet()`: `canSeePhoto()` for someone else's photo, `profileAccess()` for profile data (both pure, in
+  `src/modules/users/users.policy.ts`). New uploads go through `processPhoto()` (`toasts/photo-pipeline.ts`),
+  never stored raw.
 - Any new app instance (scripts, tests) uses `createFastifyAdapter()` + `await configureApp()` from `src/app.setup.ts`.
 - Don't log emails, tokens or auth headers (the pino redaction from M1 is a safety net, not a licence).
 - Don't use `import type` for classes that Nest injects. DI needs the runtime reference for decorator metadata.

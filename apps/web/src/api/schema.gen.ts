@@ -132,6 +132,86 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/users/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['UsersController_getProfile'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{id}/toasts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['UsersController_listToasts'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{id}/stats': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['UsersController_getStats'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{id}/heatmap': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['UsersController_getHeatmap'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{id}/achievements': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['UsersController_getAchievements'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -246,6 +326,84 @@ export interface components {
         photoHidden: boolean;
         editable: boolean;
       };
+    };
+    UserProfileResponseDto_Output: {
+      profile: {
+        /** Format: uuid */
+        id: string;
+        displayName: string;
+        avatarId: number | null;
+        /** @enum {string} */
+        access: 'full' | 'reduced';
+        counts: {
+          week: number;
+          month: number;
+          year: number;
+        };
+      };
+    };
+    UserToastPageDto_Output: {
+      items: {
+        /** Format: uuid */
+        id: string;
+        /** Format: uuid */
+        sessionId: string;
+        /** Format: date-time */
+        eatenAt: string;
+        /** Format: date */
+        localDate: string;
+        count: number;
+        /** Format: uri */
+        photoUrl: string;
+      }[];
+      nextCursor: string | null;
+    };
+    UserStatsDto_Output: {
+      totals: {
+        allTime: number;
+        /** Format: date */
+        firstToastDate: string | null;
+      };
+      averages: {
+        perDay: number;
+        perWeek: number;
+        perMonth: number;
+      };
+      bestDay: {
+        /** Format: date */
+        date: string;
+        count: number;
+      } | null;
+      streak: {
+        current: number;
+        longest: number;
+      };
+    };
+    HeatmapDto_Output: {
+      year: number;
+      days: {
+        /** Format: date */
+        date: string;
+        count: number;
+      }[];
+    };
+    UserAchievementsDto_Output: {
+      items: {
+        /** @enum {string} */
+        code:
+          | 'first_bite'
+          | 'shutterbug'
+          | 'week_warrior'
+          | 'toast_devotee'
+          | 'centurion'
+          | 'toastmaster'
+          | 'clansman'
+          | 'golden_toast'
+          | 'early_bird'
+          | 'midnight_snack';
+        /** Format: date-time */
+        earnedAt: string | null;
+      }[];
     };
     ErrorResponse: {
       error: {
@@ -512,6 +670,116 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ToastSessionResponseDto_Output'];
+        };
+      };
+    };
+  };
+  UsersController_getProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserProfileResponseDto_Output'];
+        };
+      };
+    };
+  };
+  UsersController_listToasts: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserToastPageDto_Output'];
+        };
+      };
+    };
+  };
+  UsersController_getStats: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserStatsDto_Output'];
+        };
+      };
+    };
+  };
+  UsersController_getHeatmap: {
+    parameters: {
+      query?: {
+        year?: number;
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HeatmapDto_Output'];
+        };
+      };
+    };
+  };
+  UsersController_getAchievements: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserAchievementsDto_Output'];
         };
       };
     };

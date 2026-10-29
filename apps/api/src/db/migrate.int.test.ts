@@ -9,6 +9,9 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { SETTING_DB_KEYS } from '../modules/settings/settings.service';
 import { MIGRATIONS_FOLDER, runMigrations } from './migrate';
 
+// A new database plus every migration takes under a second alone, but over 5 s late in a full run.
+const FRESH_DATABASE = { timeout: 30_000 };
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
 
 afterAll(async () => {
@@ -75,7 +78,7 @@ describe('runMigrations', () => {
 });
 
 describe('on an empty database', () => {
-  it('applies cleanly and seeds the reference data', async () => {
+  it('applies cleanly and seeds the reference data', FRESH_DATABASE, async () => {
     await withFreshDatabase(async (url, fresh) => {
       await runMigrations(url);
 
@@ -103,7 +106,7 @@ describe('on an empty database', () => {
 });
 
 describe('0005_toast_sessions', () => {
-  it('gives every existing toast its own session on the same day', async () => {
+  it('gives every existing toast its own session on the same day', FRESH_DATABASE, async () => {
     const before = await migrationsBefore('0005_toast_sessions');
     try {
       await withFreshDatabase(async (url, fresh) => {

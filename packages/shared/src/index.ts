@@ -5,6 +5,7 @@ export * from './flag.js';
 export * from './health.js';
 export * from './home.js';
 export * from './pagination.js';
+export * from './profile.js';
 export * from './settings.js';
 export * from './streak.js';
 export * from './time.js';

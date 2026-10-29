@@ -47,7 +47,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M7 | Streaks, achievements, facts, `/home` | `m07-home-api` | M6 | ☑ |
 | M8 | Home screen UI and PWA | `m08-home-ui` | M5, M7 | ☑ |
 | M8b | Toast sessions: history and editing (API + UI) | `m08b-toast-sessions` | M8 | ☑ |
-| M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☐ |
+| M9 | Profiles, visibility, stats, heatmap (API) | `m09-profiles-api` | M7 | ☑ |
 | M10 | Profile UI | `m10-profile-ui` | M8b, M9 | ☐ |
 | M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☐ |
 | M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☐ |
@@ -579,3 +579,15 @@ milestones._
   level comes out of @nestjs/swagger as an array. jsdom's `File` reaches undici's `Request` as text, so web tests check
   multipart bodies with `request.text()`. Run `bun run db:migrate` for 0005. To run E2E next to another api on :3000:
   `PORT=3100 E2E_API_URL=http://localhost:3100 API_PROXY_TARGET=http://localhost:3100 bun run e2e`.
+- **M9** — `src/modules/users`: `GET /users/:id` plus `/toasts`, `/stats`, `/heatmap`, `/achievements`. Pure rules in
+  `users.policy.ts` (`profileAccess()`, `canSeePhoto()`, `isClanmate()`) and `stats.ts` (`computeStats()`, reuses
+  `computeStreak()`). Schemas in `shared/profile.ts`. Rules and shapes: SPEC §12 D45. Unknown, banned and
+  not-onboarded users are 404 on every route; `reduced` access is a 403 on all but the profile itself.
+- For M10: `/users/:id/toasts` lists only visible photos (one per session, the lead toast) for the photo grid; the
+  own hidden photos are only in My toasts. `profile.access === 'reduced'` → render the reduced view and don't call
+  the other four routes. Heatmap `days` are sparse (only days with toasts); fill the rest with 0 client-side.
+- For M12 / M14 / M15: call `canSeePhoto()` before signing a photo in the feed, leaderboards or TOTW. Its TOTW rule
+  is not a stub: `/users/:id/toasts` already reads `toast_of_the_week`. `UsersModule` exports nothing yet; export
+  `UsersService` (and make `resolveAccess()` public) if another module needs it.
+- Gotcha: `migrate.int.test.ts`'s fresh-database tests got slower as more int files ran before them (over 5 s in a
+  full run after this milestone's tests), so they now have a 30 s timeout.

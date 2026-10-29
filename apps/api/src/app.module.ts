@@ -11,6 +11,7 @@ import { HomeModule } from './modules/home/home.module';
 import { MeModule } from './modules/me/me.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ToastSessionsModule } from './modules/toast-sessions/toast-sessions.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ToastSessionsModule } from './modules/toast-sessions/toast-sessions.mod
     MeModule,
     SettingsModule,
     ToastSessionsModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
