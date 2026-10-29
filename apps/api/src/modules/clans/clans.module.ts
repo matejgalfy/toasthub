@@ -12,5 +12,6 @@ import { ClansService } from './clans.service';
   imports: [AchievementsModule, SettingsModule, StorageModule, StreaksModule],
   controllers: [ClansController],
   providers: [ClansService, ClanFeedService],
+  exports: [ClansService],
 })
 export class ClansModule {}

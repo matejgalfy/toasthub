@@ -15,6 +15,7 @@ import type { ClanFeedPage, CreateClan, UpdateClan } from '@toasthub/shared';
 import { api, unwrap } from '@/api/client';
 import { meQueryKey } from '@/features/auth/me-query';
 import { homeQueryKey } from '@/features/home/home-query';
+import { leaderboardsQueryKey } from '@/features/leaderboards/leaderboards-api';
 import { usersQueryKey } from '@/features/profile/profile-api';
 import { announceAchievements } from '@/features/toast-sessions/toast-sessions-api';
 
@@ -73,7 +74,8 @@ export const clanRequestsQueryOptions = (id: string) =>
 
 /**
  * A change to clan membership or roles. Afterwards every clan query is refetched, and so are the caller's
- * clan (`/me`), the clan streak on home and profiles, whose access follows clan membership (D45).
+ * clan (`/me`), the clan streak on home, profiles, whose access follows clan membership (D45), and the
+ * boards, which list clans and members.
  */
 function useClanMutation<Input, Result>(
   mutationFn: (input: Input) => Promise<Result>,
@@ -89,6 +91,7 @@ function useClanMutation<Input, Result>(
         queryClient.invalidateQueries({ queryKey: meQueryKey }),
         queryClient.invalidateQueries({ queryKey: homeQueryKey }),
         queryClient.invalidateQueries({ queryKey: usersQueryKey }),
+        queryClient.invalidateQueries({ queryKey: leaderboardsQueryKey }),
       ]),
   });
 }

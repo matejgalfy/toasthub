@@ -13,6 +13,7 @@ import { ClanPage } from '@/pages/clan-page';
 import { ClansPage } from '@/pages/clans-page';
 import { HomePage } from '@/pages/home-page';
 import { LandingPage } from '@/pages/landing-page';
+import { LeaderboardsPage } from '@/pages/leaderboards-page';
 import { LoginPage } from '@/pages/login-page';
 import { MyToastsPage } from '@/pages/my-toasts-page';
 import { NotFoundPage } from '@/pages/not-found-page';
@@ -48,7 +49,7 @@ export const routes: RouteObject[] = [
         children: [
           { path: 'home', element: <HomePage /> },
           { path: 'toasts', element: <MyToastsPage /> },
-          { path: 'leaderboards', element: <PlaceholderPage page="leaderboards" /> },
+          { path: 'leaderboards', element: <LeaderboardsPage /> },
           { path: 'clans', element: <ClansPage /> },
           { path: 'clans/new', element: <ClanNewPage /> },
           { path: 'clans/:id', element: <ClanPage /> },

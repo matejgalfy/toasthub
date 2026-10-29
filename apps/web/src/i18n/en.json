@@ -199,6 +199,38 @@
       "loadMore": "Show more photos"
     }
   },
+  "leaderboards": {
+    "tabs": {
+      "label": "Boards",
+      "users": "Users",
+      "clans": "Clans"
+    },
+    "period": {
+      "label": "Period",
+      "week": "This week",
+      "month": "This month",
+      "year": "This year"
+    },
+    "usersLabel": "Users by toasts",
+    "clansLabel": "Clans by toasts",
+    "membersLabel": "Members by toasts",
+    "rank": "Rank",
+    "streak_one": "Clan streak: {{value}} day",
+    "streak_other": "Clan streak: {{value}} days",
+    "you": "You",
+    "yourClan": "Your clan",
+    "noToasts": {
+      "week": "No toasts from you this week yet.",
+      "month": "No toasts from you this month yet.",
+      "year": "No toasts from you this year yet."
+    },
+    "noClanToasts": {
+      "week": "Your clan hasn't toasted this week yet.",
+      "month": "Your clan hasn't toasted this month yet.",
+      "year": "Your clan hasn't toasted this year yet."
+    },
+    "empty": "No toasts in this period yet."
+  },
   "clans": {
     "create": "Create clan",
     "myClan": "Your clan",

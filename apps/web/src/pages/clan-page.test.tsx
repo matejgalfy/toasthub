@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -369,6 +369,48 @@ describe('ClanPage', () => {
     expect(await requests.find((r) => r.method === 'POST')?.json()).toEqual({
       userId: OFFICER_ID,
     });
+  });
+
+  it('ranks the members on the Leaderboard tab, this month first', async () => {
+    const user = userEvent.setup();
+    const requests = mockClanApi(detail('member'), {
+      extra: (r) => {
+        if (!r.url.includes('/leaderboard')) return undefined;
+        const period = new URL(r.url).searchParams.get('period');
+        const count = period === 'week' ? 1 : 4;
+        return jsonResponse(200, {
+          items: [
+            { rank: 1, user: { id: testUser.id, displayName: 'Toast Tester', avatarId: 1 }, count },
+            { rank: 2, user: { id: OWNER_ID, displayName: 'Olga Owner', avatarId: 2 }, count: 0 },
+            {
+              rank: 2,
+              user: { id: OFFICER_ID, displayName: 'Otto Officer', avatarId: 2 },
+              count: 0,
+            },
+          ],
+        });
+      },
+    });
+    renderClan();
+
+    await user.click(await screen.findByRole('tab', { name: 'Leaderboard' }));
+
+    const list = await screen.findByRole('list', { name: 'Members by toasts' });
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent('4 toasts');
+    expect(rows[2]).toHaveTextContent('Rank 2');
+    expect(within(list).getByText('Toast Tester').closest('[aria-current]')).not.toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'This week' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('list', { name: 'Members by toasts' })).toHaveTextContent('1 toast');
+    });
+    const periods = requests
+      .filter((r) => r.url.includes('/leaderboard'))
+      .map((r) => new URL(r.url).searchParams.get('period'));
+    expect(periods).toEqual(['month', 'week']);
   });
 
   it('says so for an unknown clan', async () => {

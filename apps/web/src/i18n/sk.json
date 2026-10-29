@@ -211,6 +211,40 @@
       "loadMore": "Zobraziť ďalšie fotky"
     }
   },
+  "leaderboards": {
+    "tabs": {
+      "label": "Rebríčky",
+      "users": "Používatelia",
+      "clans": "Klany"
+    },
+    "period": {
+      "label": "Obdobie",
+      "week": "Tento týždeň",
+      "month": "Tento mesiac",
+      "year": "Tento rok"
+    },
+    "usersLabel": "Používatelia podľa toastov",
+    "clansLabel": "Klany podľa toastov",
+    "membersLabel": "Členovia podľa toastov",
+    "rank": "Poradie",
+    "streak_one": "Séria klanu: {{value}} deň",
+    "streak_few": "Séria klanu: {{value}} dni",
+    "streak_many": "Séria klanu: {{value}} dňa",
+    "streak_other": "Séria klanu: {{value}} dní",
+    "you": "Ty",
+    "yourClan": "Tvoj klan",
+    "noToasts": {
+      "week": "Tento týždeň zatiaľ nemáš žiadny toast.",
+      "month": "Tento mesiac zatiaľ nemáš žiadny toast.",
+      "year": "Tento rok zatiaľ nemáš žiadny toast."
+    },
+    "noClanToasts": {
+      "week": "Tvoj klan tento týždeň ešte netoastoval.",
+      "month": "Tvoj klan tento mesiac ešte netoastoval.",
+      "year": "Tvoj klan tento rok ešte netoastoval."
+    },
+    "empty": "V tomto období zatiaľ žiadne toasty."
+  },
   "clans": {
     "create": "Založiť klan",
     "myClan": "Tvoj klan",

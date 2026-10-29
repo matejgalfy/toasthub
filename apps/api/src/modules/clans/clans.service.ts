@@ -378,6 +378,11 @@ export class ClansService {
     return { owner, previousOwner };
   }
 
+  /** 404 for an unknown or deleted clan. */
+  async assertExists(clanId: string): Promise<void> {
+    await this.loadClan(this.db, clanId);
+  }
+
   /** 404 for an unknown or deleted clan, 403 unless the user's role allows `action`. */
   async authorize(userId: string, clanId: string, action: ClanAction): Promise<void> {
     await this.loadClan(this.db, clanId);

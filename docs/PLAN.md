@@ -52,7 +52,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M11 | Clans backend: lifecycle and join requests | `m11-clans-api` | M7 | ☑ |
 | M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☑ |
 | M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☑ |
-| M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☐ |
+| M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☑ |
 | M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☐ |
 | M16 | Admin backend | `m16-admin-api` | M15 | ☐ |
 | M17 | Admin UI | `m17-admin-ui` | M16, M13 | ☐ |
@@ -639,3 +639,18 @@ milestones._
 - E2E `clans.spec.ts` uses two browser contexts (`browser.newContext()` inherits the config's `use`). With 10
   sign-ups per run, verifies hit Better Auth's 5/min limit (429) or a 500 even after the reset, so `openMagicLink()`
   now resets and reopens the link up to 3 times on a 429 or 5xx (the token isn't used by then).
+- **M14** — `src/modules/leaderboards`: `GET /leaderboards/users`, `/leaderboards/clans` and `GET /clans/:id/leaderboard`
+  (in the leaderboards controller; `ClansModule` now exports `ClansService`, which gained `assertExists()`). Pure
+  `rankByCount()` in `ranking.ts`; schemas in `shared/leaderboard.ts`. `StreaksService.currentForClans()` gives the
+  current streak of many clans at once. Shapes, defaults and access: SPEC §12 D50.
+- `EXPLAIN ANALYZE` on 500k toasts over one year (1,000 users, 100 clans of 10, PG 18, one session per toast): users
+  week 25 ms (bitmap scan), users year 121 ms (parallel seq scan, as the year is most of the table), clans month
+  47 ms, clan members 3 ms. Reading every day of the 50 listed clans for their streaks took 367 ms. A partial
+  covering index on `(clan_id, local_date)` only got that to 231 ms, so no migration; the first 64-day window takes
+  80–120 ms. Worst case: every listed clan has a year-long run, and the windows read it all again (~370 ms).
+- Web: `/leaderboards` (`pages/leaderboards-page.tsx`) and the clan page's Leaderboard tab use `features/leaderboards`
+  (`leaderboards-api.ts` = query options under `leaderboardsQueryKey` `['leaderboards']`, `UserBoard`, `ClanBoard`,
+  `ClanMemberBoard`, `RankList` / `PinnedRank` / `PeriodSwitch`). Toast and clan mutations now also invalidate
+  `['leaderboards']`; do the same for M16's reject and ban. For M15: Toast of the week isn't on any board.
+- E2E `leaderboards.spec.ts` compares the two users' pinned "You" ranks on the global board, because other runs'
+  users share it; the exact order is checked on their own clan's board.

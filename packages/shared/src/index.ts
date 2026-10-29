@@ -5,6 +5,7 @@ export * from './errors.js';
 export * from './flag.js';
 export * from './health.js';
 export * from './home.js';
+export * from './leaderboard.js';
 export * from './pagination.js';
 export * from './profile.js';
 export * from './settings.js';

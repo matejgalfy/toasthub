@@ -228,6 +228,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/leaderboards/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['LeaderboardsController_users'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/leaderboards/clans': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['LeaderboardsController_clans'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clans/{id}/leaderboard': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['LeaderboardsController_clanMembers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/me': {
     parameters: {
       query?: never;
@@ -656,6 +704,62 @@ export interface components {
         text: string;
       } | null;
       toastOfTheWeek: null;
+    };
+    UserLeaderboardDto_Output: {
+      items: {
+        rank: number;
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        count: number;
+      }[];
+      me: {
+        rank: number;
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        count: number;
+      } | null;
+    };
+    ClanLeaderboardDto_Output: {
+      items: {
+        rank: number;
+        clan: {
+          /** Format: uuid */
+          id: string;
+          name: string;
+        };
+        count: number;
+        currentStreak: number;
+      }[];
+      myClan: {
+        rank: number;
+        clan: {
+          /** Format: uuid */
+          id: string;
+          name: string;
+        };
+        count: number;
+        currentStreak: number;
+      } | null;
+    };
+    ClanMemberLeaderboardDto_Output: {
+      items: {
+        rank: number;
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        count: number;
+      }[];
     };
     MeResponseDto_Output: {
       user: {
@@ -1239,6 +1343,71 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HomeResponseDto_Output'];
+        };
+      };
+    };
+  };
+  LeaderboardsController_users: {
+    parameters: {
+      query?: {
+        period?: 'week' | 'month' | 'year';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserLeaderboardDto_Output'];
+        };
+      };
+    };
+  };
+  LeaderboardsController_clans: {
+    parameters: {
+      query?: {
+        period?: 'week' | 'month' | 'year';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanLeaderboardDto_Output'];
+        };
+      };
+    };
+  };
+  LeaderboardsController_clanMembers: {
+    parameters: {
+      query?: {
+        period?: 'week' | 'month' | 'year';
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClanMemberLeaderboardDto_Output'];
         };
       };
     };

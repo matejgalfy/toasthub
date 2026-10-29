@@ -20,6 +20,7 @@ import { ClanMembers } from '@/features/clans/clan-members';
 import { ClanSettings } from '@/features/clans/clan-settings';
 import { clanQueryOptions } from '@/features/clans/clans-api';
 import { JoinRequests } from '@/features/clans/join-requests';
+import { ClanMemberBoard } from '@/features/leaderboards/boards';
 
 /** One clan: header, requests for Officers+, tabs Feed / Leaderboard / Members / Settings (SPEC §9). */
 export function ClanPage() {
@@ -97,8 +98,7 @@ function ClanTabs({ detail }: { detail: ClanDetail }) {
         </TabsContent>
       )}
       <TabsContent value="leaderboard" className="pt-4">
-        {/* M14 fills this with the members' ranking. */}
-        <p className="text-muted-foreground">{t('placeholder.body')}</p>
+        <ClanMemberBoard clanId={detail.clan.id} />
       </TabsContent>
       <TabsContent value="members" className="pt-2">
         <ClanMembers detail={detail} />
