@@ -139,6 +139,14 @@ export class TotwService {
     return { weekStart, toastId: result.toastId };
   }
 
+  /** An admin's redraw (SPEC §4.13): replaces the week's winner, or draws it for the first time. */
+  async redraw(adminId: string, weekStart: LocalDate): Promise<ToastOfTheWeek> {
+    await this.draw(weekStart, { replace: true, drawnBy: adminId });
+    const entry = await this.forWeek(adminId, weekStart);
+    if (!entry) throw new Error('Toast of the week disappeared after a redraw');
+    return entry;
+  }
+
   /** The draw for one week as the viewer sees it; null while the week isn't drawn. */
   async forWeek(viewerId: string, weekStart: LocalDate): Promise<ToastOfTheWeek | null> {
     const [row] = await this.rows(eq(toastOfTheWeek.weekStart, weekStart), 1);

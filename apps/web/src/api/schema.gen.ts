@@ -4,6 +4,134 @@
  */
 
 export interface paths {
+  '/api/v1/admin/flags': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['AdminController_listFlags'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/flags/{id}/resolve': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['AdminController_resolveFlag'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['AdminController_listUsers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/users/{id}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['AdminController_setUserStatus'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/clans/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['AdminController_deleteClan'];
+    options?: never;
+    head?: never;
+    patch: operations['AdminController_updateClan'];
+    trace?: never;
+  };
+  '/api/v1/admin/settings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['AdminController_getSettings'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations['AdminController_updateSettings'];
+    trace?: never;
+  };
+  '/api/v1/admin/metrics': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['AdminController_getMetrics'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/toast-of-the-week/{weekStart}/redraw': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['AdminController_redraw'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clans': {
     parameters: {
       query?: never;
@@ -180,6 +308,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/toast-of-the-week': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['TotwController_history'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/healthz': {
     parameters: {
       query?: never;
@@ -220,22 +364,6 @@ export interface paths {
       cookie?: never;
     };
     get: operations['HomeController_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/toast-of-the-week': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations['TotwController_history'];
     put?: never;
     post?: never;
     delete?: never;
@@ -488,6 +616,233 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    AdminFlagPageDto_Output: {
+      items: {
+        /** Format: uuid */
+        id: string;
+        /** @enum {string} */
+        type: 'count_threshold' | 'photo_report';
+        /** @enum {string} */
+        status: 'open' | 'dismissed' | 'actioned';
+        /** Format: date-time */
+        createdAt: string;
+        subject: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+          /** @enum {string} */
+          status: 'active' | 'banned';
+        };
+        reporter: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        } | null;
+        reason: string | null;
+        /** Format: date */
+        localDate: string | null;
+        day: {
+          active: number;
+          rejected: number;
+        } | null;
+        toast: {
+          /** Format: uuid */
+          id: string;
+          /** Format: uuid */
+          sessionId: string;
+          /** Format: date-time */
+          eatenAt: string;
+          /** Format: date */
+          localDate: string;
+          /** @enum {string} */
+          status: 'active' | 'rejected';
+          deleted: boolean;
+          /** Format: uri */
+          photoUrl: string | null;
+          photoHidden: boolean;
+          earlierPhotoUrls: string[];
+        } | null;
+        resolvedBy: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        } | null;
+        /** Format: date-time */
+        resolvedAt: string | null;
+      }[];
+      nextCursor: string | null;
+    };
+    ResolveFlagDto: {
+      /** @enum {string} */
+      action: 'dismiss' | 'reject_toasts' | 'hide_photo';
+      /** @default false */
+      ban: boolean;
+    };
+    AdminFlagResponseDto_Output: {
+      flag: {
+        /** Format: uuid */
+        id: string;
+        /** @enum {string} */
+        type: 'count_threshold' | 'photo_report';
+        /** @enum {string} */
+        status: 'open' | 'dismissed' | 'actioned';
+        /** Format: date-time */
+        createdAt: string;
+        subject: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+          /** @enum {string} */
+          status: 'active' | 'banned';
+        };
+        reporter: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        } | null;
+        reason: string | null;
+        /** Format: date */
+        localDate: string | null;
+        day: {
+          active: number;
+          rejected: number;
+        } | null;
+        toast: {
+          /** Format: uuid */
+          id: string;
+          /** Format: uuid */
+          sessionId: string;
+          /** Format: date-time */
+          eatenAt: string;
+          /** Format: date */
+          localDate: string;
+          /** @enum {string} */
+          status: 'active' | 'rejected';
+          deleted: boolean;
+          /** Format: uri */
+          photoUrl: string | null;
+          photoHidden: boolean;
+          earlierPhotoUrls: string[];
+        } | null;
+        resolvedBy: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        } | null;
+        /** Format: date-time */
+        resolvedAt: string | null;
+      };
+    };
+    AdminUserPageDto_Output: {
+      items: {
+        /** Format: uuid */
+        id: string;
+        /** Format: email */
+        email: string;
+        displayName: string | null;
+        avatarId: number | null;
+        /** @enum {string} */
+        role: 'user' | 'admin';
+        /** @enum {string} */
+        status: 'active' | 'banned';
+        clan: {
+          /** Format: uuid */
+          id: string;
+          name: string;
+        } | null;
+        /** Format: date-time */
+        createdAt: string;
+      }[];
+      nextCursor: string | null;
+    };
+    SetUserStatusDto: {
+      /** @enum {string} */
+      status: 'active' | 'banned';
+    };
+    AdminUserResponseDto_Output: {
+      user: {
+        /** Format: uuid */
+        id: string;
+        /** Format: email */
+        email: string;
+        displayName: string | null;
+        avatarId: number | null;
+        /** @enum {string} */
+        role: 'user' | 'admin';
+        /** @enum {string} */
+        status: 'active' | 'banned';
+        clan: {
+          /** Format: uuid */
+          id: string;
+          name: string;
+        } | null;
+        /** Format: date-time */
+        createdAt: string;
+      };
+    };
+    AdminUpdateClanDto: {
+      name?: string;
+      description?: string | null;
+      /** Format: uuid */
+      ownerId?: string;
+    };
+    AdminClanResponseDto_Output: {
+      clan: {
+        /** Format: uuid */
+        id: string;
+        name: string;
+        description: string | null;
+        memberCount: number;
+        /** Format: date-time */
+        createdAt: string;
+      };
+    };
+    AppSettingsResponseDto_Output: {
+      settings: {
+        flagDailyThreshold: number;
+        clanMaxMembers: number;
+      };
+    };
+    UpdateAppSettingsDto: {
+      flagDailyThreshold?: number;
+      clanMaxMembers?: number;
+    };
+    AdminMetricsDto_Output: {
+      users: number;
+      dau: number;
+      toastsPerDay: {
+        /** Format: date */
+        date: string;
+        count: number;
+      }[];
+      openFlags: number;
+    };
+    ToastOfTheWeekDto_Output: {
+      /** Format: date */
+      weekStart: string;
+      /** @enum {string} */
+      status: 'won' | 'none' | 'removed';
+      toast: {
+        /** Format: uuid */
+        id: string;
+        user: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        };
+        /** Format: date-time */
+        eatenAt: string;
+        /** Format: uri */
+        photoUrl: string;
+      } | null;
+    };
     ClanPageDto_Output: {
       items: {
         /** Format: uuid */
@@ -701,6 +1056,29 @@ export interface components {
       }[];
       nextCursor: string | null;
     };
+    ToastOfTheWeekPageDto_Output: {
+      items: {
+        /** Format: date */
+        weekStart: string;
+        /** @enum {string} */
+        status: 'won' | 'none' | 'removed';
+        toast: {
+          /** Format: uuid */
+          id: string;
+          user: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            avatarId: number | null;
+          };
+          /** Format: date-time */
+          eatenAt: string;
+          /** Format: uri */
+          photoUrl: string;
+        } | null;
+      }[];
+      nextCursor: string | null;
+    };
     HealthDto_Output: {
       /** @enum {string} */
       status: 'ok';
@@ -739,29 +1117,6 @@ export interface components {
           photoUrl: string;
         } | null;
       } | null;
-    };
-    ToastOfTheWeekPageDto_Output: {
-      items: {
-        /** Format: date */
-        weekStart: string;
-        /** @enum {string} */
-        status: 'won' | 'none' | 'removed';
-        toast: {
-          /** Format: uuid */
-          id: string;
-          user: {
-            /** Format: uuid */
-            id: string;
-            displayName: string;
-            avatarId: number | null;
-          };
-          /** Format: date-time */
-          eatenAt: string;
-          /** Format: uri */
-          photoUrl: string;
-        } | null;
-      }[];
-      nextCursor: string | null;
     };
     UserLeaderboardDto_Output: {
       items: {
@@ -1022,6 +1377,229 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  AdminController_listFlags: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+        type?: 'count_threshold' | 'photo_report';
+        status?: 'open' | 'dismissed' | 'actioned';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminFlagPageDto_Output'];
+        };
+      };
+    };
+  };
+  AdminController_resolveFlag: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResolveFlagDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminFlagResponseDto_Output'];
+        };
+      };
+    };
+  };
+  AdminController_listUsers: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminUserPageDto_Output'];
+        };
+      };
+    };
+  };
+  AdminController_setUserStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SetUserStatusDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminUserResponseDto_Output'];
+        };
+      };
+    };
+  };
+  AdminController_deleteClan: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  AdminController_updateClan: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminUpdateClanDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminClanResponseDto_Output'];
+        };
+      };
+    };
+  };
+  AdminController_getSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AppSettingsResponseDto_Output'];
+        };
+      };
+    };
+  };
+  AdminController_updateSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateAppSettingsDto'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AppSettingsResponseDto_Output'];
+        };
+      };
+    };
+  };
+  AdminController_getMetrics: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminMetricsDto_Output'];
+        };
+      };
+    };
+  };
+  AdminController_redraw: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        weekStart: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ToastOfTheWeekDto_Output'];
+        };
+      };
+    };
+  };
   ClansController_list: {
     parameters: {
       query?: {
@@ -1348,6 +1926,28 @@ export interface operations {
       };
     };
   };
+  TotwController_history: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ToastOfTheWeekPageDto_Output'];
+        };
+      };
+    };
+  };
   HealthController_healthz: {
     parameters: {
       query?: never;
@@ -1401,28 +2001,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HomeResponseDto_Output'];
-        };
-      };
-    };
-  };
-  TotwController_history: {
-    parameters: {
-      query?: {
-        cursor?: string;
-        limit?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ToastOfTheWeekPageDto_Output'];
         };
       };
     };

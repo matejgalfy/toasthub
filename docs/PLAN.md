@@ -54,7 +54,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☑ |
 | M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☑ |
 | M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☑ |
-| M16 | Admin backend | `m16-admin-api` | M15 | ☐ |
+| M16 | Admin backend | `m16-admin-api` | M15 | ☑ |
 | M17 | Admin UI | `m17-admin-ui` | M16, M13 | ☐ |
 | M18 | Production images, Sentry, CI image build | `m18-containers` | M15 | ☐ |
 | M19 | Kubernetes (Kustomize, CNPG, Sealed Secrets) | `m19-k8s` | M18 | ☐ |
@@ -674,3 +674,14 @@ milestones._
   `resolve.conditions`, so the int setup resolved `shared` to `dist`, absent on a fresh checkout (locally an old
   build hid it; Vite then masked the error as `code.charCodeAt is not a function`). The api `vitest.config.mts`
   now sets the conditions on every environment. Reproduce CI in a Linux container without `shared/dist`.
+- **M16** — `src/modules/admin`: one `AdminController` (`@UseGuards(AdminGuard)` on the class) over `AdminFlagsService`
+  (queue + resolve, pure `planResolution()` in `admin-flags.policy.ts`), `AdminUsersService`, `AdminMetricsService`,
+  `ClansService.adminUpdate/adminDelete` (share `edit()`/`remove()`/`handOver()` with the Owner routes),
+  `SettingsService` and `TotwService.redraw()`. Schemas in `shared/admin.ts`. Shapes, check order and choices: SPEC §12 D52.
+- Bootstrap: `bun run --filter @toasthub/api admin:promote <email>` (`promote-admin.ts`; in a container
+  `node dist/modules/admin/promote-admin.js <email>`). Int tests make admins with `promoteToAdmin(db, email)`.
+  `escapeLike` moved to `src/common/like-pattern.ts` (`containsPattern()`).
+- For M17: resolve answers the updated flag; after a reject or ban invalidate `['home']`, `['users']`,
+  `['leaderboards']`, `['toast-of-the-week']` and the clan queries. `/admin/users` items are the only ones with an
+  email. A ban keeps the membership; to free a banned Owner's clan use `PATCH /admin/clans/:id` with `ownerId`.
+  Count flags don't link to sessions; the UI can show `day.active`/`day.rejected` and the subject's profile.

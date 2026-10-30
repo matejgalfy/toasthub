@@ -18,6 +18,7 @@
     "db:migrate": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/db/migrate.js",
     "db:seed": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/db/seed.js",
     "job": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/jobs/send-job.js",
+    "admin:promote": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/modules/admin/promote-admin.js",
     "auth:schema": "auth generate --config src/modules/auth/auth.cli.ts --output .generated/auth-schema.ts --yes",
     "openapi": "tsc -p tsconfig.build.json && node dist/openapi.js"
   },

@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AppLoggerModule } from './common/logger.module';
 import { ConfigModule } from './config/config.module';
 import { DbModule } from './db/db.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClansModule } from './modules/clans/clans.module';
 import { HealthModule } from './modules/health/health.module';
@@ -20,6 +21,7 @@ import { UsersModule } from './modules/users/users.module';
     ConfigModule,
     AppLoggerModule,
     DbModule,
+    AdminModule,
     AuthModule,
     ClansModule,
     HealthModule,

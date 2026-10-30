@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   type AchievementCode,
   AchievementTrigger,
+  type AdminUpdateClan,
   type Clan,
   type ClanDetail,
   type ClanJoinRequest,
@@ -26,6 +27,7 @@ import { and, asc, eq, ilike, isNull, type SQL, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { AppError } from '../../common/errors/app-error';
+import { containsPattern } from '../../common/like-pattern';
 import { decodeCursor, toPage } from '../../common/pagination';
 import { type Database, DB, type DbExecutor } from '../../db/db.module';
 import { uniqueViolation } from '../../db/pg-error';
@@ -94,10 +96,6 @@ function descriptionValue(description: string | null | undefined): string | null
   return description === '' ? null : description;
 }
 
-function escapeLike(text: string): string {
-  return text.replace(/[\\%_]/g, '\\$&');
-}
-
 /** Clans, their members and join requests (SPEC §4.8). */
 @Injectable()
 export class ClansService {
@@ -119,7 +117,7 @@ export class ClansService {
       .where(
         and(
           isNull(clan.deletedAt),
-          search === undefined ? undefined : ilike(clan.name, `%${escapeLike(search)}%`),
+          search === undefined ? undefined : ilike(clan.name, containsPattern(search)),
           after ? sql`(${sortName}, ${clan.id}) > (${after.name}, ${after.id}::uuid)` : undefined,
         ),
       )
@@ -196,21 +194,22 @@ export class ClansService {
 
   /** Owner only. 409 when the new name is taken. */
   async update(userId: string, clanId: string, patch: UpdateClan): Promise<ClanResponse> {
-    let row: ClanRow;
-    try {
-      row = await this.db.transaction(async (tx) => {
-        const current = await this.loadClan(tx, clanId, 'update');
-        assertCanActOnClan(await this.roleIn(tx, clanId, userId), ClanAction.edit);
-        const changes = { name: patch.name, description: descriptionValue(patch.description) };
-        if (changes.name === undefined && changes.description === undefined) return current;
-        const [updated] = await tx.update(clan).set(changes).where(eq(clan.id, clanId)).returning();
-        if (!updated) throw new Error('Clan update returned no row');
-        return updated;
-      });
-    } catch (error) {
-      throw this.mapConflict(error);
-    }
-    return { clan: toClan(row, await this.memberCount(this.db, clanId)) };
+    return this.edit(clanId, patch, async (tx) => {
+      assertCanActOnClan(await this.roleIn(tx, clanId, userId), ClanAction.edit);
+    });
+  }
+
+  /**
+   * An admin's edit of any clan (SPEC §4.13), which can also hand it to another current member (404 for
+   * anyone else). The former Owner stays as an Officer, as after a transfer.
+   */
+  async adminUpdate(clanId: string, { ownerId, ...patch }: AdminUpdateClan): Promise<ClanResponse> {
+    return this.edit(clanId, patch, async (tx) => {
+      if (ownerId === undefined) return;
+      const target = await this.roleIn(tx, clanId, ownerId, true);
+      if (target === null) throw new AppError('NOT_FOUND', 'Member not found');
+      if (target !== ClanRole.owner) await this.handOver(tx, clanId, ownerId);
+    });
   }
 
   /**
@@ -218,16 +217,14 @@ export class ClansService {
    * requests. Toasts keep their `clan_id` (SPEC §12 D9).
    */
   async delete(userId: string, clanId: string): Promise<void> {
-    await this.db.transaction(async (tx) => {
-      await this.loadClan(tx, clanId, 'update');
+    await this.remove(clanId, userId, async (tx) => {
       assertCanActOnClan(await this.roleIn(tx, clanId, userId), ClanAction.delete);
-      await tx
-        .update(clan)
-        .set({ deletedAt: sql`now()` })
-        .where(eq(clan.id, clanId));
-      await tx.delete(clanMembership).where(eq(clanMembership.clanId, clanId));
-      await this.cancelPendingRequests(tx, eq(clanJoinRequest.clanId, clanId), userId);
     });
+  }
+
+  /** An admin's delete of any clan; the admin is recorded as who cancelled its pending requests. */
+  async adminDelete(adminId: string, clanId: string): Promise<void> {
+    await this.remove(clanId, adminId, async () => {});
   }
 
   /** Asks to join (BR-CLAN-2). 409 when in a clan, with a pending request anywhere, or the clan is full. */
@@ -351,22 +348,12 @@ export class ClansService {
     });
   }
 
-  /**
-   * Hands the clan to another member; the former Owner stays as an Officer. The Owner is demoted before
-   * the new one is promoted, so the one-owner index holds after each statement.
-   */
+  /** Hands the clan to another member; the former Owner stays as an Officer. */
   async transfer(actorId: string, clanId: string, targetId: string): Promise<ClanTransferResponse> {
     try {
       await this.db.transaction(async (tx) => {
         await this.lockTarget(tx, clanId, actorId, targetId, MemberAction.transferOwnership);
-        await tx
-          .update(clanMembership)
-          .set({ role: ClanRole.officer })
-          .where(eq(clanMembership.userId, actorId));
-        await tx
-          .update(clanMembership)
-          .set({ role: ClanRole.owner })
-          .where(eq(clanMembership.userId, targetId));
+        await this.handOver(tx, clanId, targetId);
       });
     } catch (error) {
       throw this.mapConflict(error);
@@ -396,6 +383,62 @@ export class ClansService {
       assertCanActOnClan(await this.roleIn(tx, clanId, userId, true), ClanAction.leave);
       await tx.delete(clanMembership).where(eq(clanMembership.userId, userId));
     });
+  }
+
+  /** Locks the clan, runs `authorize` and applies the patch. 409 when the new name is taken. */
+  private async edit(
+    clanId: string,
+    patch: UpdateClan,
+    authorize: (tx: DbExecutor) => Promise<void>,
+  ): Promise<ClanResponse> {
+    let row: ClanRow;
+    try {
+      row = await this.db.transaction(async (tx) => {
+        const current = await this.loadClan(tx, clanId, 'update');
+        await authorize(tx);
+        const changes = { name: patch.name, description: descriptionValue(patch.description) };
+        if (changes.name === undefined && changes.description === undefined) return current;
+        const [updated] = await tx.update(clan).set(changes).where(eq(clan.id, clanId)).returning();
+        if (!updated) throw new Error('Clan update returned no row');
+        return updated;
+      });
+    } catch (error) {
+      throw this.mapConflict(error);
+    }
+    return { clan: toClan(row, await this.memberCount(this.db, clanId)) };
+  }
+
+  /** Locks the clan, runs `authorize` and deletes it; `deciderId` cancels its pending requests. */
+  private async remove(
+    clanId: string,
+    deciderId: string,
+    authorize: (tx: DbExecutor) => Promise<void>,
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await this.loadClan(tx, clanId, 'update');
+      await authorize(tx);
+      await tx
+        .update(clan)
+        .set({ deletedAt: sql`now()` })
+        .where(eq(clan.id, clanId));
+      await tx.delete(clanMembership).where(eq(clanMembership.clanId, clanId));
+      await this.cancelPendingRequests(tx, eq(clanJoinRequest.clanId, clanId), deciderId);
+    });
+  }
+
+  /**
+   * Makes a member the Owner (the caller holds the clan lock). The current Owner is demoted to Officer
+   * first, so the one-owner index holds after each statement.
+   */
+  private async handOver(tx: DbExecutor, clanId: string, targetId: string): Promise<void> {
+    await tx
+      .update(clanMembership)
+      .set({ role: ClanRole.officer })
+      .where(and(eq(clanMembership.clanId, clanId), eq(clanMembership.role, ClanRole.owner)));
+    await tx
+      .update(clanMembership)
+      .set({ role: ClanRole.owner })
+      .where(eq(clanMembership.userId, targetId));
   }
 
   /** 404 for an unknown or deleted clan. */
