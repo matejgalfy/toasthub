@@ -22,7 +22,7 @@ import { announceAchievements } from '@/features/toast-sessions/toast-sessions-a
 /** Every clan query starts with this key: the browser, each clan, its feed and its requests. */
 export const clansQueryKey = ['clans'] as const;
 
-const clanKey = (id: string) => [...clansQueryKey, id] as const;
+export const clanKey = (id: string) => [...clansQueryKey, id] as const;
 const feedKey = (id: string) => [...clanKey(id), 'feed'] as const;
 const clanPath = (id: string) => ({ params: { path: { id } } });
 
@@ -77,7 +77,7 @@ export const clanRequestsQueryOptions = (id: string) =>
  * clan (`/me`), the clan streak on home, profiles, whose access follows clan membership (D45), and the
  * boards, which list clans and members.
  */
-function useClanMutation<Input, Result>(
+export function useClanMutation<Input, Result>(
   mutationFn: (input: Input) => Promise<Result>,
   onSuccess?: (result: Result, input: Input) => void,
 ) {

@@ -55,7 +55,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☑ |
 | M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☑ |
 | M16 | Admin backend | `m16-admin-api` | M15 | ☑ |
-| M17 | Admin UI | `m17-admin-ui` | M16, M13 | ☐ |
+| M17 | Admin UI | `m17-admin-ui` | M16, M13 | ☑ |
 | M18 | Production images, Sentry, CI image build | `m18-containers` | M15 | ☐ |
 | M19 | Kubernetes (Kustomize, CNPG, Sealed Secrets) | `m19-k8s` | M18 | ☐ |
 | M20 | Launch hardening | `m20-hardening` | all | ☐ |
@@ -685,3 +685,14 @@ milestones._
   `['leaderboards']`, `['toast-of-the-week']` and the clan queries. `/admin/users` items are the only ones with an
   email. A ban keeps the membership; to free a banned Owner's clan use `PATCH /admin/clans/:id` with `ownerId`.
   Count flags don't link to sessions; the UI can show `day.active`/`day.rejected` and the subject's profile.
+- **M17** — Admin UI: `pages/admin/` (`AdminPage` = section nav + `<Outlet>`, one page per section, `/admin`
+  redirects to `flags`) and `features/admin` (`admin-api.ts` = query options under `adminQueryKey` `['admin']` +
+  mutation hooks, `FlagCard` with the resolve dialog, pure `flagActionChoices()`/`canBanSubject()`, `ToastsChart`).
+  Shield link in the header for admins. Choices: SPEC §12 D53. `PlaceholderPage` and `placeholder.body` are gone.
+- Shared bits moved or added: `useDebouncedValue()` + `SEARCH_DELAY_MS` in `lib/use-debounced-value.ts` (was in
+  `clans-page.tsx`), `components/native-select.tsx` (a styled `<select>`; no shadcn `select` yet), `useWeekLabel()`
+  from `totw-entry.tsx`; `clans-api.ts` exports `useClanMutation()` and `clanKey()` for the admin clan hooks.
+- E2E `admin.spec.ts` makes its admin with `UPDATE "user" SET role` in the dev database and relies on the default
+  threshold of 8 (it logs 10, the most one session takes): with a dev threshold of 10 or more it fails.
+- Sizing: ~30 files touched (7 pages + 6 page tests, the rest shared pieces), over the ~25 guideline, kept as one
+  milestone because every page is small and they share one API module.

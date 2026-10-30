@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Plus, Search, Users } from 'lucide-react';
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -16,22 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useUser } from '@/features/auth/session';
 import { clanListQueryOptions } from '@/features/clans/clans-api';
-
-const SEARCH_DELAY_MS = 300;
-
-/** `value`, once it has stopped changing for `delayMs`. */
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebounced(value);
-    }, delayMs);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [value, delayMs]);
-  return debounced;
-}
+import { SEARCH_DELAY_MS, useDebouncedValue } from '@/lib/use-debounced-value';
 
 /** Every clan by name, with a search and "Create clan" (SPEC §9 `/clans`). */
 export function ClansPage() {

@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router';
+import { Navigate, type RouteObject } from 'react-router';
 
 import { AppLayout, PublicLayout } from '@/components/layout/app-layout';
 import {
@@ -7,6 +7,14 @@ import {
   RequireAuth,
   RequireOnboarded,
 } from '@/features/auth/guards';
+import { AdminClanPage } from '@/pages/admin/admin-clan-page';
+import { AdminClansPage } from '@/pages/admin/admin-clans-page';
+import { AdminFlagsPage } from '@/pages/admin/admin-flags-page';
+import { AdminMetricsPage } from '@/pages/admin/admin-metrics-page';
+import { AdminPage } from '@/pages/admin/admin-page';
+import { AdminSettingsPage } from '@/pages/admin/admin-settings-page';
+import { AdminTotwPage } from '@/pages/admin/admin-totw-page';
+import { AdminUsersPage } from '@/pages/admin/admin-users-page';
 import { AuthCallbackPage } from '@/pages/auth-callback-page';
 import { ClanNewPage } from '@/pages/clan-new-page';
 import { ClanPage } from '@/pages/clan-page';
@@ -18,12 +26,11 @@ import { LoginPage } from '@/pages/login-page';
 import { MyToastsPage } from '@/pages/my-toasts-page';
 import { NotFoundPage } from '@/pages/not-found-page';
 import { OnboardingPage } from '@/pages/onboarding-page';
-import { PlaceholderPage } from '@/pages/placeholder-page';
 import { ProfilePage } from '@/pages/profile-page';
 import { SettingsPage } from '@/pages/settings-page';
 import { ToastOfTheWeekPage } from '@/pages/toast-of-the-week-page';
 
-// The route tree from SPEC §9. Milestones replace each PlaceholderPage with the real page.
+// The route tree from SPEC §9.
 export const routes: RouteObject[] = [
   {
     element: <PublicLayout />,
@@ -64,7 +71,22 @@ export const routes: RouteObject[] = [
         children: [
           {
             element: <AppLayout wide />,
-            children: [{ path: 'admin/*', element: <PlaceholderPage page="admin" /> }],
+            children: [
+              {
+                path: 'admin',
+                element: <AdminPage />,
+                children: [
+                  { index: true, element: <Navigate to="flags" replace /> },
+                  { path: 'flags', element: <AdminFlagsPage /> },
+                  { path: 'users', element: <AdminUsersPage /> },
+                  { path: 'clans', element: <AdminClansPage /> },
+                  { path: 'clans/:id', element: <AdminClanPage /> },
+                  { path: 'settings', element: <AdminSettingsPage /> },
+                  { path: 'metrics', element: <AdminMetricsPage /> },
+                  { path: 'totw', element: <AdminTotwPage /> },
+                ],
+              },
+            ],
           },
         ],
       },

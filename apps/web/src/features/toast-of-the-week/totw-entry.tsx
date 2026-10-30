@@ -1,19 +1,31 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-import { addDays, type ToastOfTheWeek, ToastOfTheWeekStatus } from '@toasthub/shared';
+import {
+  addDays,
+  type LocalDate,
+  type ToastOfTheWeek,
+  ToastOfTheWeekStatus,
+} from '@toasthub/shared';
 
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { useFormat } from '@/i18n/format';
 
+/** "19 Oct – 25 Oct 2026" for the week starting on `weekStart`. */
+export function useWeekLabel() {
+  const { t } = useTranslation();
+  const format = useFormat();
+  return (weekStart: LocalDate) =>
+    t('totw.week', {
+      start: format.localDate(weekStart, { day: 'numeric', month: 'short' }),
+      end: format.localDate(addDays(weekStart, 6), { dateStyle: 'medium' }),
+    });
+}
+
 /** One drawn week: the winning photo and its owner, or why there is none (SPEC §4.10). */
 export function TotwEntry({ entry }: { entry: ToastOfTheWeek }) {
   const { t } = useTranslation();
-  const format = useFormat();
-  const week = t('totw.week', {
-    start: format.localDate(entry.weekStart, { day: 'numeric', month: 'short' }),
-    end: format.localDate(addDays(entry.weekStart, 6), { dateStyle: 'medium' }),
-  });
+  const week = useWeekLabel()(entry.weekStart);
 
   if (entry.status !== ToastOfTheWeekStatus.won || !entry.toast) {
     return (

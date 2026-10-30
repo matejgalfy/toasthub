@@ -1,4 +1,4 @@
-import { Settings } from 'lucide-react';
+import { Settings, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink } from 'react-router';
 
@@ -33,9 +33,26 @@ export function AppHeader({ showNav = false, wide = false }: AppHeaderProps) {
         </Link>
         {showNav && <TopNav />}
         <LanguageSwitch className="ml-auto" />
+        {showNav && <AdminLink />}
         {showNav && <SettingsLink />}
       </div>
     </header>
+  );
+}
+
+/** The way into `/admin`, for admins only (SPEC §4.13). */
+function AdminLink() {
+  const { t } = useTranslation();
+  const user = useUser();
+  if (user.role !== 'admin') return null;
+  return (
+    <NavLink
+      to="/admin"
+      aria-label={t('pages.admin.title')}
+      className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring aria-[current=page]:text-primary"
+    >
+      <ShieldCheck className="size-5" aria-hidden="true" />
+    </NavLink>
   );
 }
 

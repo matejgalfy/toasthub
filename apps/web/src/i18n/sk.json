@@ -78,9 +78,6 @@
       "back": "Späť domov"
     }
   },
-  "placeholder": {
-    "body": "Táto stránka sa ešte opeká. Pozri sa sem čoskoro."
-  },
   "home": {
     "logToast": "Toast",
     "myToasts": "Moje toasty",
@@ -355,6 +352,149 @@
       "deleteDescription": "Všetci členovia opustia klan a otvorené žiadosti o vstup sa zrušia. Nedá sa to vrátiť späť.",
       "deleteConfirm": "Zmazať klan",
       "deleted": "Klan bol zmazaný."
+    }
+  },
+  "admin": {
+    "nav": {
+      "label": "Sekcie administrácie",
+      "flags": "Hlásenia",
+      "users": "Používatelia",
+      "clans": "Klany",
+      "settings": "Nastavenia",
+      "metrics": "Metriky",
+      "totw": "Toast týždňa"
+    },
+    "flags": {
+      "filters": "Filtre",
+      "type": "Typ",
+      "status": "Stav",
+      "all": "Všetky",
+      "types": {
+        "count_threshold": "Denný počet",
+        "photo_report": "Nahlásená fotka"
+      },
+      "statuses": {
+        "open": "Otvorené",
+        "dismissed": "Zamietnuté",
+        "actioned": "Vyriešené"
+      },
+      "listLabel": "Hlásenia",
+      "empty": "Žiadne hlásenia.",
+      "loadMore": "Zobraziť staršie hlásenia",
+      "created": "Nahlásené {{date}}",
+      "banned": "Zablokovaný",
+      "day": "Deň",
+      "counting": "Platné",
+      "rejected": "Zamietnuté",
+      "photoAlt": "Nahlásená fotka používateľa {{name}}",
+      "noPhoto": "Fotka už neexistuje.",
+      "photoHidden": "Fotka skrytá",
+      "toastRejected": "Toast zamietnutý",
+      "toastDeleted": "Vlastník ho zmazal",
+      "earlierPhotos": "Fotky, ktoré vlastník nahradil alebo odstránil",
+      "earlierPhotoAlt": "Staršia fotka {{number}}",
+      "reportedBy": "Nahlásil(a) {{name}}",
+      "reportedByDeleted": "Nahlásil zmazaný účet",
+      "reason": "Dôvod: {{reason}}",
+      "noReason": "Bez dôvodu.",
+      "resolvedBy": "Vyriešil(a) {{name}}, {{date}}",
+      "someone": "bývalý admin",
+      "resolve": "Vyriešiť",
+      "resolveLabel": "Vyriešiť hlásenie na {{name}}",
+      "dialog": {
+        "title": "Vyriešiť hlásenie na {{name}}",
+        "description": {
+          "count_threshold": "Viac toastov za jeden deň, než povoľuje denný limit. Rozhodni, či sa počítajú.",
+          "photo_report": "Niekto nahlásil túto fotku. Rozhodni, čo sa s ňou stane."
+        },
+        "action": "Akcia",
+        "confirm": "Vyriešiť",
+        "ban": "Zablokovať aj {{name}}",
+        "banHint": "Hneď sa odhlási a jeho toasty sa prestanú počítať, kým ho neodblokuješ.",
+        "done": "Hlásenie vyriešené."
+      },
+      "actions": {
+        "dismiss": "Zamietnuť",
+        "dismissHint": "Nič sa nezmení.",
+        "rejectDay": "Zamietnuť toasty z toho dňa",
+        "rejectDayHint": "Toasty z toho dňa sa prestanú počítať do štatistík, sérií a rebríčkov.",
+        "rejectToast": "Zamietnuť nahlásený toast",
+        "rejectToastHint": "Tento toast sa prestane počítať. Ostatné toasty zapísané s ním sa počítajú ďalej.",
+        "hidePhoto": "Skryť fotku",
+        "hidePhotoHint": "Uvidí ju len vlastník a tieto toasty už nedostanú novú fotku. Toast sa počíta ďalej."
+      }
+    },
+    "users": {
+      "search": "Hľadať používateľov",
+      "searchPlaceholder": "Časť e-mailu alebo mena",
+      "listLabel": "Používatelia",
+      "empty": "Zatiaľ žiadni používatelia.",
+      "noMatch": "Žiadny e-mail ani meno neobsahuje „{{search}}“.",
+      "loadMore": "Zobraziť ďalších",
+      "notOnboarded": "Ešte nedokončil registráciu",
+      "admin": "Admin",
+      "noClan": "Bez klanu",
+      "joined": "Registrovaný {{date}}",
+      "banned": "Zablokovaný",
+      "you": "Ty",
+      "ban": "Zablokovať",
+      "unban": "Odblokovať",
+      "banLabel": "Zablokovať {{name}}",
+      "unbanLabel": "Odblokovať {{name}}",
+      "banTitle": "Zablokovať {{name}}?",
+      "banDescription": "Hneď sa odhlási a nebude sa môcť prihlásiť. Jeho toasty zmiznú zo všetkých počtov, feedov a rebríčkov, kým ho neodblokuješ. Členstvo v klane mu zostane.",
+      "unbanTitle": "Odblokovať {{name}}?",
+      "unbanDescription": "Bude sa môcť znova prihlásiť a jeho toasty sa budú opäť počítať.",
+      "bannedDone": "{{name}} je zablokovaný.",
+      "unbanned": "{{name}} je odblokovaný."
+    },
+    "clans": {
+      "empty": "Zatiaľ žiadne klany.",
+      "back": "Všetky klany",
+      "open": "Otvoriť stránku klanu",
+      "edit": "Názov a popis",
+      "ownerHeading": "Vlastník",
+      "currentOwner": "Súčasný vlastník:",
+      "ownerHint": "Odovzdaj klan inému členovi. Súčasný vlastník sa stane dôstojníkom.",
+      "newOwner": "Nový vlastník",
+      "noOtherMembers": "Klan nemá iného člena, ktorému by sa dal odovzdať.",
+      "transferTitle": "Urobiť {{name}} vlastníkom klanu {{clan}}?",
+      "transferDescription": "Súčasný vlastník sa stane dôstojníkom. Upravovať alebo zmazať klan bude potom môcť len nový vlastník.",
+      "transferred": "{{name}} je teraz vlastník.",
+      "deleted": "Klan zmazaný."
+    },
+    "settings": {
+      "flagDailyThreshold": "Denný limit pre hlásenie",
+      "flagDailyThresholdHint": "Viac toastov za jeden deň otvorí hlásenie. {{min}} až {{max}}.",
+      "clanMaxMembers": "Maximálna veľkosť klanu",
+      "clanMaxMembersHint": "Počet členov klanu vrátane vlastníka. {{min}} až {{max}}.",
+      "invalid": "Zadaj celé číslo od {{min}} do {{max}}.",
+      "save": "Uložiť nastavenia",
+      "saved": "Uložené."
+    },
+    "metrics": {
+      "users": "Používatelia",
+      "dau": "Aktívni dnes",
+      "openFlags": "Otvorené hlásenia",
+      "chartTitle": "Toasty za deň, posledných 30 dní",
+      "chartSummary": "Spolu {{total}} toastov, najviac {{max}} za jeden deň.",
+      "showTable": "Zobraziť ako tabuľku",
+      "date": "Deň",
+      "count": "Toasty"
+    },
+    "totw": {
+      "drawHeading": "Vylosovať týždeň",
+      "week": "Týždeň od (pondelok)",
+      "draw": "Vylosovať",
+      "drawHint": "Len pre týždeň, ktorý už skončil. Ak už má víťaza, nahradí ho.",
+      "notMonday": "Vyber pondelok.",
+      "history": "Vylosované týždne",
+      "redraw": "Losovať znova",
+      "redrawLabel": "Losovať znova {{week}}",
+      "confirmTitle": "Losovať znova {{week}}?",
+      "confirmDescription": "Z fotiek toastov z toho týždňa sa náhodne vyberie víťaz a nahradí súčasného.",
+      "done": "Týždeň vylosovaný.",
+      "notOver": "Tento týždeň ešte neskončil."
     }
   },
   "auth": {

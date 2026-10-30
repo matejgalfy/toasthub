@@ -78,9 +78,6 @@
       "back": "Back to home"
     }
   },
-  "placeholder": {
-    "body": "This page is still in the toaster. Check back soon."
-  },
   "home": {
     "logToast": "Toast",
     "myToasts": "My toasts",
@@ -339,6 +336,149 @@
       "deleteDescription": "Every member leaves the clan and open join requests are cancelled. You can't undo it.",
       "deleteConfirm": "Delete clan",
       "deleted": "Clan deleted."
+    }
+  },
+  "admin": {
+    "nav": {
+      "label": "Admin sections",
+      "flags": "Flags",
+      "users": "Users",
+      "clans": "Clans",
+      "settings": "Settings",
+      "metrics": "Metrics",
+      "totw": "Toast of the week"
+    },
+    "flags": {
+      "filters": "Filters",
+      "type": "Type",
+      "status": "Status",
+      "all": "All",
+      "types": {
+        "count_threshold": "Daily count",
+        "photo_report": "Photo report"
+      },
+      "statuses": {
+        "open": "Open",
+        "dismissed": "Dismissed",
+        "actioned": "Actioned"
+      },
+      "listLabel": "Flags",
+      "empty": "No flags here.",
+      "loadMore": "Show older flags",
+      "created": "Flagged {{date}}",
+      "banned": "Banned",
+      "day": "Day",
+      "counting": "Counting",
+      "rejected": "Rejected",
+      "photoAlt": "{{name}}'s reported photo",
+      "noPhoto": "The photo is gone.",
+      "photoHidden": "Photo hidden",
+      "toastRejected": "Toast rejected",
+      "toastDeleted": "Deleted by the owner",
+      "earlierPhotos": "Photos the owner replaced or removed",
+      "earlierPhotoAlt": "Earlier photo {{number}}",
+      "reportedBy": "Reported by {{name}}",
+      "reportedByDeleted": "Reported by a deleted account",
+      "reason": "Reason: {{reason}}",
+      "noReason": "No reason given.",
+      "resolvedBy": "Resolved by {{name}}, {{date}}",
+      "someone": "a former admin",
+      "resolve": "Resolve",
+      "resolveLabel": "Resolve the flag on {{name}}",
+      "dialog": {
+        "title": "Resolve the flag on {{name}}",
+        "description": {
+          "count_threshold": "More toasts than the daily threshold on one day. Decide whether they count.",
+          "photo_report": "Someone reported this photo. Decide what happens to it."
+        },
+        "action": "Action",
+        "confirm": "Resolve",
+        "ban": "Also ban {{name}}",
+        "banHint": "They are signed out at once, and their toasts leave every count until you unban them.",
+        "done": "Flag resolved."
+      },
+      "actions": {
+        "dismiss": "Dismiss",
+        "dismissHint": "Nothing changes.",
+        "rejectDay": "Reject the day's toasts",
+        "rejectDayHint": "That day's toasts stop counting in stats, streaks and leaderboards.",
+        "rejectToast": "Reject the reported toast",
+        "rejectToastHint": "This toast stops counting. Other toasts logged with it still count.",
+        "hidePhoto": "Hide the photo",
+        "hidePhotoHint": "Nobody but the owner sees it, and these toasts can't get a new photo. The toast still counts."
+      }
+    },
+    "users": {
+      "search": "Search users",
+      "searchPlaceholder": "Part of the email or name",
+      "listLabel": "Users",
+      "empty": "No users yet.",
+      "noMatch": "No email or name contains “{{search}}”.",
+      "loadMore": "Show more users",
+      "notOnboarded": "Not onboarded yet",
+      "admin": "Admin",
+      "noClan": "No clan",
+      "joined": "Joined {{date}}",
+      "banned": "Banned",
+      "you": "You",
+      "ban": "Ban",
+      "unban": "Unban",
+      "banLabel": "Ban {{name}}",
+      "unbanLabel": "Unban {{name}}",
+      "banTitle": "Ban {{name}}?",
+      "banDescription": "They are signed out at once and can't log in. Their toasts leave every count, feed and board until you unban them. Their clan membership stays.",
+      "unbanTitle": "Unban {{name}}?",
+      "unbanDescription": "They can log in again, and their toasts count again.",
+      "bannedDone": "{{name}} is banned.",
+      "unbanned": "{{name}} is unbanned."
+    },
+    "clans": {
+      "empty": "No clans yet.",
+      "back": "All clans",
+      "open": "Open the clan page",
+      "edit": "Name and description",
+      "ownerHeading": "Owner",
+      "currentOwner": "Current owner:",
+      "ownerHint": "Hand the clan to another member. The current owner becomes an officer.",
+      "newOwner": "New owner",
+      "noOtherMembers": "No other member to hand the clan to.",
+      "transferTitle": "Make {{name}} the owner of {{clan}}?",
+      "transferDescription": "The current owner becomes an officer. Only the new owner can edit or delete the clan from then on.",
+      "transferred": "{{name}} is now the owner.",
+      "deleted": "Clan deleted."
+    },
+    "settings": {
+      "flagDailyThreshold": "Daily flag threshold",
+      "flagDailyThresholdHint": "More toasts than this on one day opens a flag. {{min}} to {{max}}.",
+      "clanMaxMembers": "Clan size limit",
+      "clanMaxMembersHint": "Members per clan, the owner included. {{min}} to {{max}}.",
+      "invalid": "Enter a whole number from {{min}} to {{max}}.",
+      "save": "Save settings",
+      "saved": "Saved."
+    },
+    "metrics": {
+      "users": "Users",
+      "dau": "Active today",
+      "openFlags": "Open flags",
+      "chartTitle": "Toasts per day, last 30 days",
+      "chartSummary": "{{total}} toasts in total, at most {{max}} on one day.",
+      "showTable": "Show as a table",
+      "date": "Day",
+      "count": "Toasts"
+    },
+    "totw": {
+      "drawHeading": "Draw a week",
+      "week": "Week starting on (Monday)",
+      "draw": "Draw",
+      "drawHint": "For a week that has ended. A winner it already has is replaced.",
+      "notMonday": "Pick a Monday.",
+      "history": "Drawn weeks",
+      "redraw": "Draw again",
+      "redrawLabel": "Draw {{week}} again",
+      "confirmTitle": "Draw {{week}} again?",
+      "confirmDescription": "A winner is picked at random from that week's photo toasts and replaces the current one.",
+      "done": "Week drawn.",
+      "notOver": "This week hasn't ended yet."
     }
   },
   "auth": {
