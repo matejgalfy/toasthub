@@ -30,6 +30,9 @@ afterEach(async () => {
   await worker.close();
 });
 
+// The worker polls every 2 s and `eventually` waits up to 15 s: more than the default 5 s per test.
+const JOB_TEST_TIMEOUT = 30_000;
+
 /** Polls until `check` returns a value, as the worker picks jobs up on its polling interval. */
 async function eventually<T>(check: () => Promise<T | undefined>, timeoutMs = 15_000): Promise<T> {
   const until = Date.now() + timeoutMs;
@@ -56,52 +59,60 @@ describe('worker jobs', () => {
     expect(JOB_SCHEDULES[JobName.totwDraw]).toBe('0 0 * * 1');
   });
 
-  it('fills the home card when the draw job runs', async () => {
-    const app: NestFastifyApplication = await createTestApp();
-    try {
-      const ann = await signIn(app, 'ann@example.com');
-      const lastWeek = previousWeekStart(localDate(new Date()));
-      const [winner] = await insertToasts(db, [
-        {
-          userId: ann.userId,
-          eatenAt: new Date(`${addDays(lastWeek, 3)}T10:00:00Z`),
-          photoKey: 'toasts/jobs-test/winner.webp',
-        },
-      ]);
+  it(
+    'fills the home card when the draw job runs',
+    async () => {
+      const app: NestFastifyApplication = await createTestApp();
+      try {
+        const ann = await signIn(app, 'ann@example.com');
+        const lastWeek = previousWeekStart(localDate(new Date()));
+        const [winner] = await insertToasts(db, [
+          {
+            userId: ann.userId,
+            eatenAt: new Date(`${addDays(lastWeek, 3)}T10:00:00Z`),
+            photoKey: 'toasts/jobs-test/winner.webp',
+          },
+        ]);
 
-      await boss.send(JobName.totwDraw);
-      const drawn = await eventually(async () => {
-        const [row] = await db
-          .select()
-          .from(toastOfTheWeek)
-          .where(eq(toastOfTheWeek.weekStart, lastWeek));
-        return row;
-      });
-      expect(drawn.toastId).toBe(winner?.id);
+        await boss.send(JobName.totwDraw);
+        const drawn = await eventually(async () => {
+          const [row] = await db
+            .select()
+            .from(toastOfTheWeek)
+            .where(eq(toastOfTheWeek.weekStart, lastWeek));
+          return row;
+        });
+        expect(drawn.toastId).toBe(winner?.id);
 
-      const res = await app.inject({
-        method: 'GET',
-        url: '/api/v1/home',
-        headers: { cookie: ann.cookie },
-      });
-      expect(res.json<HomeResponse>().toastOfTheWeek).toMatchObject({
-        weekStart: lastWeek,
-        status: 'won',
-        toast: { id: winner?.id },
-      });
-    } finally {
-      await app.close();
-    }
-  });
+        const res = await app.inject({
+          method: 'GET',
+          url: '/api/v1/home',
+          headers: { cookie: ann.cookie },
+        });
+        expect(res.json<HomeResponse>().toastOfTheWeek).toMatchObject({
+          weekStart: lastWeek,
+          status: 'won',
+          toast: { id: winner?.id },
+        });
+      } finally {
+        await app.close();
+      }
+    },
+    JOB_TEST_TIMEOUT,
+  );
 
-  it('cleans up expired magic-link tokens', async () => {
-    await db
-      .insert(verification)
-      .values({ identifier: 'old', value: 'x', expiresAt: new Date(Date.now() - 60_000) });
-    await boss.send(JobName.cleanupVerifications);
-    await eventually(async () => {
-      const left = await db.select().from(verification);
-      return left.length === 0 ? true : undefined;
-    });
-  });
+  it(
+    'cleans up expired magic-link tokens',
+    async () => {
+      await db
+        .insert(verification)
+        .values({ identifier: 'old', value: 'x', expiresAt: new Date(Date.now() - 60_000) });
+      await boss.send(JobName.cleanupVerifications);
+      await eventually(async () => {
+        const left = await db.select().from(verification);
+        return left.length === 0 ? true : undefined;
+      });
+    },
+    JOB_TEST_TIMEOUT,
+  );
 });

@@ -670,3 +670,7 @@ milestones._
   one week) on the home card (+ "All winners" link) and the page `/toast-of-the-week`. TOTW items have no likes yet.
   Test helper `objectExists(key)` moved to `test/s3.ts`. E2E `toast-of-the-week.spec.ts` writes last week's winner
   straight into the dev database (the UI can't backdate a toast), replacing whatever that week had.
+- Gotcha (CI was red since M2): Vitest loads `globalSetup` through its own Vite environment, which ignored
+  `resolve.conditions`, so the int setup resolved `shared` to `dist`, absent on a fresh checkout (locally an old
+  build hid it; Vite then masked the error as `code.charCodeAt is not a function`). The api `vitest.config.mts`
+  now sets the conditions on every environment. Reproduce CI in a Linux container without `shared/dist`.

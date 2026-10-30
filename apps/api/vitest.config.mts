@@ -7,6 +7,14 @@ const conditions = ['@toasthub/source', 'node', 'development|production'];
 export default defineConfig({
   resolve: { conditions },
   ssr: { resolve: { conditions } },
+  plugins: [
+    {
+      // Every Vite environment, also Vitest's own that loads `globalSetup`: without it the global setup
+      // resolves `shared` to `dist`, which only exists after a build (a fresh CI checkout has none).
+      name: 'toasthub-resolve-conditions',
+      configEnvironment: () => ({ resolve: { conditions } }),
+    },
+  ],
   test: {
     projects: [
       {
