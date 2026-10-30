@@ -22,24 +22,25 @@ How to work in this repo. `docs/SPEC.md` says **what** to build, `docs/PLAN.md` 
 
 Run from the repo root:
 
-| Command                                      | What it does                                                      |
-| -------------------------------------------- | ----------------------------------------------------------------- |
-| `bun install`                                | Install all workspaces; also installs the lefthook git hook       |
-| `bun run dev`                                | Build `shared`, then watch `shared`, run `api` and `web`          |
-| `bun run build`                              | Build every workspace in dependency order                         |
-| `bun run lint`                               | ESLint, zero warnings allowed                                     |
-| `bun run format` / `bun run format:check`    | Prettier write / check                                            |
-| `bun run typecheck`                          | `tsc --noEmit` in every workspace                                 |
-| `bun run test`                               | Vitest in every workspace (api integration tests need Docker)     |
-| `bun run e2e`                                | Playwright against the dev stack (needs Postgres + Mailpit)       |
-| `bun run db:migrate`                         | Apply Drizzle migrations to `DATABASE_URL` (from `apps/api/.env`) |
-| `bun run db:seed`                            | Idempotent dev sample data (users, a clan, toasts); not in prod   |
-| `bun run openapi`                            | Regenerate `apps/api/openapi.json` + the web client (commit both) |
-| `bun run gen:client`                         | Only the web client: `openapi.json` → `web/src/api/schema.gen.ts` |
-| `bun run --filter @toasthub/<pkg> <script>`  | Run one workspace's script (`api`, `web`, `shared`, `e2e`)        |
-| `bun run --filter @toasthub/api test:unit`   | api unit tests only (no Docker); `test:int` for integration       |
-| `bun run --filter @toasthub/api db:generate` | Generate a migration from the Drizzle schema (drizzle-kit)        |
-| `bun run --filter @toasthub/api auth:schema` | Print Better Auth's tables to `.generated/` to diff (SPEC D25)    |
+| Command                                      | What it does                                                          |
+| -------------------------------------------- | --------------------------------------------------------------------- |
+| `bun install`                                | Install all workspaces; also installs the lefthook git hook           |
+| `bun run dev`                                | Build `shared`, then watch `shared`, run `api`, the worker and `web`  |
+| `bun run build`                              | Build every workspace in dependency order                             |
+| `bun run lint`                               | ESLint, zero warnings allowed                                         |
+| `bun run format` / `bun run format:check`    | Prettier write / check                                                |
+| `bun run typecheck`                          | `tsc --noEmit` in every workspace                                     |
+| `bun run test`                               | Vitest in every workspace (api integration tests need Docker)         |
+| `bun run e2e`                                | Playwright against the dev stack (needs Postgres + Mailpit)           |
+| `bun run db:migrate`                         | Apply Drizzle migrations to `DATABASE_URL` (from `apps/api/.env`)     |
+| `bun run db:seed`                            | Idempotent dev sample data (users, a clan, toasts); not in prod       |
+| `bun run --filter @toasthub/api job <name>`  | Queue a job (`totw-draw`, `cleanup-photos`, …) for the running worker |
+| `bun run openapi`                            | Regenerate `apps/api/openapi.json` + the web client (commit both)     |
+| `bun run gen:client`                         | Only the web client: `openapi.json` → `web/src/api/schema.gen.ts`     |
+| `bun run --filter @toasthub/<pkg> <script>`  | Run one workspace's script (`api`, `web`, `shared`, `e2e`)            |
+| `bun run --filter @toasthub/api test:unit`   | api unit tests only (no Docker); `test:int` for integration           |
+| `bun run --filter @toasthub/api db:generate` | Generate a migration from the Drizzle schema (drizzle-kit)            |
+| `bun run --filter @toasthub/api auth:schema` | Print Better Auth's tables to `.generated/` to diff (SPEC D25)        |
 
 Local services: `docker compose -f infra/docker/docker-compose.yml up -d` (Postgres, MinIO + bucket, Mailpit),
 then `cp apps/api/.env.example apps/api/.env` once and `bun run db:migrate`.
@@ -114,6 +115,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `src/modules/users/users.policy.ts`). New uploads go through `processPhoto()` (`toasts/photo-pipeline.ts`),
   never stored raw.
 - Any new app instance (scripts, tests) uses `createFastifyAdapter()` + `await configureApp()` from `src/app.setup.ts`.
+- Scheduled work runs only in the worker (`APP_ROLE=worker`, `src/jobs`): add a `JobName`, its cron in `JOB_SCHEDULES`
+  and a handler in `JobsService` that is safe to run twice (pg-boss retries). Business logic stays in a module service.
 - Don't log emails, tokens or auth headers (the pino redaction from M1 is a safety net, not a licence).
 - Don't use `import type` for classes that Nest injects. DI needs the runtime reference for decorator metadata.
 - Every route needs an active session unless marked `@Public()` (global `SessionGuard`). Admin routes add

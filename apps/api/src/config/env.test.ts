@@ -12,6 +12,7 @@ describe('parseEnv', () => {
   it('applies defaults', () => {
     expect(parseEnv(required)).toEqual({
       NODE_ENV: 'development',
+      APP_ROLE: 'api',
       HOST: '0.0.0.0',
       PORT: 3000,
       LOG_LEVEL: 'info',

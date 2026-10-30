@@ -104,7 +104,8 @@
     },
     "toastOfTheWeek": {
       "title": "Toast of the week",
-      "empty": "No winner yet. Every Monday one photo toast from the week before is drawn."
+      "empty": "No winner yet. Every Monday one photo toast from the week before is drawn.",
+      "history": "All winners"
     },
     "log": {
       "title": "Log toasts",
@@ -125,6 +126,14 @@
       "tooLarge": "This photo is larger than 10 MB. Pick a smaller one.",
       "invalid": "We can't read this file. Use a JPEG, PNG, WebP or HEIC photo."
     }
+  },
+  "totw": {
+    "week": "{{start}} – {{end}}",
+    "none": "No photo toast that week, so no winner.",
+    "removed": "The winning toast has been removed.",
+    "photoAlt": "Toast of the week by {{name}}",
+    "empty": "No draws yet. Every Monday one photo toast from the week before wins.",
+    "loadMore": "Load older weeks"
   },
   "toasts": {
     "today": "Today",

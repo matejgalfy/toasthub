@@ -8,6 +8,7 @@ import type { HomeResponse, Streak } from '@toasthub/shared';
 import { StatCard } from '@/components/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/features/auth/session';
+import { TotwEntry } from '@/features/toast-of-the-week/totw-entry';
 import { useFormat } from '@/i18n/format';
 
 /** Today's count, the streaks, the fact of the day and the Toast of the week (SPEC §9 `/home`). */
@@ -48,9 +49,17 @@ export function HomeCards({ home }: { home: HomeResponse }) {
           <p>{home.fact.text}</p>
         </InfoCard>
       )}
-      {/* Filled with the weekly winner in M15; until then there is never one. */}
       <InfoCard icon={<Trophy aria-hidden="true" />} title={t('home.toastOfTheWeek.title')}>
-        <p className="text-muted-foreground">{t('home.toastOfTheWeek.empty')}</p>
+        <div className="flex flex-col gap-3">
+          {home.toastOfTheWeek ? (
+            <TotwEntry entry={home.toastOfTheWeek} />
+          ) : (
+            <p className="text-muted-foreground">{t('home.toastOfTheWeek.empty')}</p>
+          )}
+          <Link to="/toast-of-the-week" className="self-start text-sm font-medium hover:underline">
+            {t('home.toastOfTheWeek.history')}
+          </Link>
+        </div>
       </InfoCard>
     </>
   );

@@ -228,6 +228,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/toast-of-the-week': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['TotwController_history'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/leaderboards/users': {
     parameters: {
       query?: never;
@@ -703,7 +719,49 @@ export interface components {
         id: number;
         text: string;
       } | null;
-      toastOfTheWeek: null;
+      toastOfTheWeek: {
+        /** Format: date */
+        weekStart: string;
+        /** @enum {string} */
+        status: 'won' | 'none' | 'removed';
+        toast: {
+          /** Format: uuid */
+          id: string;
+          user: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            avatarId: number | null;
+          };
+          /** Format: date-time */
+          eatenAt: string;
+          /** Format: uri */
+          photoUrl: string;
+        } | null;
+      } | null;
+    };
+    ToastOfTheWeekPageDto_Output: {
+      items: {
+        /** Format: date */
+        weekStart: string;
+        /** @enum {string} */
+        status: 'won' | 'none' | 'removed';
+        toast: {
+          /** Format: uuid */
+          id: string;
+          user: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            avatarId: number | null;
+          };
+          /** Format: date-time */
+          eatenAt: string;
+          /** Format: uri */
+          photoUrl: string;
+        } | null;
+      }[];
+      nextCursor: string | null;
     };
     UserLeaderboardDto_Output: {
       items: {
@@ -1343,6 +1401,28 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HomeResponseDto_Output'];
+        };
+      };
+    };
+  };
+  TotwController_history: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ToastOfTheWeekPageDto_Output'];
         };
       };
     };

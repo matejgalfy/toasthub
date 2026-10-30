@@ -4,6 +4,8 @@ const httpUrl = z.url({ protocol: /^https?$/ });
 
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  // `api` serves HTTP; `worker` runs the scheduled jobs (pg-boss) and serves only the health probes (SPEC §12 D10).
+  APP_ROLE: z.enum(['api', 'worker']).default('api'),
   HOST: z.string().min(1).default('0.0.0.0'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),

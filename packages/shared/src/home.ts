@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { streakSchema } from './streak.js';
+import { toastOfTheWeekSchema } from './toast-of-the-week.js';
 
 /** The toast fact of the day in the user's locale (SPEC §4.11). */
 export const factSchema = z.object({
@@ -17,7 +18,7 @@ export const homeResponseSchema = z.object({
   clanStreak: streakSchema.nullable(),
   // Null only while there are no facts at all.
   fact: factSchema.nullable(),
-  // Always null until the weekly draw exists (M15).
-  toastOfTheWeek: z.null(),
+  // Last week's draw; null until it has run.
+  toastOfTheWeek: toastOfTheWeekSchema.nullable(),
 });
 export type HomeResponse = z.infer<typeof homeResponseSchema>;

@@ -92,7 +92,7 @@ async function openLogDialog(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('HomePage', () => {
-  it('shows the counters, the fact and the Toast of the week placeholder', async () => {
+  it('shows the counters, the fact and an empty Toast of the week', async () => {
     mockApi(() => jsonResponse(200, { ...home, clanStreak: { current: 4, longest: 4 } }));
     renderHome();
 
@@ -102,6 +102,44 @@ describe('HomePage', () => {
     expect(screen.getByRole('group', { name: 'Clan streak 🔥' })).toHaveTextContent('4days');
     expect(screen.getByText(home.fact?.text ?? '')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Toast of the week' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'No winner yet. Every Monday one photo toast from the week before is drawn.',
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'All winners' })).toHaveAttribute(
+      'href',
+      '/toast-of-the-week',
+    );
+  });
+
+  it("shows last week's Toast of the week", async () => {
+    mockApi(() =>
+      jsonResponse(200, {
+        ...home,
+        toastOfTheWeek: {
+          weekStart: '2026-10-19',
+          status: 'won',
+          toast: {
+            id: '01900000-0000-7000-8000-000000000101',
+            user: {
+              id: '01900000-0000-7000-8000-000000000b0b',
+              displayName: 'Bob',
+              avatarId: null,
+            },
+            eatenAt: '2026-10-22T07:30:00.000Z',
+            photoUrl: 'https://photos.test/winner.webp',
+          },
+        },
+      } satisfies HomeResponse),
+    );
+    renderHome();
+
+    expect(await screen.findByRole('img', { name: 'Toast of the week by Bob' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Bob' })).toHaveAttribute(
+      'href',
+      '/u/01900000-0000-7000-8000-000000000b0b',
+    );
   });
 
   it('links to My toasts', () => {

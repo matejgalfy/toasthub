@@ -8,12 +8,7 @@ export const homeQueryKey = ['home'] as const;
 
 export const homeQueryOptions = queryOptions({
   queryKey: homeQueryKey,
-  queryFn: async (): Promise<HomeResponse> => {
-    const home = await unwrap(api.GET('/api/v1/home'));
-    // openapi-fetch's response type drops properties typed as only `null`, so `toastOfTheWeek` is
-    // missing from it although the server always sends it. Remove once M15 gives it a real schema.
-    return { toastOfTheWeek: null, ...home };
-  },
+  queryFn: (): Promise<HomeResponse> => unwrap(api.GET('/api/v1/home')),
 });
 
 /**

@@ -108,7 +108,8 @@
     },
     "toastOfTheWeek": {
       "title": "Toast týždňa",
-      "empty": "Zatiaľ bez víťaza. Každý pondelok vyžrebujeme jeden toast s fotkou z minulého týždňa."
+      "empty": "Zatiaľ bez víťaza. Každý pondelok vyžrebujeme jeden toast s fotkou z minulého týždňa.",
+      "history": "Všetci víťazi"
     },
     "log": {
       "title": "Zapísať toasty",
@@ -131,6 +132,14 @@
       "tooLarge": "Fotka má viac ako 10 MB. Vyber menšiu.",
       "invalid": "Tento súbor nevieme prečítať. Použi fotku JPEG, PNG, WebP alebo HEIC."
     }
+  },
+  "totw": {
+    "week": "{{start}} – {{end}}",
+    "none": "V ten týždeň nebol žiadny toast s fotkou, takže bez víťaza.",
+    "removed": "Víťazný toast bol odstránený.",
+    "photoAlt": "Toast týždňa od používateľa {{name}}",
+    "empty": "Zatiaľ žiadne žrebovanie. Každý pondelok vyhrá jeden toast s fotkou z minulého týždňa.",
+    "loadMore": "Načítať staršie týždne"
   },
   "toasts": {
     "today": "Dnes",

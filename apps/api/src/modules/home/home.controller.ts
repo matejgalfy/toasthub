@@ -15,7 +15,7 @@ class HomeResponseDto extends createZodDto(homeResponseSchema) {}
 export class HomeController {
   constructor(private readonly homeService: HomeService) {}
 
-  /** Everything the home screen shows, in one call: today's count, streaks and the fact of the day. */
+  /** Everything the home screen shows in one call: counts, streaks, the fact and last week's winner. */
   @Get()
   @ZodResponse({ status: 200, type: HomeResponseDto })
   async get(@CurrentUser() user: AuthUser): Promise<HomeResponse> {

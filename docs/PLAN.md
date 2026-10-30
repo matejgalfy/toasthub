@@ -53,7 +53,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M12 | Clan roles, feed, likes, reports (API) | `m12-clan-social-api` | M8b, M9, M11 | ☑ |
 | M13 | Clan UI | `m13-clans-ui` | M10, M12 | ☑ |
 | M14 | Leaderboards (API + UI) | `m14-leaderboards` | M12, M8 | ☑ |
-| M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☐ |
+| M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☑ |
 | M16 | Admin backend | `m16-admin-api` | M15 | ☐ |
 | M17 | Admin UI | `m17-admin-ui` | M16, M13 | ☐ |
 | M18 | Production images, Sentry, CI image build | `m18-containers` | M15 | ☐ |
@@ -654,3 +654,19 @@ milestones._
   `['leaderboards']`; do the same for M16's reject and ban. For M15: Toast of the week isn't on any board.
 - E2E `leaderboards.spec.ts` compares the two users' pinned "You" ranks on the global board, because other runs'
   users share it; the exact order is checked on their own clan's board.
+- **M15** — Worker: `APP_ROLE=worker` (`main.ts` → `WorkerModule`, a Nest application context with no HTTP) runs
+  `src/jobs` (`JobsService` starts pg-boss, one queue + handler + Europe/Bratislava cron per `JobName`). `bun run dev`
+  now also starts `dev:worker`; `bun run --filter @toasthub/api job <name>` queues a job for it (`totw-draw`,
+  `cleanup-verifications`, `cleanup-photos`). The api never imports `JobsModule`. Logger config is `AppLoggerModule`.
+- `src/modules/totw`: `TotwService.draw(weekStart, {replace, drawnBy})` (pure `pickWinner()` + week helpers in
+  `totw-draw.ts`, RNG via `TOTW_RANDOM`), `forWeek()`, `lastWeek()` (home) and `GET /toast-of-the-week`. Schemas in
+  `shared/toast-of-the-week.ts`; `/home`'s `toastOfTheWeek` is that item or `null`. `src/modules/cleanup` deletes
+  expired `verification` rows and photo objects after 30 days (D51). Shapes, retention and locks: SPEC §12 D51.
+- For M16: the redraw endpoint is `draw(weekStart, { replace: true, drawnBy: adminId })` then `forWeek()`; it
+  already answers 400 (not a Monday) and 409 (week not over). Hiding or rejecting a winner turns it `removed`
+  without a redraw. After 30 days a deleted toast's `photo_key` is null, so admin views must cope with no photo.
+  For M18/M19: the worker is the same image with `APP_ROLE=worker`, one replica, no port and no HTTP probes.
+- Web: `features/toast-of-the-week` (`totwHistoryQueryOptions` = infinite `['toast-of-the-week']`, `TotwEntry` for
+  one week) on the home card (+ "All winners" link) and the page `/toast-of-the-week`. TOTW items have no likes yet.
+  Test helper `objectExists(key)` moved to `test/s3.ts`. E2E `toast-of-the-week.spec.ts` writes last week's winner
+  straight into the dev database (the UI can't backdate a toast), replacing whatever that week had.

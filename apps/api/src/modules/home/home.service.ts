@@ -7,6 +7,7 @@ import { type Database, DB } from '../../db/db.module';
 import { clanMembership, toast, user } from '../../db/schema';
 import { StreaksService } from '../streaks/streaks.service';
 import { countableToasts } from '../toasts/countable-toasts';
+import { TotwService } from '../totw/totw.service';
 import { FactsService } from './facts.service';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class HomeService {
     @Inject(DB) private readonly db: Database,
     private readonly facts: FactsService,
     private readonly streaks: StreaksService,
+    private readonly totw: TotwService,
   ) {}
 
   async get(userId: string): Promise<HomeResponse> {
@@ -26,13 +28,14 @@ export class HomeService {
       .where(eq(user.id, userId));
     if (!me) throw new AppError('NOT_FOUND', 'User not found');
 
-    const [todayCount, streak, clanStreak, fact] = await Promise.all([
+    const [todayCount, streak, clanStreak, fact, toastOfTheWeek] = await Promise.all([
       this.countOn(userId, today),
       this.streaks.forUser(userId, today),
       me.clanId ? this.streaks.forClan(me.clanId, today) : null,
       this.facts.forDay(today, me.locale),
+      this.totw.lastWeek(userId, today),
     ]);
-    return { todayCount, streak, clanStreak, fact, toastOfTheWeek: null };
+    return { todayCount, streak, clanStreak, fact, toastOfTheWeek };
   }
 
   private async countOn(userId: string, date: LocalDate): Promise<number> {

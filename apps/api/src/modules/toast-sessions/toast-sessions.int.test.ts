@@ -1,4 +1,3 @@
-import { HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import {
   type AchievementCode,
@@ -15,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { type SignedIn, signIn, WEB_ORIGIN } from '../../../test/auth';
 import { createTestApp } from '../../../test/create-app';
-import { TEST_S3 } from '../../../test/s3';
+import { objectExists } from '../../../test/s3';
 import { insertToasts } from '../../../test/toasts';
 import { type Database, DB } from '../../db/db.module';
 import {
@@ -171,23 +170,6 @@ function photo(width = 8, height = 8) {
     .jpeg()
     .withExif({ IFD3: { GPSLatitudeRef: 'N', GPSLatitude: '48/1 8/1 0/1', GPSMapDatum: 'WGS-84' } })
     .toBuffer();
-}
-
-async function objectExists(key: string): Promise<boolean> {
-  const s3 = new S3Client({
-    endpoint: process.env.S3_ENDPOINT,
-    region: 'us-east-1',
-    forcePathStyle: true,
-    credentials: { accessKeyId: TEST_S3.accessKeyId, secretAccessKey: TEST_S3.secretAccessKey },
-  });
-  try {
-    await s3.send(new HeadObjectCommand({ Bucket: TEST_S3.bucket, Key: key }));
-    return true;
-  } catch {
-    return false;
-  } finally {
-    s3.destroy();
-  }
 }
 
 describe('POST /toast-sessions', () => {
