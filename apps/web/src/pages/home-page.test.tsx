@@ -11,9 +11,12 @@ import { testSession } from '@/test/sessions';
 
 import { HomePage } from './home-page';
 
+const CLAN_ID = '01900000-0000-7000-8000-000000000300';
+
 const home: HomeResponse = {
   todayCount: 0,
   streak: { current: 2, longest: 5 },
+  clan: null,
   clanStreak: null,
   fact: { id: 1, text: 'Toast was invented to rescue stale bread.' },
   toastOfTheWeek: null,
@@ -93,12 +96,26 @@ async function openLogDialog(user: ReturnType<typeof userEvent.setup>) {
 
 describe('HomePage', () => {
   it('shows the streaks, the fact and an empty Toast of the week', async () => {
-    mockApi(() => jsonResponse(200, { ...home, clanStreak: { current: 4, longest: 4 } }));
+    mockApi(() =>
+      jsonResponse(200, {
+        ...home,
+        clan: { id: CLAN_ID, name: 'Crumbs', avatarId: 2 },
+        clanStreak: { current: 4, longest: 4 },
+      } satisfies HomeResponse),
+    );
     renderHome();
 
+    // Only for screen readers and the tab title.
+    expect(screen.getByRole('heading', { level: 1, name: 'Home' })).toHaveClass('sr-only');
     const streak = await screen.findByRole('group', { name: 'Streak 🔥' });
     expect(streak).toHaveTextContent('2daysLongest: 5');
-    expect(screen.getByRole('group', { name: 'Clan streak 🔥' })).toHaveTextContent('4days');
+    const clanStreak = screen.getByRole('group', { name: 'Clan streak 🔥' });
+    expect(clanStreak).toHaveTextContent('4days');
+    expect(within(clanStreak).getByRole('img', { name: 'Crumbs' })).toBeVisible();
+    expect(screen.getByRole('link', { name: /Clan streak/ })).toHaveAttribute(
+      'href',
+      `/clans/${CLAN_ID}`,
+    );
     expect(screen.getByText(home.fact?.text ?? '')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Toast of the week' })).toBeInTheDocument();
     expect(

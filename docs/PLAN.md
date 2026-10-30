@@ -703,3 +703,7 @@ milestones._
   `/toast-of-the-week` page and its route are gone (`totwHistoryQueryOptions` and the `totw.*` keys stay for the
   admin TOTW page). The streak card is now the `live` one. E2E reaches My toasts through Profile and checks the
   streak on home instead of today's count.
+- Clan pictures (after M17, SPEC §12 D58): 6 placeholder SVGs, `ClanAvatar` (`components/clan-avatar.tsx`),
+  migration `0007_clan_avatar`. `ClanForm` shows the picker only with `withAvatar` (create + Owner settings, not the
+  admin clan page, whose PATCH rejects `avatarId`). `GET /home` now returns `clan`. Home's title is `sr-only`, so
+  E2E checks the streak card instead of a visible "Home" heading.

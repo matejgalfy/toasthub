@@ -7,6 +7,7 @@ import { withLoggedToasts } from './home-query';
 const home: HomeResponse = {
   todayCount: 0,
   streak: { current: 0, longest: 0 },
+  clan: { id: '01900000-0000-7000-8000-000000000300', name: 'Crumbs', avatarId: null },
   clanStreak: { current: 2, longest: 4 },
   fact: null,
   toastOfTheWeek: null,

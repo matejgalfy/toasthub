@@ -20,6 +20,7 @@ const detail: ClanDetail = {
     id: CLAN_ID,
     name: 'Breakfast Club',
     description: 'Mornings only',
+    avatarId: 1,
     memberCount: 3,
     createdAt: '2026-10-01T08:00:00.000Z',
   },
@@ -57,6 +58,8 @@ describe('AdminClanPage', () => {
     renderPage();
 
     const name = await screen.findByRole('textbox', { name: 'Name' });
+    // Only the Toastmeister picks the picture.
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
     await user.clear(name);
     await user.type(name, 'Brunch Club');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));

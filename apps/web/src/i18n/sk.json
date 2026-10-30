@@ -271,6 +271,16 @@
       "nameTaken": "Tento názov už má iný klan.",
       "description": "Popis",
       "descriptionHint": "Nepovinné. Najviac {{max}} znakov.",
+      "avatar": "Obrázok klanu",
+      "avatarNone": "Bez obrázka",
+      "avatarNames": {
+        "shield": "Štít",
+        "crown": "Koruna",
+        "star": "Hviezda",
+        "flame": "Plameň",
+        "beer": "Pivo",
+        "croissant": "Croissant"
+      },
       "create": "Založiť klan",
       "save": "Uložiť zmeny",
       "saved": "Uložené."

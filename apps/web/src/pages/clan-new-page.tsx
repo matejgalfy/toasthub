@@ -21,6 +21,7 @@ export function ClanNewPage() {
     <>
       <PageHeader title={t('pages.clanNew.title')} />
       <ClanForm
+        withAvatar
         submitLabel={t('clans.form.create')}
         pending={create.isPending}
         error={create.error}

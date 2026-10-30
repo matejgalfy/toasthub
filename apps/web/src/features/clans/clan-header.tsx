@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import type { ClanDetail } from '@toasthub/shared';
 
 import { ApiError, errorMessageKey } from '@/api/errors';
+import { ClanAvatar } from '@/components/clan-avatar';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
@@ -15,18 +16,21 @@ import { useFormat } from '@/i18n/format';
 
 import { useCancelJoinRequest, useJoinClan, useLeaveClan } from './clans-api';
 
-/** Name, description, member count, the clan streak and the caller's way in or out (SPEC §9 `/clans/:id`). */
+/** Picture, name, description, member count, the clan streak and the caller's way in or out (SPEC §9 `/clans/:id`). */
 export function ClanHeader({ detail }: { detail: ClanDetail }) {
   const { t } = useTranslation();
   const format = useFormat();
   const { clan, streak } = detail;
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <PageHeader title={clan.name} className="mb-0 wrap-break-word" />
-        <p className="text-sm text-muted-foreground">
-          {t('clans.memberCount', { count: clan.memberCount })}
-        </p>
+      <div className="flex items-center gap-4">
+        <ClanAvatar name={clan.name} avatarId={clan.avatarId} size="lg" decorative />
+        <div className="flex min-w-0 flex-col gap-1">
+          <PageHeader title={clan.name} className="mb-0 wrap-break-word" />
+          <p className="text-sm text-muted-foreground">
+            {t('clans.memberCount', { count: clan.memberCount })}
+          </p>
+        </div>
       </div>
       {clan.description && (
         <p className="wrap-break-word whitespace-pre-line">{clan.description}</p>

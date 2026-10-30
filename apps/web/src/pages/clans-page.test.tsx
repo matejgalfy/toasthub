@@ -18,6 +18,7 @@ function clan(n: number, overrides: Partial<Clan> = {}): Clan {
     id: `01900000-0000-7000-8000-00000000030${String(n)}`,
     name: `Clan ${String(n)}`,
     description: null,
+    avatarId: null,
     memberCount: n,
     createdAt: '2026-10-01T08:00:00.000Z',
     ...overrides,
@@ -100,11 +101,16 @@ describe('ClanNewPage', () => {
 
     await user.type(screen.getByRole('textbox', { name: 'Name' }), '  Rye Riders ');
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Dark bread only');
+    await user.click(screen.getByRole('radio', { name: 'Flame' }));
     await user.click(screen.getByRole('button', { name: 'Create clan' }));
 
     expect(await screen.findByText('clan page')).toBeVisible();
     const post = requests.find((r) => r.method === 'POST');
-    expect(await post?.json()).toEqual({ name: 'Rye Riders', description: 'Dark bread only' });
+    expect(await post?.json()).toEqual({
+      name: 'Rye Riders',
+      description: 'Dark bread only',
+      avatarId: 4,
+    });
   });
 
   it('checks the name length before sending', async () => {

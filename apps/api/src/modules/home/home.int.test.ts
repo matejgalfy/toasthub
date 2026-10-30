@@ -65,6 +65,7 @@ describe('GET /home', () => {
     expect(await getHome(ann)).toEqual({
       todayCount: 0,
       streak: { current: 0, longest: 0 },
+      clan: null,
       clanStreak: null,
       fact: await expectedFact('en'),
       toastOfTheWeek: null,
@@ -99,12 +100,12 @@ describe('GET /home', () => {
     });
   });
 
-  it('shows the streak of the toasts credited to the own clan', async () => {
+  it('shows the own clan and the streak of the toasts credited to it', async () => {
     const bob = await signIn(app, 'bob@example.com');
     const cyril = await signIn(app, 'cyril@example.com');
     const [breakfast, brunch] = await db
       .insert(clan)
-      .values([{ name: 'Breakfast Club' }, { name: 'Brunch Club' }])
+      .values([{ name: 'Breakfast Club', avatarId: 4 }, { name: 'Brunch Club' }])
       .returning();
     if (!breakfast || !brunch) throw new Error('No clans');
     await db.insert(clanMembership).values([
@@ -123,6 +124,7 @@ describe('GET /home', () => {
     await db.update(user).set({ status: 'banned' }).where(eq(user.id, cyril.userId));
 
     const home = await getHome(ann);
+    expect(home.clan).toEqual({ id: breakfast.id, name: 'Breakfast Club', avatarId: 4 });
     expect(home.clanStreak).toEqual({ current: 2, longest: 2 });
     expect(home.streak).toEqual({ current: 0, longest: 2 });
   });

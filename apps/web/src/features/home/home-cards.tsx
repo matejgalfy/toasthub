@@ -5,33 +5,32 @@ import { Link } from 'react-router';
 
 import type { HomeResponse, Streak } from '@toasthub/shared';
 
+import { ClanAvatar } from '@/components/clan-avatar';
 import { StatCard } from '@/components/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUser } from '@/features/auth/session';
 import { TotwEntry } from '@/features/toast-of-the-week/totw-entry';
 import { useFormat } from '@/i18n/format';
 
 /** The streaks, the fact of the day and the Toast of the week (SPEC §9 `/home`). */
 export function HomeCards({ home }: { home: HomeResponse }) {
   const { t } = useTranslation();
-  const me = useUser();
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
         {/* Announces the new streak after "+ Toast". */}
         <StreakCard label={t('home.streak.label')} streak={home.streak} live />
-        {home.clanStreak &&
-          (me.clanId ? (
-            <Link
-              to={`/clans/${me.clanId}`}
-              className="rounded-xl transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&>*]:hover:bg-accent"
-            >
-              <StreakCard label={t('home.clanStreak.label')} streak={home.clanStreak} />
-            </Link>
-          ) : (
-            // `/me` hasn't caught up with a clan joined meanwhile; the link follows on its refetch.
-            <StreakCard label={t('home.clanStreak.label')} streak={home.clanStreak} />
-          ))}
+        {home.clan && home.clanStreak && (
+          <Link
+            to={`/clans/${home.clan.id}`}
+            className="rounded-xl transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&>*]:hover:bg-accent"
+          >
+            <StreakCard
+              label={t('home.clanStreak.label')}
+              streak={home.clanStreak}
+              media={<ClanAvatar name={home.clan.name} avatarId={home.clan.avatarId} size="sm" />}
+            />
+          </Link>
+        )}
       </div>
       {home.fact && (
         <InfoCard icon={<Lightbulb aria-hidden="true" />} title={t('home.fact.title')}>
@@ -49,7 +48,17 @@ export function HomeCards({ home }: { home: HomeResponse }) {
   );
 }
 
-function StreakCard({ label, streak, live }: { label: string; streak: Streak; live?: boolean }) {
+function StreakCard({
+  label,
+  streak,
+  media,
+  live,
+}: {
+  label: string;
+  streak: Streak;
+  media?: ReactNode;
+  live?: boolean;
+}) {
   const { t } = useTranslation();
   const format = useFormat();
   return (
@@ -58,6 +67,7 @@ function StreakCard({ label, streak, live }: { label: string; streak: Streak; li
       value={format.number(streak.current)}
       unit={t('home.streak.unit', { count: streak.current })}
       hint={t('home.streak.longest', { value: format.number(streak.longest) })}
+      media={media}
       live={live}
     />
   );

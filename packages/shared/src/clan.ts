@@ -24,22 +24,27 @@ export type JoinRequestStatus = z.infer<typeof joinRequestStatusSchema>;
 
 export const CLAN_NAME_MIN = 3;
 export const CLAN_SEARCH_MAX = CLAN_NAME_MAX;
+export const CLAN_AVATAR_COUNT = 6;
 
 // Unique case-insensitively among clans that are not deleted (BR-CLAN-2).
 export const clanNameSchema = z.string().trim().min(CLAN_NAME_MIN).max(CLAN_NAME_MAX);
 // An empty description is stored as none.
 export const clanDescriptionSchema = z.string().trim().max(CLAN_DESCRIPTION_MAX);
+// One of the preset clan pictures (SPEC §12 D58); null shows the clan's initials.
+export const clanAvatarIdSchema = z.int().min(1).max(CLAN_AVATAR_COUNT);
 
 // Strict, so a stray field such as `ownerId` is a 400 instead of being silently dropped.
 export const createClanSchema = z.strictObject({
   name: clanNameSchema,
   description: clanDescriptionSchema.nullable().optional(),
+  avatarId: clanAvatarIdSchema.nullable().optional(),
 });
 export type CreateClan = z.infer<typeof createClanSchema>;
 
 export const updateClanSchema = z.strictObject({
   name: clanNameSchema.optional(),
   description: clanDescriptionSchema.nullable().optional(),
+  avatarId: clanAvatarIdSchema.nullable().optional(),
 });
 export type UpdateClan = z.infer<typeof updateClanSchema>;
 
@@ -62,6 +67,7 @@ export const clanSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   description: z.string().nullable(),
+  avatarId: clanAvatarIdSchema.nullable(),
   memberCount: z.int().nonnegative(),
   createdAt: z.iso.datetime(),
 });

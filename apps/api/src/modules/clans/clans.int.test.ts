@@ -160,8 +160,14 @@ describe('POST /clans', () => {
     const body = await ok<CreateClanResponse>(ann, 'POST', '/clans', 201, {
       name: '  Crumbs  ',
       description: 'We toast.',
+      avatarId: 3,
     });
-    expect(body.clan).toMatchObject({ name: 'Crumbs', description: 'We toast.', memberCount: 1 });
+    expect(body.clan).toMatchObject({
+      name: 'Crumbs',
+      description: 'We toast.',
+      avatarId: 3,
+      memberCount: 1,
+    });
     expect(body.newAchievements).toEqual(['clansman']);
     expect(await roleOf(ann.userId)).toEqual({ clanId: body.clan.id, role: 'owner' });
   });
@@ -189,6 +195,7 @@ describe('POST /clans', () => {
     [{ name: 'ab' }, 'name'],
     [{ name: 'x'.repeat(41) }, 'name'],
     [{ name: 'Crumbs', description: 'x'.repeat(281) }, 'description'],
+    [{ name: 'Crumbs', avatarId: 7 }, 'avatarId'],
     [{ name: 'Crumbs', ownerId: UNKNOWN_ID }, '_'],
   ])('rejects %j', async (payload, field) => {
     const res = await call(ann, 'POST', '/clans', payload);
@@ -309,11 +316,24 @@ describe('PATCH /clans/:id', () => {
     expect(body.clan).toMatchObject({ id: clanId, name: 'Rye', description: null, memberCount: 1 });
   });
 
+  it('lets the Owner pick and clear the picture', async () => {
+    const clanId = await createClan(ann);
+    const picked = await ok<ClanResponse>(ann, 'PATCH', `/clans/${clanId}`, 200, { avatarId: 6 });
+    expect(picked.clan.avatarId).toBe(6);
+    const detail = await ok<ClanDetail>(bob, 'GET', `/clans/${clanId}`, 200);
+    expect(detail.clan.avatarId).toBe(6);
+    const cleared = await ok<ClanResponse>(ann, 'PATCH', `/clans/${clanId}`, 200, {
+      avatarId: null,
+    });
+    expect(cleared.clan.avatarId).toBeNull();
+  });
+
   it('is a 403 for an Officer and a non-member', async () => {
     const clanId = await createClan(ann);
     await addMembers(clanId, [{ userId: bob.userId, role: 'officer' }]);
     for (const who of [bob, cyril]) {
       expectError(await call(who, 'PATCH', `/clans/${clanId}`, { name: 'Mine' }), 403, 'FORBIDDEN');
+      expectError(await call(who, 'PATCH', `/clans/${clanId}`, { avatarId: 2 }), 403, 'FORBIDDEN');
     }
   });
 

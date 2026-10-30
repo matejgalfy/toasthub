@@ -149,7 +149,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   The main sections live in `src/components/layout/nav-items.ts` (tab bar and top nav both read it).
 - Show a user with `<UserAvatar name avatarId />` (`src/components/user-avatar.tsx`): the preset picture, or
   initials when `avatarId` is `null`. The pictures are `src/assets/avatars/*.webp`, listed by id in `AVATARS`
-  (SPEC §12 D55).
+  (SPEC §12 D55). A clan is `<ClanAvatar name avatarId />` (`src/components/clan-avatar.tsx`, `CLAN_AVATARS`,
+  pictures in `src/assets/clan-avatars/`, D58); pass `decorative` where the clan name is already next to it.
 - i18n: `t()` keys are typed against `en.json`; add every key to `sk.json` too (a test compares them). Dates
   and numbers go through `useFormat()` (`src/i18n/format.ts`): instants are shown in Europe/Bratislava time,
   `LocalDate` strings never shift a day.

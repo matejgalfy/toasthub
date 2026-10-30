@@ -1,6 +1,15 @@
 import { CLAN_DESCRIPTION_MAX, CLAN_NAME_MAX, ClanRole, JoinRequestStatus } from '@toasthub/shared';
 import { sql } from 'drizzle-orm';
-import { index, pgEnum, pgTable, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  pgEnum,
+  pgTable,
+  smallint,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { createdAt, enumValues, id, timestamptz } from './columns';
@@ -15,14 +24,17 @@ export const clan = pgTable(
     id: id(),
     name: varchar({ length: CLAN_NAME_MAX }).notNull(),
     description: varchar({ length: CLAN_DESCRIPTION_MAX }),
+    avatarId: smallint(),
     deletedAt: timestamptz(),
     createdAt: createdAt(),
   },
-  // A deleted clan frees its name.
   (t) => [
+    // A deleted clan frees its name.
     uniqueIndex('clan_name_unique')
       .on(sql`lower(${t.name})`)
       .where(sql`${t.deletedAt} IS NULL`),
+    // CLAN_AVATAR_COUNT; raise both when a picture is added.
+    check('clan_avatar_id_range', sql`${t.avatarId} BETWEEN 1 AND 6`),
   ],
 );
 

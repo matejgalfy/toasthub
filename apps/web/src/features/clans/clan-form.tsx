@@ -1,3 +1,4 @@
+import { RadioGroup as RadioGroupPrimitive } from 'radix-ui';
 import { useId, useState, type SubmitEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,14 +10,19 @@ import {
 } from '@toasthub/shared';
 
 import { ApiError, errorMessageKey } from '@/api/errors';
+import { CLAN_AVATARS, ClanAvatar } from '@/components/clan-avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
+const NO_AVATAR = 'none';
+
 export interface ClanFormValues {
   name: string;
   description: string | null;
+  // Only with `withAvatar`.
+  avatarId?: number | null;
 }
 
 interface ClanFormProps {
@@ -29,9 +35,11 @@ interface ClanFormProps {
   savedMessage?: string | false;
   /** Called on every edit, so the parent can clear a previous result. */
   onEdit?: () => void;
+  /** Offers the picture: only the Owner picks it (SPEC §12 D58), so admins edit without it. */
+  withAvatar?: boolean;
 }
 
-/** Name and description of a clan (SPEC §4.8): creating one and the Owner's settings. */
+/** Name, description and picture of a clan (SPEC §4.8): creating one and the Owner's settings. */
 export function ClanForm({
   initial,
   submitLabel,
@@ -40,11 +48,13 @@ export function ClanForm({
   error,
   savedMessage,
   onEdit,
+  withAvatar = false,
 }: ClanFormProps) {
   const { t } = useTranslation();
   const id = useId();
   const [name, setName] = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [avatarId, setAvatarId] = useState(initial?.avatarId ?? null);
   const [nameInvalid, setNameInvalid] = useState(false);
 
   // The only conflict left once the caller is allowed to submit: another clan has the name (BR-CLAN-2).
@@ -61,7 +71,11 @@ export function ClanForm({
     setNameInvalid(!parsedName.success);
     const parsedDescription = clanDescriptionSchema.safeParse(description);
     if (!parsedName.success || !parsedDescription.success) return;
-    onSubmit({ name: parsedName.data, description: parsedDescription.data || null });
+    onSubmit({
+      name: parsedName.data,
+      description: parsedDescription.data || null,
+      ...(withAvatar ? { avatarId } : {}),
+    });
   };
 
   return (
@@ -108,6 +122,35 @@ export function ClanForm({
           {t('clans.form.descriptionHint', { max: CLAN_DESCRIPTION_MAX })}
         </p>
       </div>
+
+      {withAvatar && (
+        <fieldset className="flex flex-col gap-3">
+          <legend className="mb-3 text-sm font-medium">{t('clans.form.avatar')}</legend>
+          <RadioGroupPrimitive.Root
+            value={avatarId === null ? NO_AVATAR : String(avatarId)}
+            onValueChange={(value) => {
+              setAvatarId(value === NO_AVATAR ? null : Number(value));
+              onEdit?.();
+            }}
+            className="flex flex-wrap gap-3"
+          >
+            {[null, ...CLAN_AVATARS].map((option) => (
+              <RadioGroupPrimitive.Item
+                key={option?.id ?? NO_AVATAR}
+                value={option === null ? NO_AVATAR : String(option.id)}
+                aria-label={
+                  option === null
+                    ? t('clans.form.avatarNone')
+                    : t(`clans.form.avatarNames.${option.key}`)
+                }
+                className="rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=checked]:ring-[3px] data-[state=checked]:ring-ring"
+              >
+                <ClanAvatar name={name} avatarId={option?.id ?? null} size="lg" decorative />
+              </RadioGroupPrimitive.Item>
+            ))}
+          </RadioGroupPrimitive.Root>
+        </fieldset>
+      )}
 
       <div className="flex flex-col gap-3">
         {error !== null && error !== undefined && !nameTaken && (

@@ -114,7 +114,7 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 
 ### 4.8 Clans
 - BR-CLAN-1: A user is in at most one clan. Any user not in a clan can create one and becomes its Owner.
-- BR-CLAN-2: Clan has a unique name (3–40 chars) and description (≤ 280 chars). Joining always works by request: an Officer or the Owner approves it.
+- BR-CLAN-2: Clan has a unique name (3–40 chars), description (≤ 280 chars) and an optional picture, one of 6 presets that only the Owner picks (D58). Joining always works by request: an Officer or the Owner approves it.
 - BR-CLAN-3: Max members is an app setting, default **10**. Joining / approving fails when full.
 - BR-CLAN-4: The Owner cannot leave without transferring ownership or deleting the clan.
 - BR-CLAN-5: A user may have at most one pending join request at a time; joining a clan cancels it, or they can cancel it themselves.
@@ -291,6 +291,7 @@ Indexes: `(user_id, local_date)`, `(clan_id, local_date)`, `(session_id)`, `(loc
 | id | uuid | PK |
 | name | varchar(40) | unique (case-insensitive) |
 | description | varchar(280) | nullable |
+| avatar_id | smallint | 1–6, nullable (D58) |
 | deleted_at | timestamptz | nullable |
 
 ### Entity: ClanMembership
@@ -366,7 +367,7 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | * | /auth/* | — | Better Auth handler (base path `/api/v1/auth`) | | magic-link sign-in, verify, sign-out, get-session; paths and payloads as defined by Better Auth; rate-limited (BR-AUTH-5) |
 | GET | /me | Session | — | `200 {user}` | app profile incl. `onboarded` flag and `clanId` (null when in no clan, D49) |
 | PATCH | /me | Session | `{displayName?, avatarId?, locale?, profileVisibility?}` | `200 {user}` | onboarding uses this |
-| GET | /home | Session | — | `200 {todayCount, streak, clanStreak?, fact, toastOfTheWeek}` | one call for home screen |
+| GET | /home | Session | — | `200 {todayCount, streak, clan?, clanStreak?, fact, toastOfTheWeek}` | one call for home screen |
 | POST | /toast-sessions | Session | multipart `{count?, photo?}` (count 1–10, default 1) | `201 {session, newAchievements[]}` | one transaction; the 30/hour rate limit counts toasts; photo on the lead toast |
 | GET | /me/toast-sessions | Session | cursor | `200 {items: [{id, loggedAt, localDate, count, hasPhoto, photoUrl?, photoHidden, editable}], nextCursor}` | own sessions, newest first |
 | PATCH | /toast-sessions/:id | Session (owner) | `{count}` (1–10) | `200 {session, newAchievements[]}` | only on the session's day (BR-TOAST-7), else 409 |
@@ -384,9 +385,9 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | GET | /leaderboards/users | Session | `?period=week\|month\|year` | `200 {items: [{rank, user, count}], me}` | default `week`; top 50, `me` is the caller's row with its true rank or null (D50) |
 | GET | /leaderboards/clans | Session | `?period=week\|month\|year` | `200 {items: [{rank, clan, count, currentStreak}], myClan}` | default `month`; top 50, `myClan` like `me` (D50) |
 | GET | /clans | Session | `?search=&cursor=` | `200 {items[], nextCursor}` | |
-| POST | /clans | Session | `{name, description?}` | `201 {clan}` | caller must not be in a clan |
+| POST | /clans | Session | `{name, description?, avatarId?}` | `201 {clan}` | caller must not be in a clan |
 | GET | /clans/:id | Session | — | `200 {clan, streak: {current, longest}, members[], myRole?}` | |
-| PATCH | /clans/:id | Owner | `{name?, description?}` | `200 {clan}` | |
+| PATCH | /clans/:id | Owner | `{name?, description?, avatarId?}` | `200 {clan}` | |
 | DELETE | /clans/:id | Owner | — | `204` | removes all memberships |
 | GET | /clans/:id/leaderboard | Session | `?period=` | `200 {items: [{rank, user, count}]}` | every current member, by toasts logged for this clan; default `month` (D50) |
 | GET | /clans/:id/feed | Member | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | current members' sessions, newest first (D48) |
@@ -426,11 +427,11 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 | `/login` | Login | Public | Email field, "check your inbox" state |
 | `/auth/callback` | Verify link | Public | Consumes token, redirects to `/onboarding` or `/home`, error + resend on failure |
 | `/onboarding` | Onboarding | User (new) | Display name, avatar picker (8), visibility |
-| `/home` | Home | User | Big "+ Toast" button (opens the log dialog: number of toasts, optional photo), current streak, clan streak, fact of the day, Toast of the week card (last week only), new-achievement toast (D57) |
+| `/home` | Home | User | No visible title. Big "+ Toast" button (opens the log dialog: number of toasts, optional photo), current streak, clan streak with the clan picture, fact of the day, Toast of the week card (last week only), new-achievement toast (D57, D58) |
 | `/leaderboards` | Leaderboards | User | Tabs Users / Clans, period switch week / month / year (clans default to month), clan rows show 🔥 streak, "me" row pinned |
-| `/clans` | Clan browser | User | Search, list with member count, "Create clan" |
-| `/clans/new` | Create clan | User (no clan) | Name, description |
-| `/clans/:id` | Clan | User | Header with current / longest clan streak + request to join / cancel request / leave, tabs: Feed (members), Leaderboard, Members; requests panel for Officers+; settings for Owner |
+| `/clans` | Clan browser | User | Search, list with picture and member count, "Create clan" |
+| `/clans/new` | Create clan | User (no clan) | Name, description, picture |
+| `/clans/:id` | Clan | User | Header with picture, current / longest clan streak + request to join / cancel request / leave, tabs: Feed (members), Leaderboard, Members; requests panel for Officers+; settings for Owner |
 | `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, add / replace / remove photo, delete with a confirmation), older ones are read-only. Linked from the own profile |
 | `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (subject to visibility); own profile links to My toasts |
 | `/settings` | Settings | User | Display name, avatar, visibility, logout |
@@ -522,6 +523,7 @@ A feature is done when:
 | D55 | Avatars are 8 preset pictures (`avatar_id` 1–8, `AVATAR_COUNT` in `shared`, DB check `user_avatar_id_range`), replacing the 6 initials colours of D34. They are 256 px WebP files in `apps/web/src/assets/avatars/` (~8 KB each), bundled by Vite with hashed names and precached by the service worker; `AVATARS` in `components/user-avatar.tsx` maps id → picture and an i18n name used as the picker's label. `null` still shows the initials. Ids are stable: a new picture is appended and raises the count and the check | Shipped with the app, the pictures need no storage, signing or upload moderation, and load offline. Ids are stored, so reordering would change everyone's avatar |
 | D56 | The UI shows the clan roles as **Toastmeister** (Owner), **Vice-Toast** (Officer) and **Toastie** (Member), the same words in `sk` and `en`; every string about a clan role uses them (member menu, transfer dialogs, owner hint, admin clan page). Slovak copy says "dať rolu …" / "dostaneš rolu …" so the names never need declension. Code, API, DB and this SPEC keep `owner` / `officer` / `member`. Plain "member" for anyone in the clan (member count, Members tab) stays | Themed names fit the app; keeping them in i18n only means no migration or API change, and renaming again is a copy edit |
 | D57 | Home shows no "My toasts" link and no today's count, and there is no `/toast-of-the-week` page: the Toast of the week card shows only last week's item. My toasts is reached from the own profile. `GET /home` keeps `todayCount` (the optimistic "+ Toast" update still uses it to tell whether the streak grows, D41) and `GET /toast-of-the-week` stays for the admin TOTW page | Product decision after M17: a leaner home screen. Keeping the API fields means no API or client change |
+| D58 | Clans have a picture: one of 6 presets (`clan.avatar_id` 1–6, `CLAN_AVATAR_COUNT` in `shared`, DB check `clan_avatar_id_range`), `null` shows the clan's initials. Only the Owner sets it, through `POST /clans` and `PATCH /clans/:id` (the `edit` action); `PATCH /admin/clans/:id` does not take it. Every `clan` object carries `avatarId`, and `GET /home` adds `clan: {id, name, avatarId}` (`null` outside a clan) beside `clanStreak`, so the clan streak card shows the picture and links to the clan without waiting for `/me`. The pictures are placeholder SVGs in `apps/web/src/assets/clan-avatars/` (Lucide shapes on a colour), mapped by `CLAN_AVATARS` in `components/clan-avatar.tsx`; clans are rounded squares, users circles. They show on the home clan streak card, the clan page header and the clan browser. Home's `<h1>` is `sr-only` | Same model as D55: shipped with the app, no uploads to store or moderate. Ids are stable, so placeholders can be swapped for real art file by file |
 
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)

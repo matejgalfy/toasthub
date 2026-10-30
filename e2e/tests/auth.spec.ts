@@ -25,7 +25,7 @@ test('a new user signs up, finishes onboarding and lands on home', async ({ page
   await page.getByRole('button', { name: 'Start toasting' }).click();
 
   await expect(page).toHaveURL('/home');
-  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Streak 🔥' })).toBeVisible();
 
   // A full page load keeps the session, and onboarding saved the profile.
   await page.goto('/settings');

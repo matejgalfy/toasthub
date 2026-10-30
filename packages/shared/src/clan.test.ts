@@ -32,6 +32,18 @@ describe('createClanSchema', () => {
     expect(createClanSchema.safeParse({ name: 'Rye', description: null }).success).toBe(true);
   });
 
+  it.each([
+    [1, true],
+    [6, true],
+    [null, true],
+    [0, false],
+    [7, false],
+    [2.5, false],
+  ])('a picture id of %j is valid: %s', (avatarId, valid) => {
+    expect(createClanSchema.safeParse({ name: 'Rye', avatarId }).success).toBe(valid);
+    expect(updateClanSchema.safeParse({ avatarId }).success).toBe(valid);
+  });
+
   it('rejects unknown fields', () => {
     expect(createClanSchema.safeParse({ name: 'Rye', ownerId: 'x' }).success).toBe(false);
     expect(updateClanSchema.safeParse({ memberCount: 3 }).success).toBe(false);

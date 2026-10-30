@@ -50,6 +50,7 @@ function detail(myRole: ClanRole | null, overrides: Partial<ClanDetail> = {}): C
       id: CLAN_ID,
       name: 'Crumbs',
       description: 'Butter first',
+      avatarId: null,
       memberCount: members.length,
       createdAt: '2026-10-01T08:00:00.000Z',
     },
@@ -341,7 +342,30 @@ describe('ClanPage', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Settings' }));
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Crumbs');
+    expect(screen.getByRole('radio', { name: 'No picture' })).toBeChecked();
     expect(screen.getByRole('button', { name: 'Delete clan' })).toBeVisible();
+  });
+
+  it('lets the Owner pick the clan picture in settings', async () => {
+    const user = userEvent.setup();
+    const requests = mockClanApi(detail('owner'), {
+      extra: (r) =>
+        r.method === 'PATCH'
+          ? jsonResponse(200, { clan: { ...detail('owner').clan, avatarId: 3 } })
+          : undefined,
+    });
+    renderClan();
+
+    await user.click(await screen.findByRole('tab', { name: 'Settings' }));
+    await user.click(screen.getByRole('radio', { name: 'Star' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(await screen.findByText('Saved.')).toBeVisible();
+    expect(await requests.find((r) => r.method === 'PATCH')?.json()).toEqual({
+      name: 'Crumbs',
+      description: 'Butter first',
+      avatarId: 3,
+    });
   });
 
   it('hands the clan over after a confirmation', async () => {

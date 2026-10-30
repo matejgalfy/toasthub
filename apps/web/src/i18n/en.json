@@ -255,6 +255,16 @@
       "nameTaken": "Another clan already has this name.",
       "description": "Description",
       "descriptionHint": "Optional. Up to {{max}} characters.",
+      "avatar": "Clan picture",
+      "avatarNone": "No picture",
+      "avatarNames": {
+        "shield": "Shield",
+        "crown": "Crown",
+        "star": "Star",
+        "flame": "Flame",
+        "beer": "Beer",
+        "croissant": "Croissant"
+      },
       "create": "Create clan",
       "save": "Save changes",
       "saved": "Saved."

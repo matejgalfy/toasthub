@@ -11,7 +11,7 @@ import { ClanForm } from './clan-form';
 import { useDeleteClan, useUpdateClan } from './clans-api';
 
 /**
- * The Owner's settings: name and description, and deleting the clan (SPEC §4.8). Ownership is handed over
+ * The Owner's settings: name, description and picture, and deleting the clan (SPEC §4.8). Ownership is handed over
  * from a member's menu on the Members tab.
  */
 export function ClanSettings({ clan }: { clan: Clan }) {
@@ -23,7 +23,8 @@ export function ClanSettings({ clan }: { clan: Clan }) {
   return (
     <div className="flex flex-col gap-10">
       <ClanForm
-        initial={{ name: clan.name, description: clan.description }}
+        initial={{ name: clan.name, description: clan.description, avatarId: clan.avatarId }}
+        withAvatar
         submitLabel={t('clans.form.save')}
         pending={update.isPending}
         error={update.error}

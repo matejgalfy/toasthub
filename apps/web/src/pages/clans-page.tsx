@@ -6,6 +6,7 @@ import { Link } from 'react-router';
 
 import { CLAN_SEARCH_MAX, type Clan } from '@toasthub/shared';
 
+import { ClanAvatar } from '@/components/clan-avatar';
 import { LoadMore } from '@/components/load-more';
 import { PageHeader } from '@/components/page-header';
 import { PageSpinner } from '@/components/page-spinner';
@@ -109,8 +110,9 @@ function ClanRow({ clan }: { clan: Clan }) {
   const { t } = useTranslation();
   return (
     <Card className="relative py-4 transition-colors focus-within:ring-[3px] focus-within:ring-ring/50 hover:bg-accent">
-      <CardContent className="flex items-start justify-between gap-3 px-4">
-        <div className="flex min-w-0 flex-col gap-1">
+      <CardContent className="flex items-start gap-3 px-4">
+        <ClanAvatar name={clan.name} avatarId={clan.avatarId} decorative />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           {/* The link covers the card; the member count stays readable beside it. */}
           <Link
             to={`/clans/${clan.id}`}

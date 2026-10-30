@@ -798,6 +798,7 @@ export interface components {
         id: string;
         name: string;
         description: string | null;
+        avatarId: number | null;
         memberCount: number;
         /** Format: date-time */
         createdAt: string;
@@ -849,6 +850,7 @@ export interface components {
         id: string;
         name: string;
         description: string | null;
+        avatarId: number | null;
         memberCount: number;
         /** Format: date-time */
         createdAt: string;
@@ -858,6 +860,7 @@ export interface components {
     CreateClanDto: {
       name: string;
       description?: string | null;
+      avatarId?: number | null;
     };
     CreateClanResponseDto_Output: {
       clan: {
@@ -865,6 +868,7 @@ export interface components {
         id: string;
         name: string;
         description: string | null;
+        avatarId: number | null;
         memberCount: number;
         /** Format: date-time */
         createdAt: string;
@@ -888,6 +892,7 @@ export interface components {
         id: string;
         name: string;
         description: string | null;
+        avatarId: number | null;
         memberCount: number;
         /** Format: date-time */
         createdAt: string;
@@ -930,6 +935,7 @@ export interface components {
     UpdateClanDto: {
       name?: string;
       description?: string | null;
+      avatarId?: number | null;
     };
     ClanResponseDto_Output: {
       clan: {
@@ -937,6 +943,7 @@ export interface components {
         id: string;
         name: string;
         description: string | null;
+        avatarId: number | null;
         memberCount: number;
         /** Format: date-time */
         createdAt: string;
@@ -1089,6 +1096,12 @@ export interface components {
         current: number;
         longest: number;
       };
+      clan: {
+        /** Format: uuid */
+        id: string;
+        name: string;
+        avatarId: number | null;
+      } | null;
       clanStreak: {
         current: number;
         longest: number;

@@ -50,6 +50,13 @@
       "when": 1793384541622,
       "tag": "0006_avatar_range",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793389035959,
+      "tag": "0007_clan_avatar",
+      "breakpoints": true
     }
   ]
 }

@@ -13,7 +13,8 @@ export function HomePage() {
   const home = useQuery(homeQueryOptions);
   return (
     <>
-      <PageHeader title={t('pages.home.title')} />
+      {/* No visible title on home; it still names the page and the browser tab. */}
+      <PageHeader title={t('pages.home.title')} className="sr-only" />
       <div className="flex flex-col gap-4">
         {/* Usable before the counters load: logging never waits for /home. */}
         <LogToastButton />

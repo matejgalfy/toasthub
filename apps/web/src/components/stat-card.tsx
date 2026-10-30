@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -9,6 +9,7 @@ export function StatCard({
   value,
   unit,
   hint,
+  media,
   live = false,
   className,
 }: {
@@ -16,6 +17,8 @@ export function StatCard({
   value: string;
   unit?: string;
   hint?: string;
+  /** A small picture before the label, such as the clan's. */
+  media?: ReactNode;
   /** Announces a changed value to screen readers. */
   live?: boolean;
   className?: string;
@@ -23,9 +26,12 @@ export function StatCard({
   const id = useId();
   return (
     <Card role="group" aria-labelledby={id} className={cn('gap-1 px-5 py-4', className)}>
-      <p id={id} className="text-sm font-medium text-muted-foreground">
-        {label}
-      </p>
+      <div className="flex items-center gap-2">
+        {media}
+        <p id={id} className="text-sm font-medium text-muted-foreground">
+          {label}
+        </p>
+      </div>
       <p className="flex items-baseline gap-1.5" aria-live={live ? 'polite' : undefined}>
         <span className="text-4xl font-bold tabular-nums">{value}</span>
         {unit && <span className="text-muted-foreground">{unit}</span>}

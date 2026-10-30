@@ -82,6 +82,7 @@ function toClan(row: ClanRow, memberCount: number): Clan {
     id: row.id,
     name: row.name,
     description: row.description,
+    avatarId: row.avatarId,
     memberCount,
     createdAt: row.createdAt.toISOString(),
   };
@@ -139,7 +140,11 @@ export class ClansService {
         if (await this.membershipOf(tx, userId)) throw new AppError('CONFLICT', ALREADY_IN_A_CLAN);
         const [created] = await tx
           .insert(clan)
-          .values({ name: body.name, description: descriptionValue(body.description) ?? null })
+          .values({
+            name: body.name,
+            description: descriptionValue(body.description) ?? null,
+            avatarId: body.avatarId ?? null,
+          })
           .returning();
         if (!created) throw new Error('Clan insert returned no row');
         await tx
@@ -396,8 +401,12 @@ export class ClansService {
       row = await this.db.transaction(async (tx) => {
         const current = await this.loadClan(tx, clanId, 'update');
         await authorize(tx);
-        const changes = { name: patch.name, description: descriptionValue(patch.description) };
-        if (changes.name === undefined && changes.description === undefined) return current;
+        const changes = {
+          name: patch.name,
+          description: descriptionValue(patch.description),
+          avatarId: patch.avatarId,
+        };
+        if (Object.values(changes).every((value) => value === undefined)) return current;
         const [updated] = await tx.update(clan).set(changes).where(eq(clan.id, clanId)).returning();
         if (!updated) throw new Error('Clan update returned no row');
         return updated;

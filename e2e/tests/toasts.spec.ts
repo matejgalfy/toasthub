@@ -13,7 +13,8 @@ function streak(page: Page, value: string) {
 
 async function goHome(page: Page) {
   await page.getByRole('link', { name: 'Home', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
+  await expect(page).toHaveURL('/home');
+  await expect(page.getByRole('group', { name: 'Streak 🔥' })).toBeVisible();
 }
 
 /** My toasts is linked from the own profile. */
