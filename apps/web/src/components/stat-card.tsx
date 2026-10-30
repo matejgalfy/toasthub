@@ -11,6 +11,7 @@ export function StatCard({
   hint,
   media,
   live = false,
+  centered = false,
   className,
 }: {
   label: string;
@@ -21,22 +22,34 @@ export function StatCard({
   media?: ReactNode;
   /** Announces a changed value to screen readers. */
   live?: boolean;
+  /** Puts a bigger value in the middle of the card, level with its neighbours' (home streaks). */
+  centered?: boolean;
   className?: string;
 }) {
   const id = useId();
   return (
     <Card role="group" aria-labelledby={id} className={cn('gap-1 px-5 py-4', className)}>
-      <div className="flex items-center gap-2">
+      <div className={cn('flex items-center gap-2', centered && 'min-h-8')}>
         {media}
         <p id={id} className="text-sm font-medium text-muted-foreground">
           {label}
         </p>
       </div>
-      <p className="flex items-baseline gap-1.5" aria-live={live ? 'polite' : undefined}>
-        <span className="text-4xl font-bold tabular-nums">{value}</span>
+      <p
+        className={cn(
+          'flex items-baseline gap-1.5',
+          centered && 'flex-1 items-center justify-center py-2',
+        )}
+        aria-live={live ? 'polite' : undefined}
+      >
+        <span className={cn('font-bold tabular-nums', centered ? 'text-5xl' : 'text-4xl')}>
+          {value}
+        </span>
         {unit && <span className="text-muted-foreground">{unit}</span>}
       </p>
-      {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
+      {hint && (
+        <p className={cn('text-sm text-muted-foreground', centered && 'text-center')}>{hint}</p>
+      )}
     </Card>
   );
 }

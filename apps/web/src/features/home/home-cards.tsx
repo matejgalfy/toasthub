@@ -69,6 +69,8 @@ function StreakCard({
       hint={t('home.streak.longest', { value: format.number(streak.longest) })}
       media={media}
       live={live}
+      centered
+      className="h-full"
     />
   );
 }
