@@ -23,6 +23,12 @@
     "landing": {
       "title": "Toasthub",
       "tagline": "Počítaj svoje toasty, drž si sériu a prekonaj kamarátov.",
+      "features": {
+        "streak": "Udrž si streak toastov: stačí jeden toast denne.",
+        "compete": "Súťaž s ostatnými v jedení toastov.",
+        "clans": "Spoj sa s kamarátmi v klane a poraz ostatné klany.",
+        "totw": "Odfoť svoj toast a zapoj sa do súťaže Toast týždňa."
+      },
       "cta": "Prihlásiť sa e-mailom"
     },
     "login": {

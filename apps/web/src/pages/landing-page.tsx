@@ -4,6 +4,13 @@ import { Link } from 'react-router';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 
+const FEATURES = [
+  { icon: '🔥', key: 'pages.landing.features.streak' },
+  { icon: '🏆', key: 'pages.landing.features.compete' },
+  { icon: '🛡️', key: 'pages.landing.features.clans' },
+  { icon: '📸', key: 'pages.landing.features.totw' },
+] as const;
+
 export function LandingPage() {
   const { t } = useTranslation();
   return (
@@ -13,6 +20,16 @@ export function LandingPage() {
       </span>
       <PageHeader title={t('pages.landing.title')} className="mb-0 text-4xl" />
       <p className="max-w-sm text-lg text-muted-foreground">{t('pages.landing.tagline')}</p>
+      <ul className="flex max-w-sm flex-col gap-3 text-left">
+        {FEATURES.map(({ icon, key }) => (
+          <li key={key} className="flex items-start gap-3">
+            <span aria-hidden="true" className="text-2xl leading-none">
+              {icon}
+            </span>
+            <span>{t(key)}</span>
+          </li>
+        ))}
+      </ul>
       <Button asChild size="lg" className="mt-4">
         <Link to="/login">{t('pages.landing.cta')}</Link>
       </Button>

@@ -23,6 +23,12 @@
     "landing": {
       "title": "Toasthub",
       "tagline": "Count your toasts, keep your streak and out-toast your friends.",
+      "features": {
+        "streak": "Keep your toast streak alive: one toast a day keeps it burning.",
+        "compete": "Compete with others in toast eating.",
+        "clans": "Team up in a clan and take on other clans.",
+        "totw": "Take a photo of your toast to enter Toast of the week."
+      },
       "cta": "Log in with email"
     },
     "login": {
