@@ -9,7 +9,7 @@ import { FLAG_REASON_MAX, type ClanFeedItem } from '@toasthub/shared';
 
 import { ApiError, errorMessageKey } from '@/api/errors';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { LoadMore } from '@/components/load-more';
 import { PageSpinner } from '@/components/page-spinner';
 import { QueryError } from '@/components/query-error';
@@ -96,7 +96,7 @@ function FeedItem({
     <Card className="gap-3 py-4">
       <CardContent className="flex flex-col gap-3 px-4">
         <div className="flex items-center gap-3">
-          <InitialsAvatar name={user.displayName} avatarId={user.avatarId} size="sm" />
+          <UserAvatar name={user.displayName} avatarId={user.avatarId} size="sm" />
           <div className="flex min-w-0 flex-col">
             <Link to={`/u/${user.id}`} className="font-medium wrap-break-word hover:underline">
               {user.displayName}

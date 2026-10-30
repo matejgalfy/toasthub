@@ -50,7 +50,7 @@ export const user = pgTable(
     role: userRoleEnum().default(UserRole.user).notNull(),
     status: userStatusEnum().default(UserStatus.active).notNull(),
   },
-  (table) => [check('user_avatar_id_range', sql`${table.avatarId} BETWEEN 1 AND 6`)],
+  (table) => [check('user_avatar_id_range', sql`${table.avatarId} BETWEEN 1 AND 8`)],
 );
 
 export const session = pgTable(

@@ -65,7 +65,6 @@
       "profile": "Profil",
       "save": "Uložiť zmeny",
       "saved": "Uložené.",
-      "language": "Jazyk",
       "account": "Účet",
       "signedInAs": "Prihlasovací e-mail: {{email}}"
     },
@@ -527,8 +526,17 @@
     },
     "avatar": {
       "label": "Avatar",
-      "none": "Bez farby",
-      "option": "Farba {{number}}"
+      "none": "Bez obrázka",
+      "names": {
+        "astronaut": "Astronaut",
+        "cool": "Frajer",
+        "pixel": "Pixelový rytier",
+        "angel": "Anjel",
+        "cyborg": "Kyborg",
+        "boss": "Šéf",
+        "monster": "Príšera",
+        "alien": "Mimozemšťan"
+      }
     },
     "visibility": {
       "label": "Kto vidí tvoj profil",

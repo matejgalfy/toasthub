@@ -14,7 +14,7 @@ import {
 
 import { errorMessageKey } from '@/api/errors';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -47,7 +47,7 @@ export function ClanMembers({ detail }: { detail: ClanDetail }) {
       <ul className="flex flex-col divide-y">
         {detail.members.map((member) => (
           <li key={member.user.id} className="flex items-center gap-3 py-3">
-            <InitialsAvatar name={member.user.displayName} avatarId={member.user.avatarId} />
+            <UserAvatar name={member.user.displayName} avatarId={member.user.avatarId} />
             <div className="flex min-w-0 flex-1 flex-col">
               <Link
                 to={`/u/${member.user.id}`}

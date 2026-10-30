@@ -12,6 +12,14 @@ How to work in this repo. `docs/SPEC.md` says **what** to build, `docs/PLAN.md` 
 4. Before the milestone's final commit (or PR): all checks green (see below), tick the milestone in PLAN **Status**, add 2–5 lines to
    **Handoff notes**, and add new decisions to SPEC §12.
 
+## Keeping docs current
+
+Any change, not just a milestone, updates the docs it makes wrong, in the same commit:
+
+- `docs/SPEC.md` when behaviour, an endpoint, the data model or a rule changes (new decisions go in §12).
+- `docs/PLAN.md` when a milestone's scope, order or status changes, or the next agent needs a handoff note.
+- `docs/AGENTS.md` when a command, convention, helper, path or workflow described here changes.
+
 ## Toolchain
 
 - **Node 24 LTS** is the runtime (version in `.node-version`). **Bun** is only the package manager and script
@@ -133,12 +141,15 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 - `@/` is `apps/web/src`. It counts as a relative import: external, then `@toasthub/*`, then `@/…` and `./…`.
 - **Styling:** every colour, the radius, the font and the layout widths are tokens in `src/styles/theme.css`
   (light + dark side by side; dark follows the system). Use only the semantic classes (`bg-primary`,
-  `text-muted-foreground`, `bg-avatar-3`, `max-w-content`), never raw Tailwind palette colours or hex values, so
+  `text-muted-foreground`, `bg-heat-2`, `max-w-content`), never raw Tailwind palette colours or hex values, so
   a redesign stays a one-file change. A new token goes into `theme.css` and the `@theme inline` map in
   `src/styles/index.css`. Preview tokens and components at `/dev/ui` (dev builds only).
 - shadcn/ui: add components from `apps/web` with `bunx shadcn@4.23.0 add <name>` (they land in
   `src/components/ui`, which we own and may edit). Replace raw colours they ship with (`text-white`) by tokens.
   The main sections live in `src/components/layout/nav-items.ts` (tab bar and top nav both read it).
+- Show a user with `<UserAvatar name avatarId />` (`src/components/user-avatar.tsx`): the preset picture, or
+  initials when `avatarId` is `null`. The pictures are `src/assets/avatars/*.webp`, listed by id in `AVATARS`
+  (SPEC §12 D55).
 - i18n: `t()` keys are typed against `en.json`; add every key to `sk.json` too (a test compares them). Dates
   and numbers go through `useFormat()` (`src/i18n/format.ts`): instants are shown in Europe/Bratislava time,
   `LocalDate` strings never shift a day.

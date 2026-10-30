@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { AVATARS, UserAvatar } from '@/components/user-avatar';
 import { LanguageSwitch } from '@/components/layout/language-switch';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -115,16 +115,16 @@ export function UiPreviewPage() {
 
       <Section title="Avatars">
         <div className="flex flex-wrap items-center gap-3">
-          {[1, 2, 3, 4, 5, 6].map((id) => (
-            <InitialsAvatar key={id} name="Toast Tester" avatarId={id} />
+          {AVATARS.map(({ id }) => (
+            <UserAvatar key={id} name="Toast Tester" avatarId={id} />
           ))}
-          <InitialsAvatar name="No Choice" avatarId={null} />
-          <InitialsAvatar name={null} />
+          <UserAvatar name="No Choice" avatarId={null} />
+          <UserAvatar name={null} />
         </div>
         <div className="flex items-center gap-3">
-          <InitialsAvatar name="Šimon Ďurček" avatarId={3} size="sm" />
-          <InitialsAvatar name="Šimon Ďurček" avatarId={3} size="md" />
-          <InitialsAvatar name="Šimon Ďurček" avatarId={3} size="lg" />
+          <UserAvatar name="Šimon Ďurček" avatarId={3} size="sm" />
+          <UserAvatar name="Šimon Ďurček" avatarId={3} size="md" />
+          <UserAvatar name="Šimon Ďurček" avatarId={3} size="lg" />
         </div>
       </Section>
 

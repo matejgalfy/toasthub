@@ -2120,7 +2120,7 @@
                     "avatarId": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 6,
+                      "maximum": 8,
                       "nullable": true
                     },
                     "status": {
@@ -2153,7 +2153,7 @@
                     "avatarId": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 6,
+                      "maximum": 8,
                       "nullable": true
                     }
                   },
@@ -2275,7 +2275,7 @@
                     "avatarId": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 6,
+                      "maximum": 8,
                       "nullable": true
                     }
                   },
@@ -2389,7 +2389,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   },
                   "status": {
@@ -2422,7 +2422,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -2544,7 +2544,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -2612,7 +2612,7 @@
                 "avatarId": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 6,
+                  "maximum": 8,
                   "nullable": true
                 },
                 "role": {
@@ -2720,7 +2720,7 @@
               "avatarId": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 6,
+                "maximum": 8,
                 "nullable": true
               },
               "role": {
@@ -2980,7 +2980,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -3236,7 +3236,7 @@
                     "avatarId": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 6,
+                      "maximum": 8,
                       "nullable": true
                     }
                   },
@@ -3306,7 +3306,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -3444,7 +3444,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -3517,7 +3517,7 @@
                     "avatarId": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 6,
+                      "maximum": 8,
                       "nullable": true
                     }
                   },
@@ -3579,7 +3579,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -3673,7 +3673,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -3728,7 +3728,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -3805,7 +3805,7 @@
                     "avatarId": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 6,
+                      "maximum": 8,
                       "nullable": true
                     }
                   },
@@ -3915,7 +3915,7 @@
                         "avatarId": {
                           "type": "integer",
                           "minimum": 1,
-                          "maximum": 6,
+                          "maximum": 8,
                           "nullable": true
                         }
                       },
@@ -4087,7 +4087,7 @@
                       "avatarId": {
                         "type": "integer",
                         "minimum": 1,
-                        "maximum": 6,
+                        "maximum": 8,
                         "nullable": true
                       }
                     },
@@ -4164,7 +4164,7 @@
                     "avatarId": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 6,
+                      "maximum": 8,
                       "nullable": true
                     }
                   },
@@ -4212,7 +4212,7 @@
                   "avatarId": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 6,
+                    "maximum": 8,
                     "nullable": true
                   }
                 },
@@ -4378,7 +4378,7 @@
                     "avatarId": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 6,
+                      "maximum": 8,
                       "nullable": true
                     }
                   },
@@ -4434,7 +4434,7 @@
               "avatarId": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 6,
+                "maximum": 8,
                 "nullable": true
               },
               "locale": {
@@ -4504,7 +4504,7 @@
           "avatarId": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 6,
+            "maximum": 8,
             "nullable": true
           },
           "locale": {
@@ -4770,7 +4770,7 @@
               "avatarId": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 6,
+                "maximum": 8,
                 "nullable": true
               },
               "access": {

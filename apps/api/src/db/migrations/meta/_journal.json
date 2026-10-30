@@ -43,6 +43,13 @@
       "when": 1793293904793,
       "tag": "0005_toast_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793384541622,
+      "tag": "0006_avatar_range",
+      "breakpoints": true
     }
   ]
 }

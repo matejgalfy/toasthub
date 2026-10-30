@@ -28,7 +28,7 @@ describe('OnboardingPage', () => {
     expect(requests).toHaveLength(0);
 
     await user.type(name, 'nn ');
-    await user.click(screen.getByRole('radio', { name: 'Colour 3' }));
+    await user.click(screen.getByRole('radio', { name: 'Pixel knight' }));
     await user.click(screen.getByRole('radio', { name: 'Clanmates only' }));
     await user.click(screen.getByRole('button', { name: 'Start toasting' }));
 

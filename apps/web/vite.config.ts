@@ -36,7 +36,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
         // Deep links open the cached shell; /api (including the magic-link verify redirect) must hit the server.
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api\//],

@@ -8,7 +8,7 @@ import {
   ToastOfTheWeekStatus,
 } from '@toasthub/shared';
 
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { useFormat } from '@/i18n/format';
 
 /** "19 Oct – 25 Oct 2026" for the week starting on `weekStart`. */
@@ -48,7 +48,7 @@ export function TotwEntry({ entry }: { entry: ToastOfTheWeek }) {
         className="aspect-square w-full rounded-md bg-muted object-cover"
       />
       <div className="flex items-center gap-3">
-        <InitialsAvatar name={user.displayName} avatarId={user.avatarId} size="sm" />
+        <UserAvatar name={user.displayName} avatarId={user.avatarId} size="sm" />
         <div className="flex min-w-0 flex-col">
           <Link to={`/u/${user.id}`} className="font-medium wrap-break-word hover:underline">
             {user.displayName}

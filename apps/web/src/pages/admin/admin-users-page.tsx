@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { ADMIN_USER_SEARCH_MAX, type AdminUser, UserStatus } from '@toasthub/shared';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { LoadMore } from '@/components/load-more';
 import { PageHeader } from '@/components/page-header';
 import { PageSpinner } from '@/components/page-spinner';
@@ -117,7 +117,7 @@ function UserRow({ user }: { user: AdminUser }) {
     <Card className="h-full py-4">
       <CardContent className="flex flex-wrap items-start justify-between gap-3 px-4">
         <div className="flex min-w-0 items-start gap-3">
-          <InitialsAvatar name={user.displayName} avatarId={user.avatarId} size="sm" />
+          <UserAvatar name={user.displayName} avatarId={user.avatarId} size="sm" />
           <div className="flex min-w-0 flex-col gap-0.5">
             {user.displayName ? (
               <Link to={`/u/${user.id}`} className="font-medium wrap-break-word hover:underline">

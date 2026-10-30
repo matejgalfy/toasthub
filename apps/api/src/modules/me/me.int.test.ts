@@ -81,7 +81,7 @@ describe('PATCH /me', () => {
   });
 
   it('changes single fields and clears the avatar', async () => {
-    await patchMe({ displayName: 'Ann', avatarId: 2 });
+    expect((await patchMe({ displayName: 'Ann', avatarId: 8 })).statusCode).toBe(200);
     const res = await patchMe({ locale: 'sk', avatarId: null });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({
@@ -98,7 +98,7 @@ describe('PATCH /me', () => {
   it.each([
     [{ displayName: 'A' }, 'displayName'],
     [{ displayName: 'x'.repeat(31) }, 'displayName'],
-    [{ avatarId: 7 }, 'avatarId'],
+    [{ avatarId: 9 }, 'avatarId'],
     [{ locale: 'de' }, 'locale'],
     [{ profileVisibility: 'private' }, 'profileVisibility'],
   ])('rejects %j', async (payload, field) => {

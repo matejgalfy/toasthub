@@ -3,7 +3,6 @@ import { useId, useState, type SubmitEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  AVATAR_COUNT,
   displayNameSchema,
   profileVisibilitySchema,
   ProfileVisibility,
@@ -12,15 +11,14 @@ import {
 } from '@toasthub/shared';
 
 import { ApiError, errorMessageKey } from '@/api/errors';
-import { InitialsAvatar } from '@/components/initials-avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { AVATARS, UserAvatar } from '@/components/user-avatar';
 
 import { useUpdateMe } from './use-update-me';
 
-const AVATAR_IDS = Array.from({ length: AVATAR_COUNT }, (_, index) => index + 1);
 const NO_AVATAR = 'none';
 
 interface ProfileFormProps {
@@ -98,19 +96,17 @@ export function ProfileForm({ user, submitLabel, savedMessage, extra }: ProfileF
           }}
           className="flex flex-wrap gap-3"
         >
-          {[null, ...AVATAR_IDS].map((option) => (
+          {[null, ...AVATARS].map((option) => (
             <RadioGroupPrimitive.Item
-              key={option ?? NO_AVATAR}
-              value={option === null ? NO_AVATAR : String(option)}
+              key={option?.id ?? NO_AVATAR}
+              value={option === null ? NO_AVATAR : String(option.id)}
               aria-label={
-                option === null
-                  ? t('profile.avatar.none')
-                  : t('profile.avatar.option', { number: option })
+                option === null ? t('profile.avatar.none') : t(`profile.avatar.names.${option.key}`)
               }
               className="rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=checked]:ring-[3px] data-[state=checked]:ring-ring"
             >
               <span aria-hidden="true">
-                <InitialsAvatar name={displayName || null} avatarId={option} size="lg" />
+                <UserAvatar name={displayName || null} avatarId={option?.id ?? null} size="lg" />
               </span>
             </RadioGroupPrimitive.Item>
           ))}

@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { type AdminFlag, type FlagAction, FlagType } from '@toasthub/shared';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -36,7 +36,7 @@ export function FlagCard({ flag }: { flag: AdminFlag }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <InitialsAvatar name={subjectName} avatarId={flag.subject.avatarId} size="sm" />
+          <UserAvatar name={subjectName} avatarId={flag.subject.avatarId} size="sm" />
           <div className="flex min-w-0 flex-col">
             <Link
               to={`/u/${flag.subject.id}`}

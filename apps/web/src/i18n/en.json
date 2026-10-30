@@ -65,7 +65,6 @@
       "profile": "Profile",
       "save": "Save changes",
       "saved": "Saved.",
-      "language": "Language",
       "account": "Account",
       "signedInAs": "Signed in as {{email}}"
     },
@@ -511,8 +510,17 @@
     },
     "avatar": {
       "label": "Avatar",
-      "none": "No colour",
-      "option": "Colour {{number}}"
+      "none": "No picture",
+      "names": {
+        "astronaut": "Astronaut",
+        "cool": "Cool toast",
+        "pixel": "Pixel knight",
+        "angel": "Angel",
+        "cyborg": "Cyborg",
+        "boss": "Boss",
+        "monster": "Monster",
+        "alien": "Alien"
+      }
     },
     "visibility": {
       "label": "Who can see your profile",

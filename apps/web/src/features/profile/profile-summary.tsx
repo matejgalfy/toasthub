@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 
 import type { UserProfile } from '@toasthub/shared';
 
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,7 +22,7 @@ export function ProfileSummary({ profile, own }: { profile: UserProfile; own: bo
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4">
-        <InitialsAvatar name={profile.displayName} avatarId={profile.avatarId} size="lg" />
+        <UserAvatar name={profile.displayName} avatarId={profile.avatarId} size="lg" />
         <PageHeader title={profile.displayName} className="mb-0 min-w-0 wrap-break-word" />
       </div>
       {own && (

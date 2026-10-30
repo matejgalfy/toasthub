@@ -20,7 +20,7 @@ test('a new user signs up, finishes onboarding and lands on home', async ({ page
   await expect(page).toHaveURL('/onboarding');
 
   await page.getByLabel('Display name').fill('E2E Toaster');
-  await page.getByRole('radio', { name: 'Colour 2' }).click();
+  await page.getByRole('radio', { name: 'Cool toast' }).click();
   await page.getByRole('radio', { name: 'Clanmates only' }).click();
   await page.getByRole('button', { name: 'Start toasting' }).click();
 

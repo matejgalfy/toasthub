@@ -696,3 +696,6 @@ milestones._
   threshold of 8 (it logs 10, the most one session takes): with a dev threshold of 10 or more it fails.
 - Sizing: ~30 files touched (7 pages + 6 page tests, the rest shared pieces), over the ~25 guideline, kept as one
   milestone because every page is small and they share one API module.
+- Avatars (after M17): 8 preset pictures replace the initials colours (SPEC §12 D55). `InitialsAvatar` is now
+  `UserAvatar` (`components/user-avatar.tsx`), migration `0006_avatar_range` widens the check to 1–8, and the
+  picker labels are the pictures' names (`profile.avatar.names.*`), so tests pick e.g. "Pixel knight".

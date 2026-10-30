@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 
 import { Period } from '@toasthub/shared';
 
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useFormat } from '@/i18n/format';
@@ -117,7 +117,7 @@ function RankRow({ entry, mine }: { entry: RankEntry; mine: boolean }) {
         {format.number(entry.rank)}
       </span>
       {entry.avatarId !== undefined && (
-        <InitialsAvatar name={entry.name} avatarId={entry.avatarId} size="sm" />
+        <UserAvatar name={entry.name} avatarId={entry.avatarId} size="sm" />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
         <Link to={entry.href} className="font-medium wrap-break-word hover:underline">

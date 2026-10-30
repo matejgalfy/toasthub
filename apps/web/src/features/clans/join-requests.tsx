@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import type { ClanJoinRequest } from '@toasthub/shared';
 
 import { ApiError, errorMessageKey } from '@/api/errors';
-import { InitialsAvatar } from '@/components/initials-avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { PageSpinner } from '@/components/page-spinner';
 import { QueryError } from '@/components/query-error';
 import { Button } from '@/components/ui/button';
@@ -71,7 +71,7 @@ function RequestRow({ clanId, request }: { clanId: string; request: ClanJoinRequ
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <InitialsAvatar name={user.displayName} avatarId={user.avatarId} size="sm" />
+      <UserAvatar name={user.displayName} avatarId={user.avatarId} size="sm" />
       <div className="flex min-w-0 flex-1 flex-col">
         <Link to={`/u/${user.id}`} className="font-medium wrap-break-word hover:underline">
           {user.displayName}

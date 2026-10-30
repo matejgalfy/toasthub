@@ -19,7 +19,7 @@ export type UserStatus = z.infer<typeof userStatusSchema>;
 
 export const DISPLAY_NAME_MIN = 2;
 export const DISPLAY_NAME_MAX = 30;
-export const AVATAR_COUNT = 6;
+export const AVATAR_COUNT = 8;
 
 // Leading and trailing spaces are trimmed, as the magic-link form does before sending.
 export const emailSchema = z.string().trim().pipe(z.email());

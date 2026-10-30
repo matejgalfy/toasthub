@@ -21,7 +21,7 @@ describe('updateMeSchema', () => {
     expect(updateMeSchema.safeParse({ displayName: 'x'.repeat(length) }).success).toBe(valid);
   });
 
-  it.each([0, 7, 2.5])('rejects avatarId %s', (avatarId) => {
+  it.each([0, 9, 2.5])('rejects avatarId %s', (avatarId) => {
     expect(updateMeSchema.safeParse({ avatarId }).success).toBe(false);
   });
 
