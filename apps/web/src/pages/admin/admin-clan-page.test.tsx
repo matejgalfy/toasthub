@@ -76,13 +76,13 @@ describe('AdminClanPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText('Current owner:')).toHaveTextContent('Ann Able');
-    await user.selectOptions(screen.getByLabelText('New owner'), 'Cyril (Toastie)');
-    await user.click(screen.getByRole('button', { name: 'Make owner' }));
+    expect(await screen.findByText('Current Toastmeister:')).toHaveTextContent('Ann Able');
+    await user.selectOptions(screen.getByLabelText('New Toastmeister'), 'Cyril (Toastie)');
+    await user.click(screen.getByRole('button', { name: 'Make Toastmeister' }));
     const dialog = screen.getByRole('dialog', {
-      name: 'Make Cyril the owner of Breakfast Club?',
+      name: 'Make Cyril the Toastmeister of Breakfast Club?',
     });
-    await user.click(within(dialog).getByRole('button', { name: 'Make owner' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Make Toastmeister' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

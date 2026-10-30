@@ -182,7 +182,7 @@ describe('ClanPage', () => {
     });
     renderClan();
 
-    expect(await screen.findByText(/waiting for an officer/)).toBeVisible();
+    expect(await screen.findByText(/waiting for the Toastmeister or a Vice-Toast/)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Cancel request' }));
 
     await vi.waitFor(() => {
@@ -324,16 +324,16 @@ describe('ClanPage', () => {
     });
     renderClan();
 
-    expect(await screen.findByText(/You're the owner/)).toBeVisible();
+    expect(await screen.findByText(/You're the Toastmeister/)).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Leave clan' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Members' }));
     await user.click(screen.getByRole('button', { name: 'Actions for Mia Member' }));
     expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
-      'Make officer',
-      'Make owner',
+      'Make Vice-Toast',
+      'Make Toastmeister',
       'Remove from clan',
     ]);
-    await user.click(screen.getByRole('menuitem', { name: 'Make officer' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Make Vice-Toast' }));
     await vi.waitFor(() => {
       expect(sent(requests, 'PATCH')).toEqual([`/api/v1/clans/${CLAN_ID}/members/${MEMBER_ID}`]);
     });
@@ -359,9 +359,9 @@ describe('ClanPage', () => {
 
     await user.click(await screen.findByRole('tab', { name: 'Members' }));
     await user.click(screen.getByRole('button', { name: 'Actions for Otto Officer' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Make owner' }));
-    const dialog = screen.getByRole('dialog', { name: 'Make Otto Officer the owner?' });
-    await user.click(within(dialog).getByRole('button', { name: 'Make owner' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Make Toastmeister' }));
+    const dialog = screen.getByRole('dialog', { name: 'Make Otto Officer the Toastmeister?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Make Toastmeister' }));
 
     await vi.waitFor(() => {
       expect(sent(requests, 'POST')).toEqual([`/api/v1/clans/${CLAN_ID}/transfer`]);

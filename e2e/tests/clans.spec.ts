@@ -40,7 +40,9 @@ test('a clan is founded, joined on approval, and its feed liked', async ({ page,
   await expect(other.getByRole('heading', { name: clanName, level: 1 })).toBeVisible();
   await expect(other.getByRole('tab', { name: 'Feed' })).toHaveCount(0);
   await other.getByRole('button', { name: 'Request to join' }).click();
-  await expect(other.getByText('Your request to join is waiting for an officer.')).toBeVisible();
+  await expect(
+    other.getByText('Your request to join is waiting for the Toastmeister or a Vice-Toast.'),
+  ).toBeVisible();
 
   // A approves.
   await page.reload();

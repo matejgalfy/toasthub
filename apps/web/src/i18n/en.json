@@ -271,7 +271,7 @@
     },
     "join": {
       "request": "Request to join",
-      "pending": "Your request to join is waiting for an officer.",
+      "pending": "Your request to join is waiting for the Toastmeister or a Vice-Toast.",
       "cancel": "Cancel request",
       "inOtherClan": "You're already in a clan. Leave it to join this one.",
       "conflict": "You can't join right now: you're in a clan or waiting on another request, or this clan is full."
@@ -281,7 +281,7 @@
       "title": "Leave {{name}}?",
       "description": "You won't see the clan feed any more. To come back, request to join again.",
       "confirm": "Leave",
-      "ownerHint": "You're the owner. To leave, make another member the owner (Members tab) or delete the clan."
+      "ownerHint": "You're the Toastmeister. To leave, make another member the Toastmeister (Members tab) or delete the clan."
     },
     "tabs": {
       "label": "Clan sections",
@@ -312,16 +312,16 @@
     },
     "members": {
       "actions": "Actions for {{name}}",
-      "promote": "Make officer",
-      "demote": "Make member",
-      "transfer": "Make owner",
+      "promote": "Make Vice-Toast",
+      "demote": "Make Toastie",
+      "transfer": "Make Toastmeister",
       "kick": "Remove from clan",
       "kickTitle": "Remove {{name}}?",
       "kickDescription": "{{name}} leaves the clan and can request to join again.",
       "kickConfirm": "Remove",
-      "transferTitle": "Make {{name}} the owner?",
-      "transferDescription": "You become an officer, and only {{name}} can edit or delete the clan from then on.",
-      "transferConfirm": "Make owner"
+      "transferTitle": "Make {{name}} the Toastmeister?",
+      "transferDescription": "You become a Vice-Toast, and only {{name}} can edit or delete the clan from then on.",
+      "transferConfirm": "Make Toastmeister"
     },
     "requests": {
       "title": "Join requests",
@@ -442,21 +442,21 @@
       "back": "All clans",
       "open": "Open the clan page",
       "edit": "Name and description",
-      "ownerHeading": "Owner",
-      "currentOwner": "Current owner:",
-      "ownerHint": "Hand the clan to another member. The current owner becomes an officer.",
-      "newOwner": "New owner",
+      "ownerHeading": "Toastmeister",
+      "currentOwner": "Current Toastmeister:",
+      "ownerHint": "Hand the clan to another member. The current Toastmeister becomes a Vice-Toast.",
+      "newOwner": "New Toastmeister",
       "noOtherMembers": "No other member to hand the clan to.",
-      "transferTitle": "Make {{name}} the owner of {{clan}}?",
-      "transferDescription": "The current owner becomes an officer. Only the new owner can edit or delete the clan from then on.",
-      "transferred": "{{name}} is now the owner.",
+      "transferTitle": "Make {{name}} the Toastmeister of {{clan}}?",
+      "transferDescription": "The current Toastmeister becomes a Vice-Toast. Only the new Toastmeister can edit or delete the clan from then on.",
+      "transferred": "{{name}} is now the Toastmeister.",
       "deleted": "Clan deleted."
     },
     "settings": {
       "flagDailyThreshold": "Daily flag threshold",
       "flagDailyThresholdHint": "More toasts than this on one day opens a flag. {{min}} to {{max}}.",
       "clanMaxMembers": "Clan size limit",
-      "clanMaxMembersHint": "Members per clan, the owner included. {{min}} to {{max}}.",
+      "clanMaxMembersHint": "Members per clan, the Toastmeister included. {{min}} to {{max}}.",
       "invalid": "Enter a whole number from {{min}} to {{max}}.",
       "save": "Save settings",
       "saved": "Saved."

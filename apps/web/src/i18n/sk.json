@@ -297,7 +297,7 @@
       "title": "Opustiť {{name}}?",
       "description": "Prestaneš vidieť feed klanu. Ak sa chceš vrátiť, znova požiadaj o vstup.",
       "confirm": "Opustiť",
-      "ownerHint": "Si vlastník. Ak chceš odísť, urob vlastníkom iného člena (karta Členovia) alebo klan zmaž."
+      "ownerHint": "Si Toastmeister. Ak chceš odísť, daj rolu Toastmeister inému členovi (karta Členovia) alebo klan zmaž."
     },
     "tabs": {
       "label": "Časti klanu",
@@ -328,16 +328,16 @@
     },
     "members": {
       "actions": "Akcie pre {{name}}",
-      "promote": "Urobiť dôstojníkom",
-      "demote": "Urobiť členom",
-      "transfer": "Urobiť vlastníkom",
+      "promote": "Dať rolu Vice-Toast",
+      "demote": "Dať rolu Toastie",
+      "transfer": "Dať rolu Toastmeister",
       "kick": "Odstrániť z klanu",
       "kickTitle": "Odstrániť {{name}}?",
       "kickDescription": "{{name}} opustí klan a môže znova požiadať o vstup.",
       "kickConfirm": "Odstrániť",
-      "transferTitle": "Urobiť {{name}} vlastníkom?",
-      "transferDescription": "Staneš sa dôstojníkom a odteraz môže klan upraviť alebo zmazať iba {{name}}.",
-      "transferConfirm": "Urobiť vlastníkom"
+      "transferTitle": "Dať {{name}} rolu Toastmeister?",
+      "transferDescription": "Dostaneš rolu Vice-Toast a odteraz môže klan upraviť alebo zmazať iba {{name}}.",
+      "transferConfirm": "Dať rolu Toastmeister"
     },
     "requests": {
       "title": "Žiadosti o vstup",
@@ -458,21 +458,21 @@
       "back": "Všetky klany",
       "open": "Otvoriť stránku klanu",
       "edit": "Názov a popis",
-      "ownerHeading": "Vlastník",
-      "currentOwner": "Súčasný vlastník:",
-      "ownerHint": "Odovzdaj klan inému členovi. Súčasný vlastník sa stane dôstojníkom.",
-      "newOwner": "Nový vlastník",
+      "ownerHeading": "Toastmeister",
+      "currentOwner": "Súčasný Toastmeister:",
+      "ownerHint": "Odovzdaj klan inému členovi. Súčasný Toastmeister dostane rolu Vice-Toast.",
+      "newOwner": "Nový Toastmeister",
       "noOtherMembers": "Klan nemá iného člena, ktorému by sa dal odovzdať.",
-      "transferTitle": "Urobiť {{name}} vlastníkom klanu {{clan}}?",
-      "transferDescription": "Súčasný vlastník sa stane dôstojníkom. Upravovať alebo zmazať klan bude potom môcť len nový vlastník.",
-      "transferred": "{{name}} je teraz vlastník.",
+      "transferTitle": "Dať {{name}} rolu Toastmeister v klane {{clan}}?",
+      "transferDescription": "Súčasný Toastmeister dostane rolu Vice-Toast. Upravovať alebo zmazať klan bude potom môcť len nový Toastmeister.",
+      "transferred": "{{name}} je teraz Toastmeister.",
       "deleted": "Klan zmazaný."
     },
     "settings": {
       "flagDailyThreshold": "Denný limit pre hlásenie",
       "flagDailyThresholdHint": "Viac toastov za jeden deň otvorí hlásenie. {{min}} až {{max}}.",
       "clanMaxMembers": "Maximálna veľkosť klanu",
-      "clanMaxMembersHint": "Počet členov klanu vrátane vlastníka. {{min}} až {{max}}.",
+      "clanMaxMembersHint": "Počet členov klanu, Toastmeister sa ráta tiež. {{min}} až {{max}}.",
       "invalid": "Zadaj celé číslo od {{min}} do {{max}}.",
       "save": "Uložiť nastavenia",
       "saved": "Uložené."
