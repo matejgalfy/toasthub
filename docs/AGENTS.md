@@ -20,6 +20,12 @@ Any change, not just a milestone, updates the docs it makes wrong, in the same c
 - `docs/PLAN.md` when a milestone's scope, order or status changes, or the next agent needs a handoff note.
 - `docs/AGENTS.md` when a command, convention, helper, path or workflow described here changes.
 
+## Owner's deployment notes
+
+`DEPLOY-NOTES.md` in the repo root is the owner's personal notebook for learning deployment. It is gitignored. When the owner asks a question about deployment (infra, Docker, k8s, CI/CD,
+hosting, env/secrets, backups, domains), add it under **Questions**: `### <date> — <question, as asked>`,
+then a short answer (a few lines, with file links). Don't put anything else in it, and never commit it.
+
 ## Toolchain
 
 - **Node 24 LTS** is the runtime (version in `.node-version`). **Bun** is only the package manager and script
