@@ -141,7 +141,7 @@ describe('ClanPage', () => {
       'href',
       `/u/${OWNER_ID}`,
     );
-    expect(screen.getByText('Officer')).toBeVisible();
+    expect(screen.getByText('Vice-Toast')).toBeVisible();
     // A visitor can't act on anyone.
     expect(screen.queryByRole('button', { name: /^Actions for/ })).not.toBeInTheDocument();
   });

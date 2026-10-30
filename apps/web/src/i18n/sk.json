@@ -322,9 +322,9 @@
       "gone": "Túto fotku už nie je možné nahlásiť."
     },
     "roles": {
-      "owner": "Vlastník",
-      "officer": "Dôstojník",
-      "member": "Člen"
+      "owner": "Toastmeister",
+      "officer": "Vice-Toast",
+      "member": "Toastie"
     },
     "members": {
       "actions": "Akcie pre {{name}}",

@@ -306,9 +306,9 @@
       "gone": "This photo can't be reported any more."
     },
     "roles": {
-      "owner": "Owner",
-      "officer": "Officer",
-      "member": "Member"
+      "owner": "Toastmeister",
+      "officer": "Vice-Toast",
+      "member": "Toastie"
     },
     "members": {
       "actions": "Actions for {{name}}",

@@ -77,7 +77,7 @@ describe('AdminClanPage', () => {
     renderPage();
 
     expect(await screen.findByText('Current owner:')).toHaveTextContent('Ann Able');
-    await user.selectOptions(screen.getByLabelText('New owner'), 'Cyril (Member)');
+    await user.selectOptions(screen.getByLabelText('New owner'), 'Cyril (Toastie)');
     await user.click(screen.getByRole('button', { name: 'Make owner' }));
     const dialog = screen.getByRole('dialog', {
       name: 'Make Cyril the owner of Breakfast Club?',
