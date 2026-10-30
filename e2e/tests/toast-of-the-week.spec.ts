@@ -10,7 +10,7 @@ const PHOTO = fileURLToPath(new URL('../fixtures/toast.jpg', import.meta.url));
 // Last week's Monday in Europe/Bratislava, the week the home card shows.
 const LAST_WEEK = `date_trunc('week', now() AT TIME ZONE 'Europe/Bratislava')::date - 7`;
 
-test("last week's winner shows on home and in the history", async ({ page }) => {
+test("last week's winner shows on home", async ({ page }) => {
   const name = `Winner ${String(Date.now())}`;
   const email = await signUp(page, name);
 
@@ -40,9 +40,4 @@ test("last week's winner shows on home and in the history", async ({ page }) => 
   await page.reload();
   await expect(page.getByRole('img', { name: `Toast of the week by ${name}` })).toBeVisible();
   await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
-
-  await page.getByRole('link', { name: 'All winners' }).click();
-  await expect(page.getByRole('heading', { name: 'Toast of the week', level: 1 })).toBeVisible();
-  const newest = page.getByRole('listitem').first();
-  await expect(newest.getByRole('img', { name: `Toast of the week by ${name}` })).toBeVisible();
 });

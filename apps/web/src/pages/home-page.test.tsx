@@ -92,13 +92,12 @@ async function openLogDialog(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('HomePage', () => {
-  it('shows the counters, the fact and an empty Toast of the week', async () => {
+  it('shows the streaks, the fact and an empty Toast of the week', async () => {
     mockApi(() => jsonResponse(200, { ...home, clanStreak: { current: 4, longest: 4 } }));
     renderHome();
 
-    const today = await screen.findByRole('group', { name: 'Today' });
-    expect(today).toHaveTextContent('0toasts');
-    expect(screen.getByRole('group', { name: 'Streak 🔥' })).toHaveTextContent('2daysLongest: 5');
+    const streak = await screen.findByRole('group', { name: 'Streak 🔥' });
+    expect(streak).toHaveTextContent('2daysLongest: 5');
     expect(screen.getByRole('group', { name: 'Clan streak 🔥' })).toHaveTextContent('4days');
     expect(screen.getByText(home.fact?.text ?? '')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Toast of the week' })).toBeInTheDocument();
@@ -107,10 +106,9 @@ describe('HomePage', () => {
         'No winner yet. Every Monday one photo toast from the week before is drawn.',
       ),
     ).toBeVisible();
-    expect(screen.getByRole('link', { name: 'All winners' })).toHaveAttribute(
-      'href',
-      '/toast-of-the-week',
-    );
+    expect(screen.queryByRole('group', { name: 'Today' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'My toasts' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'All winners' })).not.toBeInTheDocument();
   });
 
   it("shows last week's Toast of the week", async () => {
@@ -142,22 +140,15 @@ describe('HomePage', () => {
     );
   });
 
-  it('links to My toasts', () => {
-    mockApi(() => jsonResponse(200, home));
-    renderHome();
-
-    expect(screen.getByRole('link', { name: 'My toasts' })).toHaveAttribute('href', '/toasts');
-  });
-
   it('hides the clan streak outside a clan', async () => {
     mockApi(() => jsonResponse(200, home));
     renderHome();
 
-    await screen.findByRole('group', { name: 'Today' });
+    await screen.findByRole('group', { name: 'Streak 🔥' });
     expect(screen.queryByRole('group', { name: 'Clan streak 🔥' })).not.toBeInTheDocument();
   });
 
-  it('counts the toast before the server answers, then announces new achievements', async () => {
+  it('extends the streak before the server answers, then announces new achievements', async () => {
     const user = userEvent.setup();
     const pending = deferred();
     let saved = false;
@@ -169,13 +160,12 @@ describe('HomePage', () => {
       );
     });
     renderHome();
-    await screen.findByRole('group', { name: 'Today' });
+    await screen.findByRole('group', { name: 'Streak 🔥' });
 
     const dialog = await openLogDialog(user);
     await user.click(within(dialog).getByRole('button', { name: 'Log 1 toast' }));
 
-    // The open dialog hides the page from the accessibility tree, so the cards are found by their text.
-    expect(screen.getByText('Today').closest('[role="group"]')).toHaveTextContent('1toast');
+    // The open dialog hides the page from the accessibility tree, so the card is found by its text.
     expect(screen.getByText('Streak 🔥').closest('[role="group"]')).toHaveTextContent('3days');
     expect(within(dialog).getByRole('button', { name: 'Saving…' })).toBeDisabled();
 
@@ -198,7 +188,7 @@ describe('HomePage', () => {
       isPost(request) ? jsonResponse(201, created) : jsonResponse(200, home),
     );
     renderHome();
-    await screen.findByRole('group', { name: 'Today' });
+    await screen.findByRole('group', { name: 'Streak 🔥' });
 
     const dialog = await openLogDialog(user);
     const fewer = within(dialog).getByRole('button', { name: 'One toast fewer' });
@@ -233,11 +223,11 @@ describe('HomePage', () => {
     expect(more).toBeDisabled();
   });
 
-  it('takes the count back and says why when logging fails', async () => {
+  it('takes the streak back and says why when logging fails', async () => {
     const user = userEvent.setup();
     mockApi((request) => (isPost(request) ? rateLimited() : jsonResponse(200, home)));
     renderHome();
-    await screen.findByRole('group', { name: 'Today' });
+    await screen.findByRole('group', { name: 'Streak 🔥' });
 
     const dialog = await openLogDialog(user);
     await user.click(within(dialog).getByRole('button', { name: 'One toast more' }));
@@ -246,7 +236,7 @@ describe('HomePage', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(
       'Too many attempts. Wait a while and try again.',
     );
-    expect(screen.getByText('Today').closest('[role="group"]')).toHaveTextContent('0toasts');
+    expect(screen.getByText('Streak 🔥').closest('[role="group"]')).toHaveTextContent('2days');
   });
 
   it('uploads the photo with the session', async () => {

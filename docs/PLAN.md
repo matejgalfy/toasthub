@@ -699,3 +699,7 @@ milestones._
 - Avatars (after M17): 8 preset pictures replace the initials colours (SPEC §12 D55). `InitialsAvatar` is now
   `UserAvatar` (`components/user-avatar.tsx`), migration `0006_avatar_range` widens the check to 1–8, and the
   picker labels are the pictures' names (`profile.avatar.names.*`), so tests pick e.g. "Pixel knight".
+- Home trimmed (after M17, SPEC §12 D57): no "My toasts" button, no "Today" card and no "All winners" link; the
+  `/toast-of-the-week` page and its route are gone (`totwHistoryQueryOptions` and the `totw.*` keys stay for the
+  admin TOTW page). The streak card is now the `live` one. E2E reaches My toasts through Profile and checks the
+  streak on home instead of today's count.

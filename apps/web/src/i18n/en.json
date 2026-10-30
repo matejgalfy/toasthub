@@ -63,9 +63,6 @@
     "profile": {
       "title": "Profile"
     },
-    "toastOfTheWeek": {
-      "title": "Toast of the week"
-    },
     "settings": {
       "title": "Settings",
       "profile": "Profile",
@@ -85,10 +82,8 @@
   },
   "home": {
     "logToast": "Toast",
-    "myToasts": "My toasts",
     "achievementUnlocked": "Achievement unlocked: {{name}}",
     "today": {
-      "label": "Today",
       "unit_one": "toast",
       "unit_other": "toasts"
     },
@@ -106,8 +101,7 @@
     },
     "toastOfTheWeek": {
       "title": "Toast of the week",
-      "empty": "No winner yet. Every Monday one photo toast from the week before is drawn.",
-      "history": "All winners"
+      "empty": "No winner yet. Every Monday one photo toast from the week before is drawn."
     },
     "log": {
       "title": "Log toasts",

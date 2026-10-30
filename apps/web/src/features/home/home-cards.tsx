@@ -11,37 +11,26 @@ import { useUser } from '@/features/auth/session';
 import { TotwEntry } from '@/features/toast-of-the-week/totw-entry';
 import { useFormat } from '@/i18n/format';
 
-/** Today's count, the streaks, the fact of the day and the Toast of the week (SPEC §9 `/home`). */
+/** The streaks, the fact of the day and the Toast of the week (SPEC §9 `/home`). */
 export function HomeCards({ home }: { home: HomeResponse }) {
   const { t } = useTranslation();
   const me = useUser();
-  const format = useFormat();
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          label={t('home.today.label')}
-          value={format.number(home.todayCount)}
-          unit={t('home.today.unit', { count: home.todayCount })}
-          // Announces the new count after "+ Toast".
-          live
-        />
-        <StreakCard label={t('home.streak.label')} streak={home.streak} />
+        {/* Announces the new streak after "+ Toast". */}
+        <StreakCard label={t('home.streak.label')} streak={home.streak} live />
         {home.clanStreak &&
           (me.clanId ? (
             <Link
               to={`/clans/${me.clanId}`}
-              className="col-span-2 rounded-xl transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&>*]:hover:bg-accent"
+              className="rounded-xl transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&>*]:hover:bg-accent"
             >
               <StreakCard label={t('home.clanStreak.label')} streak={home.clanStreak} />
             </Link>
           ) : (
             // `/me` hasn't caught up with a clan joined meanwhile; the link follows on its refetch.
-            <StreakCard
-              label={t('home.clanStreak.label')}
-              streak={home.clanStreak}
-              className="col-span-2"
-            />
+            <StreakCard label={t('home.clanStreak.label')} streak={home.clanStreak} />
           ))}
       </div>
       {home.fact && (
@@ -50,30 +39,17 @@ export function HomeCards({ home }: { home: HomeResponse }) {
         </InfoCard>
       )}
       <InfoCard icon={<Trophy aria-hidden="true" />} title={t('home.toastOfTheWeek.title')}>
-        <div className="flex flex-col gap-3">
-          {home.toastOfTheWeek ? (
-            <TotwEntry entry={home.toastOfTheWeek} />
-          ) : (
-            <p className="text-muted-foreground">{t('home.toastOfTheWeek.empty')}</p>
-          )}
-          <Link to="/toast-of-the-week" className="self-start text-sm font-medium hover:underline">
-            {t('home.toastOfTheWeek.history')}
-          </Link>
-        </div>
+        {home.toastOfTheWeek ? (
+          <TotwEntry entry={home.toastOfTheWeek} />
+        ) : (
+          <p className="text-muted-foreground">{t('home.toastOfTheWeek.empty')}</p>
+        )}
       </InfoCard>
     </>
   );
 }
 
-function StreakCard({
-  label,
-  streak,
-  className,
-}: {
-  label: string;
-  streak: Streak;
-  className?: string;
-}) {
+function StreakCard({ label, streak, live }: { label: string; streak: Streak; live?: boolean }) {
   const { t } = useTranslation();
   const format = useFormat();
   return (
@@ -82,7 +58,7 @@ function StreakCard({
       value={format.number(streak.current)}
       unit={t('home.streak.unit', { count: streak.current })}
       hint={t('home.streak.longest', { value: format.number(streak.longest) })}
-      className={className}
+      live={live}
     />
   );
 }

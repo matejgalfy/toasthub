@@ -426,14 +426,13 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 | `/login` | Login | Public | Email field, "check your inbox" state |
 | `/auth/callback` | Verify link | Public | Consumes token, redirects to `/onboarding` or `/home`, error + resend on failure |
 | `/onboarding` | Onboarding | User (new) | Display name, avatar picker (8), visibility |
-| `/home` | Home | User | Big "+ Toast" button (opens the log dialog: number of toasts, optional photo), "My toasts" link, today's count, current streak, clan streak, fact of the day, Toast of the week card, new-achievement toast |
+| `/home` | Home | User | Big "+ Toast" button (opens the log dialog: number of toasts, optional photo), current streak, clan streak, fact of the day, Toast of the week card (last week only), new-achievement toast (D57) |
 | `/leaderboards` | Leaderboards | User | Tabs Users / Clans, period switch week / month / year (clans default to month), clan rows show 🔥 streak, "me" row pinned |
 | `/clans` | Clan browser | User | Search, list with member count, "Create clan" |
 | `/clans/new` | Create clan | User (no clan) | Name, description |
 | `/clans/:id` | Clan | User | Header with current / longest clan streak + request to join / cancel request / leave, tabs: Feed (members), Leaderboard, Members; requests panel for Officers+; settings for Owner |
-| `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, add / replace / remove photo, delete with a confirmation), older ones are read-only. Linked from home and the own profile |
+| `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, add / replace / remove photo, delete with a confirmation), older ones are read-only. Linked from the own profile |
 | `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (subject to visibility); own profile links to My toasts |
-| `/toast-of-the-week` | TOTW history | User | Past winners by week |
 | `/settings` | Settings | User | Display name, avatar, visibility, logout |
 | `/admin` | Admin | Admin | Sub-pages: Flags, Users, Clans, Settings, Metrics, TOTW |
 
@@ -522,6 +521,7 @@ A feature is done when:
 | D54 | The UI language is changed only with the header's language switch (on every page, also signed out); `/settings` has no language section. The choice still goes to `/me` through `useChangeLocale()` (D36) | One control in a fixed place is enough for two languages, and a second one in Settings only repeated it |
 | D55 | Avatars are 8 preset pictures (`avatar_id` 1–8, `AVATAR_COUNT` in `shared`, DB check `user_avatar_id_range`), replacing the 6 initials colours of D34. They are 256 px WebP files in `apps/web/src/assets/avatars/` (~8 KB each), bundled by Vite with hashed names and precached by the service worker; `AVATARS` in `components/user-avatar.tsx` maps id → picture and an i18n name used as the picker's label. `null` still shows the initials. Ids are stable: a new picture is appended and raises the count and the check | Shipped with the app, the pictures need no storage, signing or upload moderation, and load offline. Ids are stored, so reordering would change everyone's avatar |
 | D56 | The UI shows the clan roles as **Toastmeister** (Owner), **Vice-Toast** (Officer) and **Toastie** (Member), the same words in `sk` and `en`; every string about a clan role uses them (member menu, transfer dialogs, owner hint, admin clan page). Slovak copy says "dať rolu …" / "dostaneš rolu …" so the names never need declension. Code, API, DB and this SPEC keep `owner` / `officer` / `member`. Plain "member" for anyone in the clan (member count, Members tab) stays | Themed names fit the app; keeping them in i18n only means no migration or API change, and renaming again is a copy edit |
+| D57 | Home shows no "My toasts" link and no today's count, and there is no `/toast-of-the-week` page: the Toast of the week card shows only last week's item. My toasts is reached from the own profile. `GET /home` keeps `todayCount` (the optimistic "+ Toast" update still uses it to tell whether the streak grows, D41) and `GET /toast-of-the-week` stays for the admin TOTW page | Product decision after M17: a leaner home screen. Keeping the API fields means no API or client change |
 
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)

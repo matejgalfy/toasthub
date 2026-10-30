@@ -6,9 +6,9 @@ import { signUp } from '../support/auth.js';
 
 const PHOTO = fileURLToPath(new URL('../fixtures/toast.jpg', import.meta.url));
 
-/** The big number on the home "Today" card. */
-function todayCount(page: Page, value: string) {
-  return page.getByRole('group', { name: 'Today' }).getByText(value, { exact: true });
+/** The big number on the home "Streak 🔥" card. */
+function streak(page: Page, value: string) {
+  return page.getByRole('group', { name: 'Streak 🔥' }).getByText(value, { exact: true });
 }
 
 async function goHome(page: Page) {
@@ -16,7 +16,9 @@ async function goHome(page: Page) {
   await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
 }
 
+/** My toasts is linked from the own profile. */
 async function goToMyToasts(page: Page) {
+  await page.getByRole('link', { name: 'Profile', exact: true }).click();
   await page.getByRole('link', { name: 'My toasts' }).click();
   await expect(page.getByRole('heading', { name: 'My toasts', level: 1 })).toBeVisible();
 }
@@ -29,7 +31,7 @@ test('a session is edited on My toasts and home follows', async ({ page }) => {
   await log.getByRole('button', { name: 'One toast more' }).click();
   await log.getByRole('button', { name: 'Log 2 toasts' }).click();
   await expect(log).toBeHidden();
-  await expect(todayCount(page, '2')).toBeVisible();
+  await expect(streak(page, '1')).toBeVisible();
 
   // One log is one session of two toasts.
   await goToMyToasts(page);
@@ -52,7 +54,7 @@ test('a session is edited on My toasts and home follows', async ({ page }) => {
   await expect(row.getByRole('img')).toBeVisible();
 
   await goHome(page);
-  await expect(todayCount(page, '3')).toBeVisible();
+  await expect(streak(page, '1')).toBeVisible();
 
   await goToMyToasts(page);
   await today.getByRole('button', { name: /3 toasts/ }).click();
@@ -63,5 +65,5 @@ test('a session is edited on My toasts and home follows', async ({ page }) => {
   await expect(page.getByText(/No toasts yet/)).toBeVisible();
 
   await goHome(page);
-  await expect(todayCount(page, '0')).toBeVisible();
+  await expect(streak(page, '0')).toBeVisible();
 });

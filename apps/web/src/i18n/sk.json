@@ -63,9 +63,6 @@
     "profile": {
       "title": "Profil"
     },
-    "toastOfTheWeek": {
-      "title": "Toast týždňa"
-    },
     "settings": {
       "title": "Nastavenia",
       "profile": "Profil",
@@ -85,10 +82,8 @@
   },
   "home": {
     "logToast": "Toast",
-    "myToasts": "Moje toasty",
     "achievementUnlocked": "Nový úspech: {{name}}",
     "today": {
-      "label": "Dnes",
       "unit_one": "toast",
       "unit_few": "toasty",
       "unit_many": "toastu",
@@ -110,8 +105,7 @@
     },
     "toastOfTheWeek": {
       "title": "Toast týždňa",
-      "empty": "Zatiaľ bez víťaza. Každý pondelok vyžrebujeme jeden toast s fotkou z minulého týždňa.",
-      "history": "Všetci víťazi"
+      "empty": "Zatiaľ bez víťaza. Každý pondelok vyžrebujeme jeden toast s fotkou z minulého týždňa."
     },
     "log": {
       "title": "Zapísať toasty",
