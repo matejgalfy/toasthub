@@ -1,0 +1,75 @@
+# nginx for the web image. ${API_UPSTREAM} and ${PHOTO_ORIGIN} are filled from the env at start; nginx's own
+# variables ($uri, …) are left alone because no env var has their names.
+
+# Reuse the request ID from an ingress in front of us, otherwise make one. The api logs it (x-request-id).
+map $http_x_request_id $toasthub_request_id {
+    default $http_x_request_id;
+    ''      $request_id;
+}
+
+server {
+    listen 8080;
+    listen [::]:8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+
+    gzip on;
+    gzip_vary on;
+    gzip_types text/css application/javascript application/json application/manifest+json image/svg+xml;
+
+    # Same origin as the SPA, so no CORS and first-party auth cookies (SPEC §6). In Kubernetes the ingress
+    # sends /api straight to the api; this is for a plain Docker setup.
+    # ^~ keeps the regex locations below from catching these paths.
+    location ^~ /api/ {
+        proxy_pass ${API_UPSTREAM};
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Request-Id $toasthub_request_id;
+        # Photos are up to 10 MB (PHOTO_MAX_BYTES) plus the multipart framing; the api answers 413 itself.
+        # Anything bigger stops here, with the same error shape as the api (SPEC §8).
+        client_max_body_size 11m;
+        error_page 413 = @payload_too_large;
+    }
+
+    location @payload_too_large {
+        default_type application/json;
+        return 413 '{"error":{"code":"PAYLOAD_TOO_LARGE","message":"Payload too large"}}';
+    }
+
+    # Vite's hashed bundles never change under the same name.
+    location ^~ /assets/ {
+        include /etc/nginx/conf.d/snippets/security-headers.conf;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    # The service worker and its manifest decide when a new deploy takes over (SPEC §12 D42): always revalidate.
+    location ~ ^/(sw\.js|registerSW\.js|workbox-[^/]+\.js|manifest\.webmanifest)$ {
+        # nginx's mime.types has no .webmanifest; `types` here replaces the whole map, so js is listed too.
+        types {
+            application/javascript js;
+            application/manifest+json webmanifest;
+        }
+        include /etc/nginx/conf.d/snippets/security-headers.conf;
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
+    # Unhashed files from public/ (icons).
+    location ~ \.(png|svg|ico|webp)$ {
+        include /etc/nginx/conf.d/snippets/security-headers.conf;
+        add_header Cache-Control "public, max-age=86400";
+        try_files $uri =404;
+    }
+
+    # Every other path is a client route: serve the app shell, revalidated on each load.
+    location / {
+        include /etc/nginx/conf.d/snippets/security-headers.conf;
+        add_header Cache-Control "no-cache";
+        try_files $uri /index.html;
+    }
+}

@@ -56,7 +56,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M15 | Worker mode, jobs, Toast of the week (API + UI) | `m15-totw` | M12, M8 | ☑ |
 | M16 | Admin backend | `m16-admin-api` | M15 | ☑ |
 | M17 | Admin UI | `m17-admin-ui` | M16, M13 | ☑ |
-| M18 | Production images, Sentry, CI image build | `m18-containers` | M15 | ☐ |
+| M18 | Production images, Sentry, CI image build | `m18-containers` | M15 | ☑ (no Sentry) |
 | M19 | Kubernetes (Kustomize, CNPG, Sealed Secrets) | `m19-k8s` | M18 | ☐ |
 | M20 | Launch hardening | `m20-hardening` | all | ☐ |
 
@@ -397,7 +397,7 @@ job fills the home card.
 **Scope**
 - Multi-stage Dockerfiles: `api` (Node 24 slim, non-root, one image for both roles) and `web` (Vite build → nginx,
   SPA fallback, `/api` proxy config, cache headers, CSP).
-- Sentry SDK in api and web (DSN from env, disabled when not set, no PII).
+- Sentry SDK in api and web (DSN from env, disabled when not set, no PII). **Deferred** by the owner (SPEC §12 D59).
 - Compose profile that runs the production images locally end to end.
 - CI: build and push to GHCR on `main` (tags `sha` + `latest`); OpenAPI artifact.
 
@@ -707,3 +707,14 @@ milestones._
   migration `0007_clan_avatar`. `ClanForm` shows the picker only with `withAvatar` (create + Owner settings, not the
   admin clan page, whose PATCH rejects `avatarId`). `GET /home` now returns `clan`. Home's title is `sr-only`, so
   E2E checks the streak card instead of a visible "Home" heading.
+- **M18** — Images in `infra/docker/` (`api.Dockerfile`, `web.Dockerfile`, `nginx/`), context = repo root
+  (`.dockerignore` keeps `.env` files and notes out). One api image: default `CMD` = api, `APP_ROLE=worker` = worker,
+  `node dist/db/migrate.js` = migrations, `node dist/modules/admin/promote-admin.js <email>`. Details: SPEC §12 D59.
+  **Deviation:** no Sentry (owner's decision); PLAN scope line marked deferred.
+- `docker compose -f infra/docker/docker-compose.yml --profile prod up --build` = the full app at
+  http://localhost:8080 on the dev database. The E2E suite passes against it (`E2E_WEB_URL` / `E2E_API_URL` =
+  http://localhost:8080). The prod-only `--omit peer` install needs required peers as direct api dependencies.
+- For M19: nginx proxies `/api` only for plain Docker; let the ingress route `/api` to the api Service, set the web
+  container's `PHOTO_ORIGIN` to the bucket's public origin (CSP `img-src`), and set HSTS at the ingress. The worker
+  has no HTTP probes (use none, or an exec probe). Images are `ghcr.io/<owner>/toasthub-api|web:<sha>`; check the GHCR
+  packages' visibility after the first push (new ones are usually private): make them public or add a pull secret. Fastify `trustProxy` is still off (see M2 notes).

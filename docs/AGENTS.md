@@ -63,9 +63,19 @@ then `cp apps/api/.env.example apps/api/.env` once and `bun run db:migrate`.
 Dev URLs: web http://localhost:5173, api http://localhost:3000 (`/healthz`, `/readyz`, docs at `/api/v1/docs`),
 Mailpit http://localhost:8025, MinIO console http://localhost:9001.
 
-CI (`.github/workflows/ci.yml`) has two jobs: `check` (format → lint → typecheck → build → `openapi.json` is up to
-date, uploaded as an artifact) and `test` (all tests, Testcontainers on the runner's Docker). The pre-commit hook
-runs Prettier (auto-fix + re-stage) and ESLint on staged files. Don't bypass it with `--no-verify`.
+Production images (SPEC §12 D59): `infra/docker/api.Dockerfile` (api, worker and one-off commands) and
+`web.Dockerfile` (nginx; config in `infra/docker/nginx/`), both built from the repo root.
+`docker compose -f infra/docker/docker-compose.yml --profile prod up --build` runs them on top of the local
+services: migrations, then api + worker, and the app at http://localhost:8080 (dev database and credentials,
+`NODE_ENV=production`). The E2E suite runs against it with `E2E_WEB_URL=http://localhost:8080
+E2E_API_URL=http://localhost:8080`. The api image installs with `--omit peer`, so a **required** peer dependency
+must be listed in `apps/api/package.json` (like `@opentelemetry/api` for pg-boss), or the image fails at runtime.
+
+CI (`.github/workflows/ci.yml`) has four jobs: `check` (format → lint → typecheck → build → `openapi.json` is up
+to date, uploaded as an artifact), `test` (all tests, Testcontainers on the runner's Docker), `e2e`, and `images`
+(after the other three: builds both images, and on `main` pushes them to GHCR as `:<commit sha>` and `:latest`).
+The pre-commit hook runs Prettier (auto-fix + re-stage) and ESLint on staged files. Don't bypass it with
+`--no-verify`.
 
 ## Repo layout
 

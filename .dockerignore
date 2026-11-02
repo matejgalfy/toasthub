@@ -1,0 +1,18 @@
+# Build context for infra/docker/*.Dockerfile (the repo root). Installs and builds happen inside the image.
+.git
+**/node_modules
+**/dist
+**/.generated
+**/*.tsbuildinfo
+**/coverage
+**/playwright-report
+**/test-results
+**/.vite
+**/.vite-temp
+
+# Never bake secrets or personal notes into an image.
+**/.env
+**/.env.*
+!**/.env.example
+SELFNOTES.md
+DEPLOY-NOTES.md

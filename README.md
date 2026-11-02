@@ -43,6 +43,12 @@ cd e2e && bunx playwright install chromium && cd ..
 bun run e2e       # builds the api, starts api + web unless already running
 ```
 
+The production images, run locally (app at http://localhost:8080):
+
+```sh
+docker compose -f infra/docker/docker-compose.yml --profile prod up --build
+```
+
 ## Layout
 
 | Path              | What                                        |
@@ -51,7 +57,7 @@ bun run e2e       # builds the api, starts api + web unless already running
 | `apps/api`        | NestJS 11 on Fastify                        |
 | `packages/shared` | Zod schemas and types shared by web and api |
 | `e2e`             | Playwright end-to-end tests                 |
-| `infra/docker`    | Docker Compose for local services           |
+| `infra/docker`    | Compose for local services, prod images     |
 | `docs`            | Spec, plan, contributor guide               |
 
 ## License

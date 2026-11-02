@@ -1,6 +1,32 @@
 # Local dev services. Start with `docker compose -f infra/docker/docker-compose.yml up -d`.
 # Credentials here are for local use only and match apps/api/.env.example.
+#
+# The `prod` profile adds the production images on top (migrations, api, worker, web) and serves the whole app
+# at http://localhost:8080: `docker compose -f infra/docker/docker-compose.yml --profile prod up --build`.
 name: toasthub
+
+x-api-image: &api-image
+  image: toasthub-api:local
+  build:
+    context: ../..
+    dockerfile: infra/docker/api.Dockerfile
+  profiles: [prod]
+
+# Production mode, but with the local services and dev credentials.
+x-api-env: &api-env
+  NODE_ENV: production
+  LOG_LEVEL: info
+  DATABASE_URL: postgres://toasthub:toasthub@postgres:5432/toasthub
+  BETTER_AUTH_SECRET: dev-only-secret-change-me-0123456789abcdef
+  BETTER_AUTH_URL: http://localhost:8080
+  WEB_ORIGIN: http://localhost:8080
+  SMTP_URL: smtp://mailpit:1025
+  # One name for the api (a network alias of minio) and the browser (*.localhost is the loopback), because a
+  # presigned URL only works on the host it was signed for.
+  S3_ENDPOINT: http://minio.localhost:9000
+  S3_ACCESS_KEY_ID: toasthub
+  S3_SECRET_ACCESS_KEY: toasthub-secret
+  S3_FORCE_PATH_STYLE: 'true'
 
 services:
   postgres:
@@ -33,6 +59,9 @@ services:
       - '9001:9001' # web console
     volumes:
       - minio-data:/data
+    networks:
+      default:
+        aliases: [minio.localhost]
     healthcheck:
       test: ['CMD', 'mc', 'ready', 'local']
       interval: 2s
@@ -55,6 +84,66 @@ services:
     ports:
       - '1025:1025' # SMTP
       - '8025:8025' # web UI and API
+
+  # --- prod profile ---
+
+  # One-shot, before the api and worker start (in Kubernetes: a Job before the rollout).
+  migrate:
+    <<: *api-image
+    command: ['node', 'dist/db/migrate.js']
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    <<: *api-image
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/readyz').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    <<: *api-image
+    environment:
+      <<: *api-env
+      APP_ROLE: worker
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+
+  web:
+    image: toasthub-web:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+    profiles: [prod]
+    environment:
+      API_UPSTREAM: http://api:3000
+      PHOTO_ORIGIN: http://minio.localhost:9000
+    ports:
+      - '8080:8080'
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   postgres-data:
