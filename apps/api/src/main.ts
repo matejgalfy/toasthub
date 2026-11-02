@@ -12,9 +12,12 @@ import { envSchema } from './config/env';
 import { WorkerModule } from './jobs/worker.module';
 
 async function bootstrapApi(): Promise<void> {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, createFastifyAdapter(), {
-    bufferLogs: true,
-  });
+  const trustProxyHops = envSchema.shape.TRUST_PROXY_HOPS.parse(process.env.TRUST_PROXY_HOPS);
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    createFastifyAdapter(trustProxyHops),
+    { bufferLogs: true },
+  );
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
   await configureApp(app);

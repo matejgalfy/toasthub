@@ -37,6 +37,12 @@ jobs:
       - run: bun run typecheck
       - run: bun run build
 
+      # The runner's kubectl has Kustomize built in; a broken overlay fails here, not at deploy time.
+      - name: Kubernetes overlays build
+        run: |
+          kubectl kustomize infra/k8s/overlays/dev > /dev/null
+          kubectl kustomize infra/k8s/overlays/prod > /dev/null
+
       # `bun run openapi` also regenerates the web client from it.
       - name: OpenAPI and web client are up to date
         run: |

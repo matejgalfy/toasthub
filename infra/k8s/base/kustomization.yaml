@@ -1,0 +1,41 @@
+# The app in one namespace: api, worker, web, the migration Job, the Postgres cluster and its backups.
+# Not deployable on its own: an overlay adds the secrets and the environment's URLs (docs/DEPLOY.md).
+# Deploy with infra/k8s/deploy.sh, which runs the migrations before the rollout (SPEC §12 D60).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: toasthub
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: toasthub
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - migrate-job.yaml
+  - api.yaml
+  - worker.yaml
+  - web.yaml
+  - ingress.yaml
+
+# Read by the api, the worker and the migration Job (apps/api/src/config/env.ts). Secrets come from the
+# `toasthub-app` Secret, DATABASE_URL from the one CloudNativePG makes. The hash suffix rolls the pods when a
+# value changes.
+configMapGenerator:
+  - name: toasthub-config
+    literals:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      # The ingress is the only proxy in front of the api.
+      - TRUST_PROXY_HOPS=1
+      - S3_REGION=us-east-1
+      - S3_BUCKET=toasthub-photos
+      # Path-style URLs keep the presigned photo URLs on S3_ENDPOINT, which is also the web's CSP img-src.
+      - S3_FORCE_PATH_STYLE=true
+
+images:
+  - name: toasthub-api
+    newName: ghcr.io/matejgalfy/toasthub-api
+  - name: toasthub-web
+    newName: ghcr.io/matejgalfy/toasthub-web

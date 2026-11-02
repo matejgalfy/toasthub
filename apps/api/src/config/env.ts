@@ -9,6 +9,9 @@ export const envSchema = z.object({
   HOST: z.string().min(1).default('0.0.0.0'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  // Reverse proxies in front of the api (the ingress = 1). `request.ip`, and with it the per-IP auth limit,
+  // is the address that many hops back in `X-Forwarded-For`. 0 ignores the header: a client could fake it.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   // Signs session cookies and bearer tokens. Rotating it signs everyone out.
   BETTER_AUTH_SECRET: z.string().min(32),

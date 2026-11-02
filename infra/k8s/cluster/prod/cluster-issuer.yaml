@@ -1,0 +1,17 @@
+# Let's Encrypt certificates for the Ingress (annotation cert-manager.io/cluster-issuer: letsencrypt), proved
+# by an HTTP-01 challenge through Traefik, so the domain's DNS only needs an A record to the server.
+# Apply once after install-operators.sh, with your email filled in (expiry warnings go there).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: REPLACE_ME_EMAIL
+    privateKeySecretRef:
+      name: letsencrypt-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik

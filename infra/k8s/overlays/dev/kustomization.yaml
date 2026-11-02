@@ -1,0 +1,80 @@
+# Local cluster (k3d, infra/k8s/cluster/dev) with MinIO and Mailpit inside it. The app is at
+# http://localhost:8080, Mailpit at http://mailpit.localhost:8080. Images are built locally and imported into
+# the cluster (docs/DEPLOY.md). Credentials are the dev ones from infra/docker/docker-compose.yml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: toasthub
+
+resources:
+  - ../../base
+  - minio.yaml
+  - mailpit.yaml
+  - dev-ingress.yaml
+
+images:
+  - name: ghcr.io/matejgalfy/toasthub-api
+    newName: toasthub-api
+    newTag: local
+  - name: ghcr.io/matejgalfy/toasthub-web
+    newName: toasthub-web
+    newTag: local
+
+configMapGenerator:
+  - name: toasthub-config
+    behavior: merge
+    literals:
+      - BETTER_AUTH_URL=http://localhost:8080
+      - WEB_ORIGIN=http://localhost:8080
+      # One name for the api (CoreDNS rewrites it to the minio Service) and the browser (*.localhost is the
+      # loopback, the k3d load balancer listens on 8080), because a presigned URL only works on the host it
+      # was signed for.
+      - S3_ENDPOINT=http://minio.localhost:8080
+
+# Plain Secrets: these are local-only values, already public in docker-compose.yml. Prod seals its own.
+# `toasthub-app` gets a hash suffix, so a change rolls the pods. The others keep their names: Kustomize
+# can't rewrite the ObjectStore's reference, and a new name would change the minio-buckets Job, which is
+# immutable.
+secretGenerator:
+  - name: toasthub-app
+    literals:
+      - BETTER_AUTH_SECRET=dev-only-secret-change-me-0123456789abcdef
+      # The full name: nodemailer also looks up the bare `mailpit.`, which CoreDNS would forward to the
+      # host's DNS (on Docker Desktop that can take a 5 s timeout).
+      - SMTP_URL=smtp://mailpit.toasthub.svc.cluster.local:1025
+      - S3_ACCESS_KEY_ID=toasthub
+      - S3_SECRET_ACCESS_KEY=toasthub-secret
+  - name: toasthub-backup
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - ACCESS_KEY_ID=toasthub
+      - ACCESS_SECRET_KEY=toasthub-secret
+  - name: minio-root
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - MINIO_ROOT_USER=toasthub
+      - MINIO_ROOT_PASSWORD=toasthub-secret
+
+replicas:
+  - name: api
+    count: 1
+  - name: web
+    count: 1
+
+patches:
+  - target:
+      kind: Cluster
+      name: postgres
+    patch: |-
+      - op: replace
+        path: /spec/storage/size
+        value: 2Gi
+  - target:
+      kind: ObjectStore
+      name: backups
+    patch: |-
+      - op: add
+        path: /spec/configuration/endpointURL
+        value: http://minio:9000

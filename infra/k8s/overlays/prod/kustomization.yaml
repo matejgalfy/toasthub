@@ -1,0 +1,50 @@
+# Production: k3s with Traefik, TLS from cert-manager (Let's Encrypt), photos and backups on Cloudflare R2,
+# mail through Resend. Fill in every placeholder first (deploy.sh refuses to run while one is left); the secrets
+# come from infra/k8s/seal-secrets.sh. Images: deploy.sh sets the tag (the commit SHA). docs/DEPLOY.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: toasthub
+
+resources:
+  - ../../base
+  - sealed-secrets.yaml
+  - middlewares.yaml
+
+configMapGenerator:
+  - name: toasthub-config
+    behavior: merge
+    literals:
+      - BETTER_AUTH_URL=https://REPLACE_ME_DOMAIN
+      - WEB_ORIGIN=https://REPLACE_ME_DOMAIN
+      - MAIL_FROM=Toasthub <no-reply@REPLACE_ME_DOMAIN>
+      # R2's S3 API; the bucket's access key is in the `toasthub-app` Secret.
+      - S3_ENDPOINT=https://REPLACE_ME_R2_ACCOUNT_ID.r2.cloudflarestorage.com
+      - S3_REGION=auto
+
+patches:
+  - target:
+      kind: Ingress
+      name: toasthub
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          cert-manager.io/cluster-issuer: letsencrypt
+          # <namespace>-<name>@kubernetescrd, see middlewares.yaml.
+          traefik.ingress.kubernetes.io/router.middlewares: toasthub-https-redirect@kubernetescrd,toasthub-hsts@kubernetescrd
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts: [REPLACE_ME_DOMAIN]
+            secretName: toasthub-tls
+      - op: add
+        path: /spec/rules/0/host
+        value: REPLACE_ME_DOMAIN
+  - target:
+      kind: ObjectStore
+      name: backups
+    patch: |-
+      - op: add
+        path: /spec/configuration/endpointURL
+        value: https://REPLACE_ME_R2_ACCOUNT_ID.r2.cloudflarestorage.com

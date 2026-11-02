@@ -1,0 +1,25 @@
+# One origin for the SPA and the API (SPEC §6): /api goes to the api, everything else to web. The health
+# probes (/healthz, /readyz) stay inside the cluster. The ingress controller is k3s's Traefik (SPEC §12 D60);
+# the prod overlay adds the host, TLS and HSTS.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: toasthub
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http

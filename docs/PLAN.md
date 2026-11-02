@@ -57,7 +57,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M16 | Admin backend | `m16-admin-api` | M15 | ☑ |
 | M17 | Admin UI | `m17-admin-ui` | M16, M13 | ☑ |
 | M18 | Production images, Sentry, CI image build | `m18-containers` | M15 | ☑ (no Sentry) |
-| M19 | Kubernetes (Kustomize, CNPG, Sealed Secrets) | `m19-k8s` | M18 | ☐ |
+| M19 | Kubernetes (Kustomize, CNPG, Sealed Secrets) | `m19-k8s` | M18 | ☑ |
 | M20 | Launch hardening | `m20-hardening` | all | ☐ |
 
 **Parallel tracks (team of 3).** After M3, backend work (M6 → M7 → M9/M11 → M12) and frontend work
@@ -718,3 +718,19 @@ milestones._
   container's `PHOTO_ORIGIN` to the bucket's public origin (CSP `img-src`), and set HSTS at the ingress. The worker
   has no HTTP probes (use none, or an exec probe). Images are `ghcr.io/<owner>/toasthub-api|web:<sha>`; check the GHCR
   packages' visibility after the first push (new ones are usually private): make them public or add a pull secret. Fastify `trustProxy` is still off (see M2 notes).
+- **M19** — `infra/k8s`: Kustomize `base` (namespace `toasthub`: api ×2, worker ×1, web ×2, Ingress `/api` → api,
+  ConfigMap `toasthub-config`, `migrate` Job, CloudNativePG `Cluster` `postgres` + Barman Cloud `ObjectStore` +
+  daily `ScheduledBackup`), overlays `dev` (k3d, in-cluster MinIO + Mailpit, plain Secrets) and `prod` (Traefik
+  TLS/HSTS, R2, `SealedSecret` templates with `REPLACE_ME` placeholders). Cluster-wide pieces in `infra/k8s/cluster/`.
+  Runbook: `docs/DEPLOY.md`; choices, Q5 and Q6: SPEC §12 D60.
+- Deploy only with `infra/k8s/deploy.sh <dev|prod> [sha]` (migrations, then the Deployments; the Job is deleted and
+  recreated each time). New env `TRUST_PROXY_HOPS` (Fastify `trustProxy`, 0 by default, 1 in k8s and compose
+  `prod`); a new prod variable also goes into the k8s ConfigMap or Secret. CI `check` builds both overlays;
+  `deploy.yml` (manual) deploys a SHA through an SSH tunnel and is untested until the prod server exists.
+- Verified on k3d (k3s 1.35): `deploy.sh dev` twice (first run waits for Postgres, second replaces the Job), all 11
+  E2E tests against the ingress (recipe in DEPLOY.md), the first backup completes, a side restore replays the WAL
+  (after `pg_switch_wal()`), and a sealed secret decrypts. Gotcha: give in-cluster SMTP hosts their full
+  `*.svc.cluster.local` name; nodemailer also looks up the bare name, which went to the host DNS and timed out.
+- For M20: the *replace the live database* restore steps are written but not rehearsed (check that the operator
+  accepts `bootstrap` going back to `initdb` afterwards). Rate limits are per api replica (2 in prod)
+  until Q4. The prod overlay's domain, R2 account ID, issuer email and sealed secrets are placeholders (Q2 open).

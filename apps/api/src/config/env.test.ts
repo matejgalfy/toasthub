@@ -16,6 +16,7 @@ describe('parseEnv', () => {
       HOST: '0.0.0.0',
       PORT: 3000,
       LOG_LEVEL: 'info',
+      TRUST_PROXY_HOPS: 0,
       DATABASE_URL,
       BETTER_AUTH_SECRET,
       BETTER_AUTH_URL: 'http://localhost:3000',

@@ -1,0 +1,15 @@
+# Local cluster for the dev overlay: `k3d cluster create --config infra/k8s/cluster/dev/k3d.yaml`.
+# One k3s node with its bundled Traefik; the load balancer publishes Traefik's port 80 on localhost:8080.
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: toasthub
+servers: 1
+agents: 0
+# Otherwise Docker Desktop's kubeconfig points at host.docker.internal, which a VPN can resolve elsewhere.
+kubeAPI:
+  hostIP: 127.0.0.1
+ports:
+  - port: 8080:80
+    nodeFilters:
+      - loadbalancer

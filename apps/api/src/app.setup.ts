@@ -33,9 +33,14 @@ const ValidationPipe = createZodValidationPipe({
 // The class name becomes the OpenAPI schema name, which the generated web client exposes as a type.
 class ErrorResponse extends createZodDto(errorResponseSchema) {}
 
-export function createFastifyAdapter(): FastifyAdapter {
+/** `trustProxyHops` is `TRUST_PROXY_HOPS`; the adapter exists before `ConfigService` does. */
+export function createFastifyAdapter(trustProxyHops = 0): FastifyAdapter {
   // `requestIdHeader: false` so an incoming ID is only reused after `requestId` has checked it.
-  return new FastifyAdapter({ requestIdHeader: false, genReqId: requestId });
+  return new FastifyAdapter({
+    requestIdHeader: false,
+    genReqId: requestId,
+    trustProxy: trustProxyHops > 0 ? trustProxyHops : false,
+  });
 }
 
 /**

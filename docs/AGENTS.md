@@ -71,9 +71,15 @@ services: migrations, then api + worker, and the app at http://localhost:8080 (d
 E2E_API_URL=http://localhost:8080`. The api image installs with `--omit peer`, so a **required** peer dependency
 must be listed in `apps/api/package.json` (like `@opentelemetry/api` for pg-boss), or the image fails at runtime.
 
-CI (`.github/workflows/ci.yml`) has four jobs: `check` (format → lint → typecheck → build → `openapi.json` is up
-to date, uploaded as an artifact), `test` (all tests, Testcontainers on the runner's Docker), `e2e`, and `images`
-(after the other three: builds both images, and on `main` pushes them to GHCR as `:<commit sha>` and `:latest`).
+Kubernetes (SPEC §12 D60, runbook `docs/DEPLOY.md`): Kustomize `infra/k8s/base` + overlays `dev` (local k3d
+cluster, MinIO and Mailpit inside) and `prod` (k3s, Traefik, TLS, Cloudflare R2, Sealed Secrets). Always deploy
+with `infra/k8s/deploy.sh <dev|prod> [image tag]`: it runs the `migrate` Job before the rollout. Cluster-wide
+pieces (operators, issuer, CoreDNS rewrite) live in `infra/k8s/cluster/` and are applied once per cluster.
+
+CI (`.github/workflows/ci.yml`) has four jobs: `check` (format → lint → typecheck → build → both k8s overlays
+build → `openapi.json` is up to date, uploaded as an artifact), `test` (all tests, Testcontainers on the runner's
+Docker), `e2e`, and `images` (after the other three: builds both images, and on `main` pushes them to GHCR as
+`:<commit sha>` and `:latest`). `deploy.yml` deploys a SHA to prod and is only started by hand.
 The pre-commit hook runs Prettier (auto-fix + re-stage) and ESLint on staged files. Don't bypass it with
 `--no-verify`.
 
@@ -124,7 +130,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   filter maps them to the SPEC §8 format (rules in SPEC §12 D24). Never leak internal messages, stack traces or
   emails to clients.
 - Config: read env only through `ConfigService.get('NAME')`. A new variable goes into `src/config/env.ts` (Zod) and
-  `apps/api/.env.example`.
+  `apps/api/.env.example`; one that prod needs also into the k8s `toasthub-config` ConfigMap (`infra/k8s/base`
+  - overlays) or, if secret, into the `toasthub-app` Secret (dev overlay + `seal-secrets.sh`, `docs/DEPLOY.md`).
 - Database: inject with `@Inject(DB) db: Database` (`src/db/db.module.ts`). Tables are exported from
   `src/db/schema/index.ts`; generate migrations with `db:generate`, never edit an applied one.
 - Lists: parse `pageQuerySchema` from `shared`, fetch `limit + 1` rows ordered by a unique keyset, and return

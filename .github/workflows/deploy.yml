@@ -1,0 +1,50 @@
+# Deploys images CI already pushed to GHCR to the prod cluster with infra/k8s/deploy.sh (SPEC §12 D60).
+# Started by hand (Actions → Deploy → Run workflow). The k3s API port stays closed: kubectl goes through an SSH
+# tunnel to the server. Secrets of the `production` environment (setup: docs/DEPLOY.md):
+#   SSH_TARGET       user@host of the server
+#   SSH_PRIVATE_KEY  a deploy key allowed to log in there
+#   SSH_KNOWN_HOSTS  the server's line from `ssh-keyscan <host>`
+#   KUBECONFIG_DATA  the k3s kubeconfig (its server stays https://127.0.0.1:6443)
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Image tag = full commit SHA of a CI run on main (empty = this branch's head)
+        required: false
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Open a tunnel to the k3s API
+        env:
+          SSH_TARGET: ${{ secrets.SSH_TARGET }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG_DATA }}
+        run: |
+          install -m 700 -d ~/.ssh
+          install -m 600 /dev/null ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_deploy -o ExitOnForwardFailure=yes -fN -L 6443:127.0.0.1:6443 "$SSH_TARGET"
+          install -m 600 /dev/null "$RUNNER_TEMP/kubeconfig"
+          printf '%s\n' "$KUBECONFIG_DATA" > "$RUNNER_TEMP/kubeconfig"
+
+      - name: Deploy
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: infra/k8s/deploy.sh prod "${{ inputs.tag || github.sha }}"

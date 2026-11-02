@@ -1,0 +1,13 @@
+# k3s's bundled Traefik: keep the client's address. With the default `Cluster` policy the node rewrites the
+# source address, so X-Forwarded-For (and the api's per-IP auth limit, TRUST_PROXY_HOPS=1) would only see the
+# node. k3s applies this HelmChartConfig to its Traefik chart.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    service:
+      spec:
+        externalTrafficPolicy: Local

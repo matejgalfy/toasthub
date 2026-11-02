@@ -1,0 +1,11 @@
+# Dev only: inside the cluster, minio.localhost is the minio Service, so the api uploads to and signs for the
+# same URL the browser loads photos from (S3_ENDPOINT in overlays/dev). k3s's CoreDNS imports *.override keys
+# of this ConfigMap and reloads them within a minute.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  minio.override: |
+    rewrite name minio.localhost minio.toasthub.svc.cluster.local

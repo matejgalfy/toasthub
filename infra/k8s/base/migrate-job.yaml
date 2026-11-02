@@ -1,0 +1,55 @@
+# Applies the Drizzle migrations once per deploy, before the new api and worker pods start (SPEC §12 D60).
+# A Job's pod template can't change, so deploy.sh deletes the old Job, applies this one, waits for it, and only
+# then applies the Deployments. Until CloudNativePG has made `postgres-app`, the pod waits for the Secret.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  labels:
+    app.kubernetes.io/name: toasthub
+    app.kubernetes.io/component: migrate
+spec:
+  # A first deploy waits here while the database starts; retries back off up to ~6 minutes.
+  backoffLimit: 6
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: toasthub
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # `node` in the image; numeric so the kubelet can check runAsNonRoot
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: toasthub-api
+          command: ['node', 'dist/db/migrate.js']
+          # The migrator validates the whole env like the api does.
+          envFrom:
+            - configMapRef:
+                name: toasthub-config
+            - secretRef:
+                name: toasthub-app
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: uri
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
