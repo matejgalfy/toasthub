@@ -8,7 +8,7 @@ namespace: toasthub
 
 resources:
   - ../../base
-  - minio.yaml
+  - ../../minio
   - mailpit.yaml
   - dev-ingress.yaml
 
@@ -64,6 +64,17 @@ replicas:
     count: 1
 
 patches:
+  # The browser's port (S3_ENDPOINT), so the api reaches MinIO under the same URL.
+  - target:
+      kind: Service
+      name: minio
+    patch: |-
+      - op: add
+        path: /spec/ports/1
+        value:
+          name: s3-public
+          port: 8080
+          targetPort: s3
   - target:
       kind: Cluster
       name: postgres

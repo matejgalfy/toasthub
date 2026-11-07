@@ -73,7 +73,8 @@ E2E_API_URL=http://localhost:8080`. The api image installs with `--omit peer`, s
 must be listed in `apps/api/package.json` (like `@opentelemetry/api` for pg-boss), or the image fails at runtime.
 
 Kubernetes (SPEC §12 D60, runbook `docs/DEPLOY.md`): Kustomize `infra/k8s/base` + overlays `dev` (local k3d
-cluster, MinIO and Mailpit inside) and `prod` (k3s, Traefik, TLS, Cloudflare R2, Sealed Secrets). Always deploy
+cluster, MinIO and Mailpit inside) and `prod` (`toasthub.fitbond.me` on the k3s VM shared with FitBond, Traefik,
+TLS, MinIO at `s3.toasthub.fitbond.me`, Sealed Secrets, D63); MinIO itself is `infra/k8s/minio/`. Always deploy
 with `infra/k8s/deploy.sh <dev|prod> [image tag]`: it runs the `migrate` Job before the rollout. Cluster-wide
 pieces (operators, issuer, CoreDNS rewrite) live in `infra/k8s/cluster/` and are applied once per cluster.
 

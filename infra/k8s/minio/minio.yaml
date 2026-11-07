@@ -1,4 +1,4 @@
-# S3 for photos and database backups in the local cluster (SPEC §12 D23: community MinIO build).
+# S3 for photos and database backups (SPEC §12 D23: community MinIO build; D63: also in prod).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -64,10 +64,6 @@ spec:
   ports:
     - name: s3
       port: 9000
-      targetPort: s3
-    # The browser's port (S3_ENDPOINT), so the api reaches MinIO under the same URL.
-    - name: s3-public
-      port: 8080
       targetPort: s3
     - name: console
       port: 9001

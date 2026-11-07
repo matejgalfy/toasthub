@@ -1,6 +1,7 @@
-# Production: k3s with Traefik, TLS from cert-manager (Let's Encrypt), photos and backups on Cloudflare R2,
-# mail through Resend. Fill in every placeholder first (deploy.sh refuses to run while one is left); the secrets
-# come from infra/k8s/seal-secrets.sh. Images: deploy.sh sets the tag (the commit SHA). docs/DEPLOY.md.
+# Production: k3s with Traefik on the VM it shares with FitBond, TLS from cert-manager (Let's Encrypt), photos
+# and backups in the in-cluster MinIO, mail through Resend (SPEC §12 D63). The secrets come from
+# infra/k8s/seal-secrets.sh; deploy.sh refuses to run while a placeholder is left. Images: deploy.sh sets the
+# tag (the commit SHA). docs/DEPLOY.md.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -8,19 +9,29 @@ namespace: toasthub
 
 resources:
   - ../../base
+  - ../../minio
   - sealed-secrets.yaml
   - middlewares.yaml
+  - s3-ingress.yaml
 
 configMapGenerator:
   - name: toasthub-config
     behavior: merge
     literals:
-      - BETTER_AUTH_URL=https://REPLACE_ME_DOMAIN
-      - WEB_ORIGIN=https://REPLACE_ME_DOMAIN
-      - MAIL_FROM=Toasthub <no-reply@REPLACE_ME_DOMAIN>
-      # R2's S3 API; the bucket's access key is in the `toasthub-app` Secret.
-      - S3_ENDPOINT=https://REPLACE_ME_R2_ACCOUNT_ID.r2.cloudflarestorage.com
-      - S3_REGION=auto
+      - BETTER_AUTH_URL=https://toasthub.fitbond.me
+      - WEB_ORIGIN=https://toasthub.fitbond.me
+      # The domain verified in Resend.
+      - MAIL_FROM=Toasthub <toasthub@fitbond.me>
+      # MinIO through its own Ingress (s3-ingress.yaml): browsers load the presigned photo URLs from it, and the
+      # api uploads to the same host, since a URL only works on the host it was signed for.
+      - S3_ENDPOINT=https://s3.toasthub.fitbond.me
+
+# One pod each: the 4 GB VM also runs FitBond. maxUnavailable 0 still keeps a deploy free of downtime.
+replicas:
+  - name: api
+    count: 1
+  - name: web
+    count: 1
 
 patches:
   - target:
@@ -36,15 +47,23 @@ patches:
       - op: add
         path: /spec/tls
         value:
-          - hosts: [REPLACE_ME_DOMAIN]
+          - hosts: [toasthub.fitbond.me]
             secretName: toasthub-tls
       - op: add
         path: /spec/rules/0/host
-        value: REPLACE_ME_DOMAIN
+        value: toasthub.fitbond.me
+  - target:
+      kind: PersistentVolumeClaim
+      name: minio-data
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 10Gi
+  # Backups stay inside the cluster; copy the bucket off the VM now and then (docs/DEPLOY.md).
   - target:
       kind: ObjectStore
       name: backups
     patch: |-
       - op: add
         path: /spec/configuration/endpointURL
-        value: https://REPLACE_ME_R2_ACCOUNT_ID.r2.cloudflarestorage.com
+        value: http://minio:9000

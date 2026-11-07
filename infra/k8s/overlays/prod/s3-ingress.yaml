@@ -1,0 +1,25 @@
+# MinIO's S3 API on its own host, for the presigned photo URLs. Only the S3 port: the console stays inside the
+# cluster (`kubectl -n toasthub port-forward svc/minio 9001`). The buckets are private, so every request needs
+# a signature or the root credentials.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: s3
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    traefik.ingress.kubernetes.io/router.middlewares: toasthub-https-redirect@kubernetescrd,toasthub-hsts@kubernetescrd
+spec:
+  tls:
+    - hosts: [s3.toasthub.fitbond.me]
+      secretName: toasthub-s3-tls
+  rules:
+    - host: s3.toasthub.fitbond.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio
+                port:
+                  name: s3

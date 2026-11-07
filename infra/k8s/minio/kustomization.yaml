@@ -1,0 +1,8 @@
+# MinIO in the cluster, for photos and database backups (SPEC §12 D23, D63): a Deployment on one volume, its
+# Service and a Job that makes both buckets. Shared by both overlays; each one brings the `minio-root` Secret
+# and says how browsers reach it (dev: minio.localhost, prod: its own Ingress host).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - minio.yaml

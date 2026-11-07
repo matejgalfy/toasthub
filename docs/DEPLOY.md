@@ -6,17 +6,21 @@ backups and restores. The choices behind it are in SPEC §12 (D12, D14, D15, D59
 ## What runs where
 
 ```
-k3s node ── Traefik (ingress, TLS) ──▶ /api → api (2 pods) ──▶ Postgres (CloudNativePG) ──▶ backups: S3
-                                      /    → web (2 pods)          ▲
-                                                                   └── worker (1 pod): cron jobs
+k3s node ── Traefik (ingress, TLS) ──▶ /api → api ──▶ Postgres (CloudNativePG) ──▶ backups: S3
+                                      /    → web          ▲
+                                                          └── worker (1 pod): cron jobs
                                       migrate Job: once per deploy, before the new pods
+           (prod) s3.<host> ─────────▶ MinIO: photos (presigned URLs) and backups
 ```
+
+api and web run 2 pods each in the base and 1 each in prod, where the VM is shared with FitBond.
 
 | Path                                      | What                                                                                                                                              |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `infra/k8s/base/`                         | The app in namespace `toasthub`: Deployments, Services, Ingress, ConfigMap, migration Job, Postgres `Cluster` + `ObjectStore` + `ScheduledBackup` |
+| `infra/k8s/minio/`                        | MinIO, its volume and the bucket Job; used by both overlays                                                                                       |
 | `infra/k8s/overlays/dev/`                 | Local cluster: MinIO and Mailpit in-cluster, plain dev Secrets, local images                                                                      |
-| `infra/k8s/overlays/prod/`                | Production: domain, TLS, HSTS, Cloudflare R2, Sealed Secrets                                                                                      |
+| `infra/k8s/overlays/prod/`                | Production: `toasthub.fitbond.me`, TLS, HSTS, MinIO behind `s3.toasthub.fitbond.me`, Sealed Secrets                                               |
 | `infra/k8s/cluster/install-operators.sh`  | Once per cluster: cert-manager, CloudNativePG + Barman Cloud plugin, Sealed Secrets                                                               |
 | `infra/k8s/cluster/dev/`, `cluster/prod/` | Once per cluster: k3d config + CoreDNS rewrite (dev); Let's Encrypt issuer + Traefik settings (prod)                                              |
 | `infra/k8s/deploy.sh <dev\|prod> [tag]`   | Every deploy: migrations first, then the rollout                                                                                                  |
@@ -74,50 +78,78 @@ deployment/api deployment/worker deployment/web` (the tag `local` doesn't change
 
 ## Production
 
+**[toasthub.fitbond.me](https://toasthub.fitbond.me)** runs in the k3s cluster of the Azure VM that also runs
+FitBond (its runbook: `docs/DEPLOY.md` in the `fit-bond` repo), in its own namespace `toasthub` (SPEC §12 D63).
+Photos and database backups are in MinIO inside the cluster; its S3 API is public at `s3.toasthub.fitbond.me`,
+because browsers load photos from presigned URLs on it. Mail goes through Resend. The commands below run **on
+the VM** (`ssh <user>@<vm>`), where `kubectl` uses `~/.kube/config`.
+
 ### One-time setup
 
-1. **Server.** A Linux VM with at least 4 GB RAM (SPEC §14 Q2). Open ports 22, 80 and 443 only; the k3s API
-   (6443) stays closed, deploys reach it through SSH. Install k3s: `curl -sfL https://get.k3s.io | sh -`. Copy
-   `/etc/rancher/k3s/k3s.yaml` to your machine as the cluster's kubeconfig and reach it with
-   `ssh -fN -L 6443:127.0.0.1:6443 <user>@<host>`.
-2. **Domain.** An `A` record for the app's domain to the VM's public IP.
-3. **Cloudflare R2.** Two private buckets, `toasthub-photos` and `toasthub-backups`, and an R2 API token with
-   read/write on both. Note the account ID (the endpoint is `https://<account id>.r2.cloudflarestorage.com`),
-   the access key ID and the secret.
-4. **Resend.** Verify the domain, create an SMTP API key. `SMTP_URL` is
-   `smtps://resend:<api key>@smtp.resend.com:465`.
-5. **Cluster pieces.** With the kubeconfig active:
+1. **Cluster.** FitBond's setup already installed k3s, cert-manager, the `letsencrypt` ClusterIssuer and the
+   Traefik settings (`infra/k8s/cluster/prod/` holds the same two files, for a new cluster only). Toasthub adds
+   about 1.5 GB of memory; check `free -h` and `kubectl top nodes` first.
+2. **DNS** (Namecheap → `fitbond.me` → Advanced DNS): two `A` records to the VM's public IP, Host `toasthub` and
+   Host `s3.toasthub`. Wait until both resolve, or the certificates keep failing for a while:
    ```sh
-   infra/k8s/cluster/install-operators.sh
-   kubectl apply -f infra/k8s/cluster/prod/traefik-config.yaml   # keeps client IPs for the per-IP limits
-   # fill in your email first
-   kubectl apply -f infra/k8s/cluster/prod/cluster-issuer.yaml
+   dig +short toasthub.fitbond.me A @1.1.1.1      # the VM's IP
+   dig +short s3.toasthub.fitbond.me A @1.1.1.1
    ```
-6. **Placeholders.** In `infra/k8s/overlays/prod/kustomization.yaml` replace `REPLACE_ME_DOMAIN` (e.g.
-   `toasthub.example.com`, no scheme) and `REPLACE_ME_R2_ACCOUNT_ID`.
-7. **Secrets.** In a folder **outside the repo** create two files:
+3. **Resend.** Add the domain `fitbond.me` (the free plan has one domain; FitBond can send from it too) and
+   create the DNS records it lists in Namecheap: in the Host field only the part before `.fitbond.me`
+   (`resend._domainkey`, `send`); an `MX` record needs Mail Settings → Custom MX. Verify, then create an API key
+   with sending access. The overlay's `MAIL_FROM` is `toasthub@fitbond.me`.
+4. **Repo and operators.**
    ```sh
-   # app.env
-   BETTER_AUTH_SECRET=<openssl rand -base64 32>
-   SMTP_URL=smtps://resend:<api key>@smtp.resend.com:465
-   S3_ACCESS_KEY_ID=<R2 access key id>
-   S3_SECRET_ACCESS_KEY=<R2 secret>
-   # backup.env (the same R2 token works)
-   ACCESS_KEY_ID=<R2 access key id>
-   ACCESS_SECRET_KEY=<R2 secret>
+   git clone https://github.com/matejgalfy/toasthub.git ~/toasthub && cd ~/toasthub
+   infra/k8s/cluster/install-operators.sh   # same cert-manager as FitBond; adds CloudNativePG, Barman, Sealed Secrets
    ```
-   Then `infra/k8s/seal-secrets.sh <that folder>` rewrites `overlays/prod/sealed-secrets.yaml`. Commit it; only
-   this cluster's controller can decrypt it. Also back up the controller's key, or a rebuilt cluster can't read
-   the committed secrets any more:
-   `kubectl -n kube-system get secret -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > sealed-secrets-key.yaml`
-   (store it like a password, never in git). To change one value later, edit the env file and run the script
-   again.
-8. **Images.** CI pushes `ghcr.io/matejgalfy/toasthub-api|web` on every `main` push. New GHCR packages are
+5. **kubeseal** (the version of the controller):
+   ```sh
+   curl -fsSL https://github.com/bitnami/sealed-secrets/releases/download/v0.41.2/kubeseal-0.41.2-linux-amd64.tar.gz |
+     tar -xz kubeseal && sudo install -m 755 kubeseal /usr/local/bin/ && rm kubeseal
+   ```
+6. **Secrets.** Three env files in a folder outside the repo. The app and the backups use MinIO's root
+   credentials (MinIO serves only Toasthub). No quotes around values; they are read literally.
+   ```sh
+   mkdir -m 700 ~/toasthub-secrets && cd ~/toasthub-secrets
+   RESEND_API_KEY=re_...                    # from step 3
+   MINIO_PASSWORD=$(openssl rand -hex 24)
+   cat > app.env <<EOF
+   BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+   SMTP_URL=smtps://resend:$RESEND_API_KEY@smtp.resend.com:465
+   S3_ACCESS_KEY_ID=toasthub
+   S3_SECRET_ACCESS_KEY=$MINIO_PASSWORD
+   EOF
+   printf 'ACCESS_KEY_ID=toasthub\nACCESS_SECRET_KEY=%s\n' "$MINIO_PASSWORD" > backup.env
+   printf 'MINIO_ROOT_USER=toasthub\nMINIO_ROOT_PASSWORD=%s\n' "$MINIO_PASSWORD" > minio.env
+   chmod 600 *.env
+   # Without this key a rebuilt cluster can't read the committed secrets any more.
+   kubectl -n kube-system get secret -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > sealed-secrets-key.yaml
+   cd ~/toasthub && infra/k8s/seal-secrets.sh ~/toasthub-secrets
+   ```
+   Copy the folder to your PC and keep it like a password, never in git. Commit the sealed file from your PC
+   (the VM's checkout has no push rights), then reset the VM's copy:
+   ```sh
+   # on the PC, in the repo
+   scp -r <user>@<vm>:toasthub-secrets ~/toasthub-secrets
+   scp <user>@<vm>:toasthub/infra/k8s/overlays/prod/sealed-secrets.yaml infra/k8s/overlays/prod/
+   git commit -am "build(infra): seal the prod secrets" && git push
+   # on the VM
+   cd ~/toasthub && git checkout -- . && git pull
+   ```
+   To change one value later, edit the env file on the VM, run `seal-secrets.sh` again and commit the result.
+7. **Images.** CI pushes `ghcr.io/matejgalfy/toasthub-api|web` on every `main` push. New GHCR packages are
    private: make both public (package settings → visibility), or the cluster can't pull them.
-9. **First deploy**, then make the first admin as in the dev section:
+8. **First deploy.** Once CI on that commit is green (its images exist):
    ```sh
-   infra/k8s/deploy.sh prod <full commit SHA of a green main build>
+   cd ~/toasthub && git pull && infra/k8s/deploy.sh prod "$(git rev-parse HEAD)"
+   kubectl -n toasthub get pods,certificate     # all Running; both certificates READY=True after a minute or two
    ```
+9. **First admin.** Sign in once at https://toasthub.fitbond.me, then
+   `kubectl -n toasthub exec deploy/api -- node dist/modules/admin/promote-admin.js <email>`.
+10. **Check.** Log a toast with a photo (it loads from `s3.toasthub.fitbond.me`), and
+    `kubectl -n toasthub get backups` shows the first base backup as `completed`.
 
 ### Deploying a new version
 
@@ -128,11 +160,11 @@ template can't change, and would skip the migration step):
 2. waits for the new `migrate` Job; if it fails, it prints its log and stops, and the old pods keep serving,
 3. applies the Deployments and waits for their rolling update.
 
-From your machine: `infra/k8s/deploy.sh prod <sha>`. From GitHub: **Actions → Deploy → Run workflow** with the
-SHA (empty = the head of the chosen branch). The workflow needs a `production` environment with the secrets
-listed at the top of `.github/workflows/deploy.yml` (`SSH_KNOWN_HOSTS` from `ssh-keyscan <host>`,
-`KUBECONFIG_DATA` = the k3s kubeconfig with `server: https://127.0.0.1:6443`). Only deploy a SHA whose CI run on
-`main` went green, so its images exist.
+On the VM: `cd ~/toasthub && git pull && infra/k8s/deploy.sh prod "$(git rev-parse HEAD)"`. Only deploy a SHA
+whose CI run on `main` went green, so its images exist. From GitHub instead: **Actions → Deploy → Run
+workflow** with the SHA (empty = the head of the chosen branch). The workflow needs a `production` environment
+with the secrets listed at the top of `.github/workflows/deploy.yml` (`SSH_KNOWN_HOSTS` from
+`ssh-keyscan <host>`, `KUBECONFIG_DATA` = the k3s kubeconfig with `server: https://127.0.0.1:6443`).
 
 Rollback: deploy the previous SHA. Migrations don't roll back, so keep them **backwards compatible** with the
 version before (add columns and tables; drop or rename only in a later release, once no running version reads
@@ -141,7 +173,8 @@ them). During a rolling update old and new pods share the database for a moment 
 ### Configuration
 
 Non-secret settings are the `toasthub-config` ConfigMap (base + the overlay's `configMapGenerator`); a change
-rolls the pods on the next deploy. Secrets are `toasthub-app` (app) and `toasthub-backup` (Barman), and
+rolls the pods on the next deploy. Secrets are `toasthub-app` (app), `toasthub-backup` (Barman) and
+`minio-root` (MinIO), and
 `DATABASE_URL` comes from `postgres-app`, which CloudNativePG creates. Every variable is described in
 `apps/api/.env.example`.
 
@@ -154,6 +187,16 @@ Check them:
 ```sh
 kubectl -n toasthub get backups                    # one per day, phase "completed"
 kubectl -n toasthub get cluster postgres -o jsonpath='{.status.conditions}'   # ContinuousArchiving = True
+```
+
+In prod the backups and the photos share the VM's disk with the database (MinIO in the cluster, D63), so a lost
+VM loses them all. Copy the MinIO volume to your PC now and then:
+
+```sh
+# on the VM
+sudo tar -czf ~/toasthub-minio-$(date +%F).tar.gz /var/lib/rancher/k3s/storage/*_toasthub_minio-data
+# on the PC
+scp '<user>@<vm>:toasthub-minio-*.tar.gz' . && ssh <user>@<vm> 'rm ~/toasthub-minio-*.tar.gz'
 ```
 
 Take one by hand (e.g. before a risky migration):
@@ -310,12 +353,14 @@ for what was tried. The yearly user leaderboard is the slowest query: watch it a
 
 ## Troubleshooting
 
-| Symptom                                      | Look at                                                                                                |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `deploy.sh` waits for migrations a long time | `kubectl -n toasthub get cluster,pods`: the database isn't up yet, or `postgres-app` doesn't exist yet |
-| Pods `ImagePullBackOff`                      | GHCR package still private, or no images for that SHA (CI not green)                                   |
-| Pods `CreateContainerConfigError`            | A Secret is missing: unsealed (wrong cluster key?) or `postgres-app` not made yet                      |
-| No certificate / browser warning             | `kubectl -n toasthub get certificate,challenges`; DNS must point at the server, port 80 open           |
-| Photos don't load                            | Browser console: CSP `img-src` must equal `S3_ENDPOINT`; presigned URLs must use that host             |
-| Backups not completing                       | `kubectl -n toasthub logs postgres-1 -c plugin-barman-cloud`; R2 token and bucket name                 |
-| Logs                                         | `kubectl -n toasthub logs deploy/api` (JSON, one line per request with its request ID)                 |
+| Symptom                                      | Look at                                                                                                                                                                         |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deploy.sh` waits for migrations a long time | `kubectl -n toasthub get cluster,pods`: the database isn't up yet, or `postgres-app` doesn't exist yet                                                                          |
+| Pods `ImagePullBackOff`                      | GHCR package still private, or no images for that SHA (CI not green)                                                                                                            |
+| Pods `CreateContainerConfigError`            | A Secret is missing: unsealed (wrong cluster key?) or `postgres-app` not made yet                                                                                               |
+| No certificate / browser warning             | `kubectl -n toasthub get certificate,challenges`; DNS must point at the server, port 80 open                                                                                    |
+| Photos don't load                            | Browser console: CSP `img-src` must equal `S3_ENDPOINT`; presigned URLs must use that host                                                                                      |
+| Backups not completing                       | `kubectl -n toasthub logs postgres-1 -c plugin-barman-cloud`; `toasthub-backup` must match `minio-root`                                                                         |
+| Photo upload fails (500), photos 404         | The api reaches MinIO through `S3_ENDPOINT` (the VM's public IP): `kubectl -n toasthub get certificate` (`toasthub-s3-tls` READY), `kubectl -n toasthub logs job/minio-buckets` |
+| Magic link mail doesn't arrive               | `kubectl -n toasthub logs deploy/api` (SMTP error); the domain must be **Verified** in Resend and match `MAIL_FROM`                                                             |
+| Logs                                         | `kubectl -n toasthub logs deploy/api` (JSON, one line per request with its request ID)                                                                                          |

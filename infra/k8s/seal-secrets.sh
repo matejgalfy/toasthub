@@ -3,14 +3,15 @@
 # infra/k8s/overlays/prod/sealed-secrets.yaml, which is safe to commit: only that cluster can decrypt it.
 #
 # Usage: infra/k8s/seal-secrets.sh <dir>
-#   <dir> holds two env files, kept outside the repo (never commit them):
+#   <dir> holds three env files, kept outside the repo (never commit them):
 #     app.env     BETTER_AUTH_SECRET, SMTP_URL, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY
 #     backup.env  ACCESS_KEY_ID, ACCESS_SECRET_KEY
+#     minio.env   MINIO_ROOT_USER, MINIO_ROOT_PASSWORD (the in-cluster MinIO, SPEC §12 D63)
 #   kubeseal fetches the public key from the current kubectl context; to seal offline, set
 #   SEALED_SECRETS_CERT to the certificate saved with `kubeseal --fetch-cert`.
 set -euo pipefail
 
-src=${1:?usage: seal-secrets.sh <dir with app.env and backup.env>}
+src=${1:?usage: seal-secrets.sh <dir with app.env, backup.env and minio.env>}
 namespace=toasthub
 out="$(cd "$(dirname "$0")" && pwd)/overlays/prod/sealed-secrets.yaml"
 cert_args=()
@@ -29,6 +30,8 @@ seal() {
   seal toasthub-app "$src/app.env"
   echo '---'
   seal toasthub-backup "$src/backup.env"
+  echo '---'
+  seal minio-root "$src/minio.env"
 } > "$out.tmp"
 mv "$out.tmp" "$out"
 echo "Wrote $out"

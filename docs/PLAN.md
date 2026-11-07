@@ -785,3 +785,7 @@ milestones._
   `database`/`owner`, and the `Cluster` must come from the overlay); fixed, plus a base backup right after.
   The local cluster now archives as `postgres-r2`: recreate it (`k3d cluster delete toasthub`) before
   `deploy.sh dev`, or its archiving fails on the non-empty `postgres/` folder.
+- **Prod target (after M20, D63):** `toasthub.fitbond.me` on FitBond's k3s VM; MinIO in the cluster replaces R2
+  (`infra/k8s/minio/`, shared by both overlays; prod exposes only its S3 API at `s3.toasthub.fitbond.me`).
+  `seal-secrets.sh` now also seals `minio-root` from `minio.env`. Prod runs 1 api + 1 web pod. Backups share the
+  VM's disk: copy the MinIO volume off by hand (`docs/DEPLOY.md` → Backups).
