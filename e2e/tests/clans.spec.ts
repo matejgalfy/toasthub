@@ -57,8 +57,8 @@ test('a clan is founded, joined on approval, and its feed liked', async ({ page,
   await expect(other.getByRole('tab', { name: 'Feed' })).toHaveAttribute('aria-selected', 'true');
   const session = other.getByRole('listitem').filter({ hasText: 'Ann Founder' });
   await expect(session).toContainText('1 toast');
-  await session.getByRole('button', { name: 'Like (0)' }).click();
-  await expect(session.getByRole('button', { name: 'Like (1)' })).toHaveAttribute(
+  await session.getByRole('button', { name: 'Like 0' }).click();
+  await expect(session.getByRole('button', { name: 'Like 1' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
@@ -71,7 +71,7 @@ test('a clan is founded, joined on approval, and its feed liked', async ({ page,
   await other.reload();
   await expect(
     other.getByRole('listitem').filter({ hasText: 'Ann Founder' }).getByRole('button', {
-      name: 'Like (1)',
+      name: 'Like 1',
     }),
   ).toBeVisible();
 

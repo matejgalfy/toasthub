@@ -46,6 +46,7 @@ Run from the repo root:
 | `bun run typecheck`                                    | `tsc --noEmit` in every workspace                                     |
 | `bun run test`                                         | Vitest in every workspace (api integration tests need Docker)         |
 | `bun run e2e`                                          | Playwright against the dev stack (needs Postgres + Mailpit)           |
+| `bun run --filter @toasthub/e2e perf`                  | p95 + LCP checks against a running prod stack (`docs/DEPLOY.md`)      |
 | `bun run db:migrate`                                   | Apply Drizzle migrations to `DATABASE_URL` (from `apps/api/.env`)     |
 | `bun run db:seed`                                      | Idempotent dev sample data (users, a clan, toasts); not in prod       |
 | `bun run --filter @toasthub/api job <name>`            | Queue a job (`totw-draw`, `cleanup-photos`, …) for the running worker |
@@ -149,7 +150,10 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 - Any new app instance (scripts, tests) uses `createFastifyAdapter()` + `await configureApp()` from `src/app.setup.ts`.
 - Scheduled work runs only in the worker (`APP_ROLE=worker`, `src/jobs`): add a `JobName`, its cron in `JOB_SCHEDULES`
   and a handler in `JobsService` that is safe to run twice (pg-boss retries). Business logic stays in a module service.
-- Don't log emails, tokens or auth headers (the pino redaction from M1 is a safety net, not a licence).
+- Don't log emails, tokens or auth headers (the pino redaction and the email masking on every line are a safety
+  net, not a licence).
+- Rate limits: `consumeRateLimit(db, '<prefix>:<key>', { window, max }, { cost })` from `src/common/rate-limit.ts`.
+  It counts in Postgres, so every api replica shares the limit (SPEC §12 D61). Never keep a counter in memory.
 - Don't use `import type` for classes that Nest injects. DI needs the runtime reference for decorator metadata.
 - Every route needs an active session unless marked `@Public()` (global `SessionGuard`). Admin routes add
   `@UseGuards(AdminGuard)`. Get the caller with `@CurrentUser()`. Never return another user's email (only the
@@ -210,6 +214,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   `openMagicLink(page, link)`, never `page.goto(link)`: it clears Better Auth's 5-per-minute verify limit,
   which a parallel suite on one IP would hit. The database is not reset between tests, so never rely on it
   being empty. Use role and label locators with English text; fixtures go in `e2e/fixtures/`.
+- `e2e/tests/accessibility.spec.ts` runs axe (WCAG 2.1 AA) on every page in light and dark mode: add a new page
+  to its list. The perf checks (`e2e/perf/`, `playwright.perf.config.ts`) are separate and not in CI.
 - Business logic named in SPEC §11 (streaks, ranking, achievements, TOTW draw, visibility) must have unit tests.
   Each endpoint needs an integration test.
 

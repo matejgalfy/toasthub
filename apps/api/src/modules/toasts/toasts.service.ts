@@ -4,7 +4,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { AppError } from '../../common/errors/app-error';
-import { RateLimiter } from '../../common/rate-limiter';
+import { consumeRateLimit } from '../../common/rate-limit';
 import { type Database, DB, type DbExecutor } from '../../db/db.module';
 import {
   clanMembership,
@@ -21,15 +21,13 @@ import { assertCanLike, assertCanReport, type ReactionFacts } from './toasts.pol
 
 /** Photo reports per user and hour (BR-MOD-3); every attempt counts. */
 export const REPORT_RATE_LIMIT = 10;
-const HOUR_MS = 60 * 60 * 1000;
+const REPORT_LIMIT = { window: 60 * 60, max: REPORT_RATE_LIMIT };
 
 const earlier = alias(toast, 'earlier');
 
 /** Likes and photo reports on a toast session's lead toast (SPEC §4.4, §4.9, §12 D43). */
 @Injectable()
 export class ToastsService {
-  private readonly reportLimiter = new RateLimiter(REPORT_RATE_LIMIT, HOUR_MS);
-
   constructor(@Inject(DB) private readonly db: Database) {}
 
   /** Idempotent. The session row is shared-locked, so a like can't outlive a concurrent delete. */
@@ -51,7 +49,7 @@ export class ToastsService {
    * second report from the same user while theirs is still open adds nothing.
    */
   async report(userId: string, toastId: string, reason?: string | null): Promise<void> {
-    if (!this.reportLimiter.tryHit(userId)) {
+    if (!(await consumeRateLimit(this.db, `report:${userId}`, REPORT_LIMIT)).allowed) {
       throw new AppError('RATE_LIMITED', 'Too many reports, try again later');
     }
     const { viewer, facts } = await this.load(this.db, userId, toastId, false);

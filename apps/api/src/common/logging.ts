@@ -22,6 +22,15 @@ export const REDACT_PATHS = [
   ...SECRET_KEYS.flatMap((key) => [key, `*.${key}`, `*.*.${key}`]),
 ];
 
+// Anything shaped like an email, also URL-encoded. Errors from libraries (an SMTP server rejecting a
+// recipient, a database constraint message) can quote one in their message, where no redact path reaches.
+const EMAIL_PATTERN = /[\w.+-]+(?:@|%40)[\w-]+(?:\.[\w-]+)+/gi;
+
+/** pino's last step before a line is written: masks emails wherever they ended up (SPEC §10). */
+export function maskEmails(line: string): string {
+  return line.replace(EMAIL_PATTERN, '[email]');
+}
+
 export function redactUrl(url: string): string {
   const queryStart = url.indexOf('?');
   if (queryStart === -1) return url;
@@ -51,6 +60,7 @@ export function pinoHttpOptions(env: Pick<Env, 'LOG_LEVEL' | 'NODE_ENV'>): Optio
   return {
     level: env.LOG_LEVEL,
     redact: { paths: REDACT_PATHS, censor: '[redacted]' },
+    hooks: { streamWrite: maskEmails },
     serializers: {
       req: (req: SerializedRequest) => ({
         id: req.id,

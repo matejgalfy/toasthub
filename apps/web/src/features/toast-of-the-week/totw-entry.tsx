@@ -22,8 +22,11 @@ export function useWeekLabel() {
     });
 }
 
-/** One drawn week: the winning photo and its owner, or why there is none (SPEC §4.10). */
-export function TotwEntry({ entry }: { entry: ToastOfTheWeek }) {
+/**
+ * One drawn week: the winning photo and its owner, or why there is none (SPEC §4.10). On home the photo
+ * is usually the largest thing on screen, so `eager` loads it at once instead of after layout (LCP).
+ */
+export function TotwEntry({ entry, eager = false }: { entry: ToastOfTheWeek; eager?: boolean }) {
   const { t } = useTranslation();
   const week = useWeekLabel()(entry.weekStart);
 
@@ -44,7 +47,8 @@ export function TotwEntry({ entry }: { entry: ToastOfTheWeek }) {
       <img
         src={entry.toast.photoUrl}
         alt={t('totw.photoAlt', { name: user.displayName })}
-        loading="lazy"
+        loading={eager ? 'eager' : 'lazy'}
+        fetchPriority={eager ? 'high' : 'auto'}
         className="aspect-square w-full rounded-md bg-muted object-cover"
       />
       <div className="flex items-center gap-3">

@@ -297,7 +297,7 @@
     "feed": {
       "empty": "No toasts in this clan yet.",
       "photoAlt": "{{name}}'s photo: {{toasts}}",
-      "like": "Like ({{likes}})",
+      "like": "Like",
       "report": "Report",
       "loadMore": "Show older toasts"
     },
@@ -483,7 +483,7 @@
       "notMonday": "Pick a Monday.",
       "history": "Drawn weeks",
       "redraw": "Draw again",
-      "redrawLabel": "Draw {{week}} again",
+      "redrawLabel": "Draw again: {{week}}",
       "confirmTitle": "Draw {{week}} again?",
       "confirmDescription": "A winner is picked at random from that week's photo toasts and replaces the current one.",
       "done": "Week drawn.",

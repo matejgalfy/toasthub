@@ -6,12 +6,13 @@ import { bearer } from 'better-auth/plugins/bearer';
 import { magicLink } from 'better-auth/plugins/magic-link';
 import { eq } from 'drizzle-orm';
 
+import { consumeRateLimit } from '../../common/rate-limit';
 import type { Env } from '../../config/env';
 import type { Database } from '../../db/db.module';
 import * as authSchema from '../../db/schema/auth';
 import type { MagicLinkMessage } from '../mail/mail.service';
 import { localeFromAcceptLanguage, MAGIC_LINK_TTL_MINUTES } from '../mail/magic-link-email';
-import { consumeRateLimit, emailRateLimitKey } from './email-rate-limit';
+import { emailRateLimitKey } from './email-rate-limit';
 
 // Must match API_PREFIX in app.setup.ts (not imported, so the Better Auth CLI can load this file).
 export const AUTH_BASE_PATH = '/api/v1/auth';

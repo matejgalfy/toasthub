@@ -8,7 +8,18 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { testConfigProvider } from '../../test/config-provider';
 import { configureApp, createFastifyAdapter } from '../app.setup';
-import { pinoHttpOptions, redactUrl } from './logging';
+import { maskEmails, pinoHttpOptions, redactUrl } from './logging';
+
+describe('maskEmails', () => {
+  it('masks plain and URL-encoded emails, nothing else', () => {
+    expect(maskEmails('{"msg":"to ann.b+x@mail.example.com, cc bob%40example.org"}')).toBe(
+      '{"msg":"to [email], cc [email]"}',
+    );
+    expect(maskEmails('at /app/node_modules/@toasthub/shared/dist/index.js:1')).toBe(
+      'at /app/node_modules/@toasthub/shared/dist/index.js:1',
+    );
+  });
+});
 
 describe('redactUrl', () => {
   it('masks secret query values and keeps the rest', () => {
@@ -39,6 +50,8 @@ class EchoController {
   @Get()
   echo(): { ok: true } {
     this.logger.log({ user: { email: 'ann@example.com', token: 'tok_123' } }, 'handled');
+    // Like an SMTP error quoting the recipient: no redact path reaches a message.
+    this.logger.warn(new Error('550 Mailbox <bob.b+1@example.co.uk> unavailable'));
     return { ok: true };
   }
 }
@@ -92,9 +105,16 @@ describe('request logging', () => {
     });
     const output = JSON.stringify(lines);
     expect(lines.length).toBeGreaterThan(0);
-    for (const secret of ['magic-secret', 'ann@example.com', 'ann%40example.com', 'tok_123']) {
+    for (const secret of [
+      'magic-secret',
+      'ann@example.com',
+      'ann%40example.com',
+      'tok_123',
+      'example.co.uk',
+    ]) {
       expect(output).not.toContain(secret);
     }
+    expect(output).toContain('550 Mailbox <[email]> unavailable');
     expect(output).not.toContain('bearer-secret');
     expect(output).not.toContain('cookie-secret');
   });

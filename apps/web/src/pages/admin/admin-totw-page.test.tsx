@@ -30,7 +30,7 @@ describe('AdminTotwPage', () => {
     renderPage();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Draw 19 Oct – 25 Oct 2026 again' }),
+      await screen.findByRole('button', { name: 'Draw again: 19 Oct – 25 Oct 2026' }),
     );
     const dialog = screen.getByRole('dialog', { name: 'Draw 19 Oct – 25 Oct 2026 again?' });
     await user.click(within(dialog).getByRole('button', { name: 'Draw again' }));

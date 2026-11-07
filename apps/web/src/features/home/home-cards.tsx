@@ -39,7 +39,7 @@ export function HomeCards({ home }: { home: HomeResponse }) {
       )}
       <InfoCard icon={<Trophy aria-hidden="true" />} title={t('home.toastOfTheWeek.title')}>
         {home.toastOfTheWeek ? (
-          <TotwEntry entry={home.toastOfTheWeek} />
+          <TotwEntry entry={home.toastOfTheWeek} eager />
         ) : (
           <p className="text-muted-foreground">{t('home.toastOfTheWeek.empty')}</p>
         )}

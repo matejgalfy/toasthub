@@ -212,15 +212,12 @@ describe('ClanPage', () => {
       'true',
     );
     expect(await screen.findByRole('img', { name: "Mia Member's photo: 2 toasts" })).toBeVisible();
-    const like = screen.getByRole('button', { name: 'Like (1)' });
+    const like = screen.getByRole('button', { name: 'Like 1' });
     expect(like).toHaveAttribute('aria-pressed', 'false');
 
     await user.click(like);
 
-    expect(screen.getByRole('button', { name: 'Like (2)' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Like 2' })).toHaveAttribute('aria-pressed', 'true');
     release();
     await vi.waitFor(() => {
       expect(sent(requests, 'POST')).toEqual([`/api/v1/toasts/${TOAST_ID}/like`]);
@@ -235,7 +232,7 @@ describe('ClanPage', () => {
     });
     renderClan();
 
-    await user.click(await screen.findByRole('button', { name: 'Like (2)' }));
+    await user.click(await screen.findByRole('button', { name: 'Like 2' }));
 
     await vi.waitFor(() => {
       expect(sent(requests, 'DELETE')).toEqual([`/api/v1/toasts/${TOAST_ID}/like`]);

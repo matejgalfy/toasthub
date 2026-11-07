@@ -313,7 +313,7 @@
     "feed": {
       "empty": "V tomto klane zatiaľ nikto nezapísal toast.",
       "photoAlt": "Fotka od {{name}}: {{toasts}}",
-      "like": "Páči sa mi ({{likes}})",
+      "like": "Páči sa mi",
       "report": "Nahlásiť",
       "loadMore": "Zobraziť staršie toasty"
     },
@@ -499,7 +499,7 @@
       "notMonday": "Vyber pondelok.",
       "history": "Vylosované týždne",
       "redraw": "Losovať znova",
-      "redrawLabel": "Losovať znova {{week}}",
+      "redrawLabel": "Losovať znova: {{week}}",
       "confirmTitle": "Losovať znova {{week}}?",
       "confirmDescription": "Z fotiek toastov z toho týždňa sa náhodne vyberie víťaz a nahradí súčasného.",
       "done": "Týždeň vylosovaný.",

@@ -206,18 +206,107 @@ kubectl -n toasthub delete cluster postgres-restore     # also deletes its volum
 
 The test cluster has no `plugins` section, so it archives nothing and leaves the backups alone.
 
-**Replace the live database** (data loss up to the target time; check the steps above worked first):
+**Replace the live database** (data loss after the target time; check the steps above worked first). Each
+cluster archives into its own folder, its **server name**: `postgres/` at first, then `postgres-r1/`,
+`postgres-r2/`, … after each replace. A new cluster can't archive into a folder that isn't empty.
 
-1. Stop writers: `kubectl -n toasthub scale deployment api worker --replicas=0`.
-2. Delete the cluster (this deletes its volume): `kubectl -n toasthub delete cluster postgres`.
-3. Apply a `Cluster` named `postgres` like the test one above, plus the `plugins` section from
-   `infra/k8s/base/postgres.yaml` with one more parameter, `serverName: postgres-r1` (the next free name). A new
-   cluster can't archive into the old `postgres/` folder, which isn't empty.
-4. Wait until it is healthy, then set the same `serverName: postgres-r1` under `plugins` in
-   `infra/k8s/base/postgres.yaml`, commit, and run `deploy.sh`. The operator ignores the `bootstrap` section of
-   an existing cluster, so going back to `initdb` there changes nothing. The pods scale back up with the deploy.
+1. Stop writers: `kubectl -n toasthub scale deployment api worker --replicas=0`. To keep everything up to now,
+   run `select pg_switch_wal()` as above and wait until `select last_archived_wal from pg_stat_archiver`
+   shows a new segment.
+2. Write the new `Cluster` from the overlay, so storage size and resources match (a volume can't shrink, so a
+   bigger size than the overlay's makes every later deploy fail):
+   `kubectl kustomize infra/k8s/overlays/<dev|prod>` → copy the `Cluster` named `postgres` into a file outside
+   the repo, then change three things:
+   ```yaml
+   bootstrap:
+     recovery:
+       source: origin
+       # Without these the operator makes `postgres-app` for a user `app`, which the backup doesn't have.
+       database: toasthub
+       owner: toasthub
+       # recoveryTarget: { targetTime: '…' }   # optional, as in the test above
+   externalClusters:
+     - name: origin
+       plugin:
+         name: barman-cloud.cloudnative-pg.io
+         # The folder that holds the backups now: postgres, or the last postgres-rN.
+         parameters: { barmanObjectName: backups, serverName: postgres }
+   plugins:
+     - name: barman-cloud.cloudnative-pg.io
+       isWALArchiver: true
+       # The next free folder.
+       parameters: { barmanObjectName: backups, serverName: postgres-r1 }
+   ```
+3. Delete the cluster (this deletes its volume and the `postgres-app` Secret):
+   `kubectl -n toasthub delete cluster postgres`, then `kubectl -n toasthub apply -f <that file>`.
+4. Wait for "Cluster in healthy state" (about a minute for a small database), then check the data, that
+   `ContinuousArchiving` is `True` (`get cluster postgres -o jsonpath='{.status.conditions}'`), and that the app
+   user works: `kubectl -n toasthub get secret postgres-app -o jsonpath='{.data.username}' | base64 -d` is
+   `toasthub`.
+5. Take a base backup right away (the manual `Backup` above): the new folder has none until 02:30 UTC, and
+   until it has one a later restore can't start from it.
+6. Set `serverName: postgres-r1` under `plugins` in `infra/k8s/base/postgres.yaml`, commit, and run
+   `deploy.sh`. The operator keeps a running cluster's data when its `bootstrap` goes back to `initdb`; it doesn't
+   even restart the pod. The api and worker scale back up with the deploy.
 
-Same name, same `postgres-app` Secret and host, so nothing else in the app changes.
+Same cluster name and host, so the app needs no change. `postgres-app` is made again with a new password;
+the pods read it when they start, which they do in step 6.
+
+**Rehearsed on 2026-11-02** (M20, local k3d cluster, the dev overlay): 1,036 users and 364,569 toasts, a
+marker row written seconds before the WAL switch. Restored `postgres` → `postgres-r1` (healthy in 73 s,
+counts and marker back, app user signs in, archiving on), took the base backup, then restored again from
+`postgres-r1` → `postgres-r2` (51 s, a second marker back) and applied the overlay's `Cluster` with
+`serverName: postgres-r2`: accepted, no restart, data kept. The first try used a hand-written `Cluster` with
+10Gi against the dev overlay's 2Gi; the webhook then refused the overlay's spec ("can't shrink existing
+storage"), hence step 2.
+
+## Performance
+
+SPEC §10 asks for p95 API < 300 ms and LCP < 2.5 s on a 4G mid-range phone. The checks are Playwright tests
+in `e2e/perf/` with their own config; they are not part of `bun run e2e` or CI, because they need the
+production build and a filled database. Run them against the local cluster (or the compose `prod` profile):
+
+```sh
+# data: the dev seed, then 1,000 users with a year of toasts (~360k)
+kubectl -n toasthub port-forward svc/postgres-rw 15432:5432 &
+PW=$(kubectl -n toasthub get secret postgres-app -o jsonpath='{.data.password}' | base64 -d)
+DATABASE_URL="postgres://toasthub:$PW@127.0.0.1:15432/toasthub" bun run db:seed
+kubectl -n toasthub exec -i postgres-1 -c postgres -- psql toasthub < e2e/perf/bulk-data.sql
+
+kubectl -n toasthub port-forward svc/mailpit 18025:8025 &
+MAILPIT_URL=http://127.0.0.1:18025 bun run --filter @toasthub/e2e perf   # PERF_URL defaults to :8080
+```
+
+They sign in once as `ann@example.com` (`PERF_EMAIL` to change it; the per-email limit allows 5 sign-ins an
+hour), then:
+
+- **API:** 300 GETs per endpoint, 10 in flight, after a warm-up; p95 of each must stay under 300 ms.
+- **LCP:** each page in a fresh browser context (cold cache, no service worker), 4× CPU slowdown, on "4G"
+  (9 Mbit/s, 170 ms RTT, enforced) and Lighthouse's "slow 4G" (1.6 Mbit/s, 150 ms RTT, only reported).
+
+Results on 2026-11-02 (M20; k3d on a Windows laptop, dev overlay, 1 api replica, the data above):
+
+| API endpoint                       | p50 ms | p95 ms |
+| ---------------------------------- | -----: | -----: |
+| `/me`                              |     23 |     33 |
+| `/home`                            |     46 |     57 |
+| `/me/toast-sessions`               |     28 |     36 |
+| `/leaderboards/users?period=week`  |     23 |     32 |
+| `/leaderboards/users?period=year`  |    122 |    161 |
+| `/leaderboards/clans?period=month` |     28 |     40 |
+| `/users/:id`, `/stats`, `/heatmap` |  24–26 |  32–34 |
+| `/clans/:id`, `/feed`              |  29–42 |  38–57 |
+
+| Page            | LCP 4G | LCP slow 4G |
+| --------------- | -----: | ----------: |
+| `/`             |   1208 |        2664 |
+| `/login`        |   1460 |        2348 |
+| `/home`         |   1824 |        2900 |
+| `/leaderboards` |   1500 |        2660 |
+
+On `/home` the LCP element is the Toast of the week photo, after `/me` → `/home` → the photo, one after the
+other; it loads eagerly with high priority. On slow 4G the 250 kB (gzip) bundle is the limit; see SPEC §12 D62
+for what was tried. The yearly user leaderboard is the slowest query: watch it as the data grows.
 
 ## Troubleshooting
 

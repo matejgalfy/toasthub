@@ -118,7 +118,6 @@ function FeedItem({
             variant="ghost"
             size="sm"
             aria-pressed={item.likedByMe}
-            aria-label={t('clans.feed.like', { likes: format.number(item.likeCount) })}
             onClick={onLike}
             className={cn(
               'tabular-nums',
@@ -128,7 +127,9 @@ function FeedItem({
             <span aria-hidden="true" className={cn(!item.likedByMe && 'grayscale')}>
               🍞
             </span>
-            <span aria-hidden="true">{format.number(item.likeCount)}</span>
+            {/* Named "Like 3": the visible count must be part of the name (WCAG 2.5.3). */}
+            <span className="sr-only">{t('clans.feed.like')}</span>{' '}
+            <span>{format.number(item.likeCount)}</span>
           </Button>
           {/* Only photos can be reported (BR-MOD-3). */}
           {item.photoUrl && (

@@ -19,7 +19,7 @@ import { z } from 'zod';
 
 import { AppError } from '../../common/errors/app-error';
 import { decodeCursor, toPage } from '../../common/pagination';
-import { RateLimiter } from '../../common/rate-limiter';
+import { consumeRateLimit } from '../../common/rate-limit';
 import { type Database, DB, type DbExecutor } from '../../db/db.module';
 import { clanMembership, discardedPhoto, flag, like, toast, toastSession } from '../../db/schema';
 import { AchievementsService } from '../achievements/achievements.service';
@@ -37,7 +37,7 @@ import {
 
 /** Toasts created per user and hour, and photo uploads with them (SPEC §8, §12 D44). */
 export const TOAST_RATE_LIMIT = 30;
-const HOUR_MS = 60 * 60 * 1000;
+const TOAST_LIMIT = { window: 60 * 60, max: TOAST_RATE_LIMIT };
 
 const sessionColumns = {
   id: toastSession.id,
@@ -85,7 +85,6 @@ function leadOf(toasts: ToastRow[]): ToastRow {
 @Injectable()
 export class ToastSessionsService {
   private readonly logger = new Logger(ToastSessionsService.name);
-  private readonly createLimiter = new RateLimiter(TOAST_RATE_LIMIT, HOUR_MS);
 
   constructor(
     @Inject(DB) private readonly db: Database,
@@ -94,9 +93,13 @@ export class ToastSessionsService {
     private readonly storage: StorageService,
   ) {}
 
-  /** Counts `hits` (toasts, or one photo upload) against the hourly limit, all or none. */
-  consumeQuota(userId: string, hits: number): void {
-    if (!this.createLimiter.tryHit(userId, Date.now(), hits)) {
+  /**
+   * Counts `hits` (toasts, or one photo upload) against the hourly limit, all or none. Inside a
+   * transaction (`db` = `tx`) the hits are taken back if it rolls back.
+   */
+  async consumeQuota(userId: string, hits: number, db: DbExecutor = this.db): Promise<void> {
+    const result = await consumeRateLimit(db, `toast:${userId}`, TOAST_LIMIT, { cost: hits });
+    if (!result.allowed) {
       throw new AppError('RATE_LIMITED', 'Too many toasts, try again later');
     }
   }
@@ -180,7 +183,7 @@ export class ToastSessionsService {
         await tx.delete(like).where(inArray(like.toastId, ids));
       }
       if (plan.add > 0) {
-        this.consumeQuota(userId, plan.add);
+        await this.consumeQuota(userId, plan.add, tx);
         const clanId = await this.currentClanId(tx, userId);
         await tx
           .insert(toast)

@@ -58,7 +58,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M17 | Admin UI | `m17-admin-ui` | M16, M13 | ☑ |
 | M18 | Production images, Sentry, CI image build | `m18-containers` | M15 | ☑ (no Sentry) |
 | M19 | Kubernetes (Kustomize, CNPG, Sealed Secrets) | `m19-k8s` | M18 | ☑ |
-| M20 | Launch hardening | `m20-hardening` | all | ☐ |
+| M20 | Launch hardening | `m20-hardening` | all | ☑ |
 
 **Parallel tracks (team of 3).** After M3, backend work (M6 → M7 → M9/M11 → M12) and frontend work
 (M4 → M5 → M8 → M8b) run side by side. M18 and M19 depend only on what they deploy and can start once M15 is merged. Two
@@ -427,6 +427,43 @@ job fills the home card.
 - Test the backup restore once and write it up in `docs/DEPLOY.md`.
 - Final pass on README, AGENTS.md and SPEC §12/§14; confirm every BR-* has a test (a simple checklist in this file).
 
+### BR test checklist
+
+Every business rule in SPEC §4 and where it is tested (checked in M20). Paths: `a/` = `apps/api/src/modules/`,
+`w/` = `apps/web/src/`, `e2e/` = `e2e/tests/`. A new or changed rule updates its row.
+
+| Rule | Tests |
+| ---- | ----- |
+| BR-AUTH-1 | ☑ `a/auth/auth.int.test.ts` "answers the same for a known and an unknown email"; `e2e/auth.spec.ts` |
+| BR-AUTH-2 | ☑ `a/auth/auth.int.test.ts` "stores only a hash", "rejects a used link", "makes links valid for 15 minutes", "rejects an expired link" |
+| BR-AUTH-3 | ☑ `a/auth/auth.int.test.ts` "logs a new user in and sends them to onboarding"; `w/pages/onboarding-page.test.tsx`; `e2e/auth.spec.ts` |
+| BR-AUTH-4 | ☑ `a/auth/auth.int.test.ts` "httpOnly, SameSite=Lax session cookie valid for 30 days", "refreshes a session older than a day", "does not refresh … within a day", "accepts the bearer token" |
+| BR-AUTH-5 | ☑ `a/auth/auth.int.test.ts` "rate limits (BR-AUTH-5)"; `apps/api/src/common/rate-limit.int.test.ts` |
+| BR-TOAST-1 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "logs one toast without a body at the server time", "raises the count with toasts eaten now" |
+| BR-TOAST-2 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "stores the photo … as WebP without EXIF", "rejects a photo over 10 MB", "rejects a file that is not a supported image"; `a/toasts/photo-pipeline.test.ts` |
+| BR-TOAST-3 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "soft-deletes the session with its toasts and removes their likes", "takes the toasts out of the home count", "the per-toast routes are gone" |
+| BR-TOAST-4 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "keeps earned achievements when the session is deleted"; `e2e/profile.spec.ts` |
+| BR-TOAST-5 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "logs several toasts as one session", "rejects count=…"; `a/toast-sessions/toast-sessions.policy.test.ts` (`planCountChange`) |
+| BR-TOAST-6 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "lists only the own sessions … newest first"; `w/pages/my-toasts-page.test.tsx` |
+| BR-TOAST-7 | ☑ `a/toast-sessions/toast-sessions.policy.test.ts`; `a/toast-sessions/toast-sessions.int.test.ts` PATCH, PUT/DELETE photo, DELETE ("is a conflict on yesterday", "counts added toasts toward the hourly limit"); `e2e/toasts.spec.ts` |
+| BR-MOD-1 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "count threshold flag" |
+| BR-MOD-2 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "is opened once when the day goes over the threshold"; `e2e/admin.spec.ts` |
+| BR-MOD-3 | ☑ `a/toasts/toasts.int.test.ts` "opens a photo_report flag …", "is rate limited …" |
+| BR-MOD-4 | ☑ `a/admin/admin-flags.int.test.ts`, `a/admin/admin-flags.policy.test.ts`; `e2e/admin.spec.ts` |
+| BR-STREAK-1 | ☑ `a/streaks/streak.test.ts`; `a/home/home.int.test.ts` "counts today …" |
+| BR-STREAK-2 | ☑ `a/streaks/streak.test.ts` "keeps the streak alive through today …"; `a/home/home.int.test.ts` "keeps the streak alive while today has no toast yet" |
+| BR-STREAK-3 | ☑ `a/streaks/streak.test.ts` "restarts after a gap and keeps the longest run"; `a/home/home.int.test.ts` |
+| BR-STREAK-4 | ☑ `a/streaks/streaks.int.test.ts`; `a/home/home.int.test.ts` "shows the own clan and the streak of the toasts credited to it"; `a/clans/clans.int.test.ts` "shows members by role, the clan streak …" |
+| BR-CLAN-1 | ☑ `a/clans/clans.int.test.ts` "makes the creator the Owner …", "is a 409 for a user already in a clan (BR-CLAN-1)" |
+| BR-CLAN-2 | ☑ `packages/shared/src/clan.test.ts`; `a/clans/clans.int.test.ts` "is a 409 for a taken name (BR-CLAN-2)", "lets the Owner pick and clear the picture", "approve makes a Member …"; `e2e/clans.spec.ts` |
+| BR-CLAN-3 | ☑ `a/clans/clans.int.test.ts` "is a 409 when the clan is full (BR-CLAN-3)", "approve is a 409 when the clan is full", "concurrent approvals never overfill the clan" |
+| BR-CLAN-4 | ☑ `a/clans/clans.int.test.ts` "is a 409 for the Owner (BR-CLAN-4)"; `a/clans/clans.policy.test.ts` |
+| BR-CLAN-5 | ☑ `a/clans/clans.int.test.ts` "allows one pending request at a time (BR-CLAN-5)", "cancels the creator’s pending join request", "DELETE /me/clan-request …" |
+| BR-TOTW-1 | ☑ `a/totw/totw.int.test.ts` "draws the previous week on schedule"; `a/totw/totw-draw.test.ts`; `apps/api/src/jobs/jobs.int.test.ts` (schedules) |
+| BR-TOTW-2 | ☑ `a/totw/totw.int.test.ts` "only draws visible photos of countable toasts from that week"; `a/totw/totw-draw.test.ts` "gives every candidate the same chance" |
+| BR-TOTW-3 | ☑ `a/totw/totw.int.test.ts` "records a week without a winner …"; `a/totw/totw-draw.test.ts` "has no winner without candidates" |
+| BR-TOTW-4 | ☑ `a/admin/admin.int.test.ts` "draws the week again and records the admin"; `a/totw/totw.int.test.ts` "… none or removed", "shows a winner who was banned since as removed"; `a/toast-sessions/toast-sessions.policy.test.ts` "is false from the next day on" |
+
 ---
 
 ## Handoff notes
@@ -734,3 +771,17 @@ milestones._
 - For M20: the *replace the live database* restore steps are written but not rehearsed (check that the operator
   accepts `bootstrap` going back to `initdb` afterwards). Rate limits are per api replica (2 in prod)
   until Q4. The prod overlay's domain, R2 account ID, issuer email and sealed secrets are placeholders (Q2 open).
+- **M20** — Q4: toast, report and per-email magic-link limits share `consumeRateLimit()` (`src/common/rate-limit.ts`)
+  on Better Auth's `rate_limit` table (fixed window, all or none, keys `toast:`/`report:`/`magic-link-email:`;
+  SPEC §12 D61). `consumeQuota()` is async now. The E2E global setup's `DELETE FROM rate_limit` clears these too.
+- `e2e/tests/accessibility.spec.ts` runs axe on every page (light + dark); a new page goes into its list. Fixed:
+  tab and dark `--destructive` contrast, the like button is named "Like 3" (`sr-only` label), "Draw again: <week>".
+  Logs mask email-shaped text in every line (`maskEmails`, pino `streamWrite`). i18n test also checks empty
+  strings and placeholders. Details: SPEC §12 D62.
+- Perf: `bun run --filter @toasthub/e2e perf` (not in CI) against a running prod stack; recipe and results in
+  `docs/DEPLOY.md` → Performance. All p95 < 170 ms, LCP 4G 1.2–1.8 s; slow 4G 2.3–2.9 s is bundle-bound. Route
+  splitting made LCP worse and was reverted. The home TOTW photo is the LCP element (`TotwEntry eager`).
+- Restore rehearsed twice on k3d; DEPLOY.md's replace steps were wrong in two places (recovery needs
+  `database`/`owner`, and the `Cluster` must come from the overlay); fixed, plus a base backup right after.
+  The local cluster now archives as `postgres-r2`: recreate it (`k3d cluster delete toasthub`) before
+  `deploy.sh dev`, or its archiving fails on the non-empty `postgres/` folder.

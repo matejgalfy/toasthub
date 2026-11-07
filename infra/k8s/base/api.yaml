@@ -1,5 +1,5 @@
-# The HTTP API (APP_ROLE=api, the image's default). Stateless, so it scales by replicas; the in-memory rate
-# limits for toasts and reports count per replica until SPEC §14 Q4 is decided (M20).
+# The HTTP API (APP_ROLE=api, the image's default). Stateless, so it scales by replicas: sessions and rate
+# limits live in Postgres (SPEC §12 D61).
 apiVersion: apps/v1
 kind: Deployment
 metadata:

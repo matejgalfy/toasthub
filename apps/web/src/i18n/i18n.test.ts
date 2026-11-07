@@ -22,6 +22,26 @@ function baseKeys(value: unknown): string[] {
   return [...new Set(keys(value).map((key) => key.replace(PLURAL_SUFFIX, '')))].sort();
 }
 
+function entries(value: unknown, prefix = ''): [string, string][] {
+  if (typeof value === 'string') return [[prefix, value]];
+  if (typeof value !== 'object' || value === null) return [];
+  return Object.entries(value).flatMap(([key, child]) =>
+    entries(child, prefix ? `${prefix}.${key}` : key),
+  );
+}
+
+/** Base key → the sorted interpolation variables used in any of its forms. */
+function placeholders(value: unknown): Record<string, string[]> {
+  const found: Record<string, Set<string>> = {};
+  for (const [key, text] of entries(value)) {
+    const names = (found[key.replace(PLURAL_SUFFIX, '')] ??= new Set());
+    for (const match of text.matchAll(/\{\{\s*([\w.]+)[^}]*\}\}/g)) names.add(match[1] ?? '');
+  }
+  return Object.fromEntries(
+    Object.entries(found).map(([key, names]) => [key, [...names].sort()] as const),
+  );
+}
+
 describe('translations', () => {
   it('have the same keys in sk and en', () => {
     expect(baseKeys(sk)).toEqual(baseKeys(en));
@@ -39,6 +59,18 @@ describe('translations', () => {
     for (const base of plurals) {
       for (const category of categories) expect(all).toContain(`${base}_${category}`);
     }
+  });
+
+  it.each([
+    ['sk', sk],
+    ['en', en],
+  ] as const)('have no empty %s strings', (_locale, messages) => {
+    expect(entries(messages).filter(([, text]) => text.trim() === '')).toEqual([]);
+  });
+
+  it('use the same {{placeholders}} in sk and en', () => {
+    // Per base key, so a plural form may leave out `{{count}}` ("One toast") as long as another has it.
+    expect(placeholders(sk)).toEqual(placeholders(en));
   });
 
   it('cover every API error code and achievement', () => {

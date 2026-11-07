@@ -76,7 +76,7 @@ export class ToastSessionsController {
     const parsed = createToastSessionSchema.safeParse(fields);
     if (!parsed.success) throw AppError.validation(parsed.error);
     // After reading the count, before the photo is processed.
-    this.sessions.consumeQuota(user.id, parsed.data.count);
+    await this.sessions.consumeQuota(user.id, parsed.data.count);
     return this.sessions.create(user.id, parsed.data.count, photo);
   }
 
@@ -121,7 +121,7 @@ export class ToastSessionsController {
     @Req() request: FastifyRequest,
   ): Promise<ToastSessionChangeResponse> {
     await this.sessions.assertCanSetPhoto(user.id, params.id);
-    this.sessions.consumeQuota(user.id, 1);
+    await this.sessions.consumeQuota(user.id, 1);
     const { photo } = await readPhotoUpload(request);
     if (!photo) {
       throw new AppError('VALIDATION_ERROR', 'A photo is required', { [PHOTO_FIELD]: 'Required' });

@@ -113,7 +113,7 @@ export const verification = pgTable(
   (table) => [index('verification_identifier_idx').on(table.identifier)],
 );
 
-// Better Auth's per-IP limits, plus our per-email magic-link limit (`email-rate-limit.ts`).
+// Better Auth's per-IP limits, plus ours (`common/rate-limit.ts`): per email, toasts and reports per user.
 export const rateLimit = pgTable('rate_limit', {
   id: id(),
   key: text().notNull().unique(),

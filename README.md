@@ -49,6 +49,9 @@ The production images, run locally (app at http://localhost:8080):
 docker compose -f infra/docker/docker-compose.yml --profile prod up --build
 ```
 
+Kubernetes (a local k3d cluster and production on k3s), deploys, backups, restores and the performance checks:
+[`docs/DEPLOY.md`](docs/DEPLOY.md).
+
 ## Layout
 
 | Path              | What                                        |
@@ -58,7 +61,8 @@ docker compose -f infra/docker/docker-compose.yml --profile prod up --build
 | `packages/shared` | Zod schemas and types shared by web and api |
 | `e2e`             | Playwright end-to-end tests                 |
 | `infra/docker`    | Compose for local services, prod images     |
-| `docs`            | Spec, plan, contributor guide               |
+| `infra/k8s`       | Kustomize base + dev/prod overlays, scripts |
+| `docs`            | Spec, plan, contributor guide, runbook      |
 
 ## License
 
