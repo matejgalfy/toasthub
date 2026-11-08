@@ -10,10 +10,10 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: toasthub-https-redirect@kubernetescrd,toasthub-hsts@kubernetescrd
 spec:
   tls:
-    - hosts: [s3.toasthub.fitbond.me]
+    - hosts: [s3.toasthub.live]
       secretName: toasthub-s3-tls
   rules:
-    - host: s3.toasthub.fitbond.me
+    - host: s3.toasthub.live
       http:
         paths:
           - path: /

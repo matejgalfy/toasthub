@@ -18,13 +18,13 @@ configMapGenerator:
   - name: toasthub-config
     behavior: merge
     literals:
-      - BETTER_AUTH_URL=https://toasthub.fitbond.me
-      - WEB_ORIGIN=https://toasthub.fitbond.me
+      - BETTER_AUTH_URL=https://toasthub.live
+      - WEB_ORIGIN=https://toasthub.live
       # The domain verified in Resend.
       - MAIL_FROM=Toasthub <toasthub@fitbond.me>
       # MinIO through its own Ingress (s3-ingress.yaml): browsers load the presigned photo URLs from it, and the
       # api uploads to the same host, since a URL only works on the host it was signed for.
-      - S3_ENDPOINT=https://s3.toasthub.fitbond.me
+      - S3_ENDPOINT=https://s3.toasthub.live
 
 # One pod each: the 4 GB VM also runs FitBond. maxUnavailable 0 still keeps a deploy free of downtime.
 replicas:
@@ -47,11 +47,11 @@ patches:
       - op: add
         path: /spec/tls
         value:
-          - hosts: [toasthub.fitbond.me]
+          - hosts: [toasthub.live]
             secretName: toasthub-tls
       - op: add
         path: /spec/rules/0/host
-        value: toasthub.fitbond.me
+        value: toasthub.live
   - target:
       kind: PersistentVolumeClaim
       name: minio-data

@@ -20,7 +20,7 @@ api and web run 2 pods each in the base and 1 each in prod, where the VM is shar
 | `infra/k8s/base/`                         | The app in namespace `toasthub`: Deployments, Services, Ingress, ConfigMap, migration Job, Postgres `Cluster` + `ObjectStore` + `ScheduledBackup` |
 | `infra/k8s/minio/`                        | MinIO, its volume and the bucket Job; used by both overlays                                                                                       |
 | `infra/k8s/overlays/dev/`                 | Local cluster: MinIO and Mailpit in-cluster, plain dev Secrets, local images                                                                      |
-| `infra/k8s/overlays/prod/`                | Production: `toasthub.fitbond.me`, TLS, HSTS, MinIO behind `s3.toasthub.fitbond.me`, Sealed Secrets                                               |
+| `infra/k8s/overlays/prod/`                | Production: `toasthub.live`, TLS, HSTS, MinIO behind `s3.toasthub.live`, Sealed Secrets                                                           |
 | `infra/k8s/cluster/install-operators.sh`  | Once per cluster: cert-manager, CloudNativePG + Barman Cloud plugin, Sealed Secrets                                                               |
 | `infra/k8s/cluster/dev/`, `cluster/prod/` | Once per cluster: k3d config + CoreDNS rewrite (dev); Let's Encrypt issuer + Traefik settings (prod)                                              |
 | `infra/k8s/deploy.sh <dev\|prod> [tag]`   | Every deploy: migrations first, then the rollout                                                                                                  |
@@ -78,10 +78,11 @@ deployment/api deployment/worker deployment/web` (the tag `local` doesn't change
 
 ## Production
 
-**[toasthub.fitbond.me](https://toasthub.fitbond.me)** runs in the k3s cluster of the Azure VM that also runs
-FitBond (its runbook: `docs/DEPLOY.md` in the `fit-bond` repo), in its own namespace `toasthub` (SPEC §12 D63).
-Photos and database backups are in MinIO inside the cluster; its S3 API is public at `s3.toasthub.fitbond.me`,
-because browsers load photos from presigned URLs on it. Mail goes through Resend. The commands below run **on
+**[toasthub.live](https://toasthub.live)** runs in the k3s cluster of the Azure VM that also runs
+FitBond (its runbook: `docs/DEPLOY.md` in the `fit-bond` repo), in its own namespace `toasthub` (SPEC §12 D63,
+D65). Photos and database backups are in MinIO inside the cluster; its S3 API is public at `s3.toasthub.live`,
+because browsers load photos from presigned URLs on it. Mail goes through Resend, from FitBond's domain
+`fitbond.me`. The commands below run **on
 the VM** (`ssh <user>@<vm>`), where `kubectl` uses `~/.kube/config`.
 
 ### One-time setup
@@ -89,16 +90,17 @@ the VM** (`ssh <user>@<vm>`), where `kubectl` uses `~/.kube/config`.
 1. **Cluster.** FitBond's setup already installed k3s, cert-manager, the `letsencrypt` ClusterIssuer and the
    Traefik settings (`infra/k8s/cluster/prod/` holds the same two files, for a new cluster only). Toasthub adds
    about 1.5 GB of memory; check `free -h` and `kubectl top nodes` first.
-2. **DNS** (Namecheap → `fitbond.me` → Advanced DNS): two `A` records to the VM's public IP, Host `toasthub` and
-   Host `s3.toasthub`. Wait until both resolve, or the certificates keep failing for a while:
+2. **DNS** (name.com → My Domains → `toasthub.live` → Manage DNS Records, on name.com's own nameservers):
+   delete the parking records name.com adds, then two `A` records to the VM's public IP, Host empty (the root)
+   and Host `s3`. Wait until both resolve, or the certificates keep failing for a while:
    ```sh
-   dig +short toasthub.fitbond.me A @1.1.1.1      # the VM's IP
-   dig +short s3.toasthub.fitbond.me A @1.1.1.1
+   dig +short toasthub.live A @1.1.1.1      # the VM's IP
+   dig +short s3.toasthub.live A @1.1.1.1
    ```
-3. **Resend.** Add the domain `fitbond.me` (the free plan has one domain; FitBond can send from it too) and
-   create the DNS records it lists in Namecheap: in the Host field only the part before `.fitbond.me`
-   (`resend._domainkey`, `send`); an `MX` record needs Mail Settings → Custom MX. Verify, then create an API key
-   with sending access. The overlay's `MAIL_FROM` is `toasthub@fitbond.me`.
+3. **Resend.** The free plan has one domain, so Toasthub sends from FitBond's `fitbond.me` (DNS at Namecheap).
+   Add the domain and create the DNS records it lists in Namecheap: in the Host field only the part before
+   `.fitbond.me` (`resend._domainkey`, `send`); an `MX` record needs Mail Settings → Custom MX. Verify, then
+   create an API key with sending access. The overlay's `MAIL_FROM` is `toasthub@fitbond.me`.
 4. **Repo and operators.**
    ```sh
    git clone https://github.com/matejgalfy/toasthub.git ~/toasthub && cd ~/toasthub
@@ -131,8 +133,9 @@ the VM** (`ssh <user>@<vm>`), where `kubectl` uses `~/.kube/config`.
    Copy the folder to your PC and keep it like a password, never in git. Commit the sealed file from your PC
    (the VM's checkout has no push rights), then reset the VM's copy:
    ```sh
-   # on the PC, in the repo
-   scp -r <user>@<vm>:toasthub-secrets ~/toasthub-secrets
+   # on the PC: cd into the repo first, the second scp's target is relative to it
+   # "$HOME", not ~: PowerShell passes ~ to scp.exe unexpanded
+   scp -r <user>@<vm>:toasthub-secrets "$HOME/toasthub-secrets"
    scp <user>@<vm>:toasthub/infra/k8s/overlays/prod/sealed-secrets.yaml infra/k8s/overlays/prod/
    git commit -am "build(infra): seal the prod secrets" && git push
    # on the VM
@@ -146,9 +149,9 @@ the VM** (`ssh <user>@<vm>`), where `kubectl` uses `~/.kube/config`.
    cd ~/toasthub && git pull && infra/k8s/deploy.sh prod "$(git rev-parse HEAD)"
    kubectl -n toasthub get pods,certificate     # all Running; both certificates READY=True after a minute or two
    ```
-9. **First admin.** Sign in once at https://toasthub.fitbond.me, then
+9. **First admin.** Sign in once at https://toasthub.live, then
    `kubectl -n toasthub exec deploy/api -- node dist/modules/admin/promote-admin.js <email>`.
-10. **Check.** Log a toast with a photo (it loads from `s3.toasthub.fitbond.me`), and
+10. **Check.** Log a toast with a photo (it loads from `s3.toasthub.live`), and
     `kubectl -n toasthub get backups` shows the first base backup as `completed`.
 
 ### Deploying a new version
