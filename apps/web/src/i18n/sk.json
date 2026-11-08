@@ -510,7 +510,8 @@
     "email": {
       "label": "E-mail",
       "placeholder": "ty@example.com",
-      "invalid": "Zadaj platnú e-mailovú adresu."
+      "invalid": "Zadaj platnú e-mailovú adresu.",
+      "notAllowed": "Nepovolená e-mailová adresa, skús inú."
     },
     "login": {
       "intro": "Zadaj e-mail a pošleme ti odkaz na prihlásenie. Heslo netreba.",

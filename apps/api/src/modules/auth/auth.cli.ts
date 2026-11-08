@@ -14,6 +14,7 @@ export const auth = createAuth({
     BETTER_AUTH_SECRET: 'cli-only-secret-never-used-for-signing',
     BETTER_AUTH_URL: 'http://localhost:3000',
     WEB_ORIGIN: 'http://localhost:5173',
+    ALLOWED_EMAIL_DOMAINS: [],
   },
   sendMagicLink: () => Promise.resolve(),
   logger: console,

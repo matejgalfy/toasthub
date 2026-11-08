@@ -181,6 +181,10 @@ rolls the pods on the next deploy. Secrets are `toasthub-app` (app), `toasthub-b
 `DATABASE_URL` comes from `postgres-app`, which CloudNativePG creates. Every variable is described in
 `apps/api/.env.example`.
 
+The email domains that may sign in are `ALLOWED_EMAIL_DOMAINS` in `infra/k8s/overlays/prod/kustomization.yaml`
+(SPEC BR-AUTH-6). To change them, edit that line, commit and deploy (`deploy.sh prod <sha>`); the image stays
+the same.
+
 ## Backups and restore
 
 CloudNativePG archives every WAL segment and takes a base backup daily at 02:30 UTC (plus one right after the

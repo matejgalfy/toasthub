@@ -207,6 +207,46 @@ describe('magic-link sign-in', () => {
   });
 });
 
+describe('allowed email domains (BR-AUTH-6)', () => {
+  async function restrictDomains() {
+    await app.close();
+    app = await createTestApp({ ALLOWED_EMAIL_DOMAINS: 'gmail.com,muni.cz' });
+    db = app.get<Database>(DB);
+  }
+
+  it('sends links to an allowed domain only, and says so otherwise', async () => {
+    await restrictDomains();
+    expect((await requestMagicLink(app, 'ann@MUNI.cz')).statusCode).toBe(200);
+    expect(await messagesTo('ann@muni.cz')).toHaveLength(1);
+
+    const res = await requestMagicLink(app, 'ann@mail.muni.cz');
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({
+      error: { code: 'FORBIDDEN', message: 'Email address not allowed, try a different one.' },
+    });
+    expect(await messagesTo('ann@mail.muni.cz')).toHaveLength(0);
+  });
+
+  it('also turns away an existing account on a domain that is not allowed', async () => {
+    await signIn(app, 'ann@example.com');
+    await restrictDomains();
+    expect((await requestMagicLink(app, 'ann@example.com')).statusCode).toBe(403);
+  });
+
+  it('still answers an invalid email with a 400', async () => {
+    await restrictDomains();
+    expect((await requestMagicLink(app, 'not-an-email')).statusCode).toBe(400);
+  });
+
+  it('creates no account from a link sent before the domain was taken off the list', async () => {
+    const link = await requestLink('bob@example.com');
+    await restrictDomains();
+    const res = await openLink(app, link);
+    expect(res.headers['set-cookie']).toBeUndefined();
+    expect(await db.$count(user)).toBe(0);
+  });
+});
+
 describe('rate limits (BR-AUTH-5)', () => {
   it('allows 5 links per email per hour, case-insensitively', async () => {
     for (let i = 0; i < 5; i++) {

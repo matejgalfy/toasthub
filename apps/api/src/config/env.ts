@@ -19,6 +19,17 @@ export const envSchema = z.object({
   BETTER_AUTH_URL: httpUrl.default('http://localhost:3000'),
   // The SPA's origin: the only CORS origin and the only trusted `Origin` on mutations.
   WEB_ORIGIN: httpUrl.transform((url) => new URL(url).origin).default('http://localhost:5173'),
+  // BR-AUTH-6: comma-separated email domains that may sign in, matched exactly. Empty = every domain.
+  ALLOWED_EMAIL_DOMAINS: z
+    .string()
+    .default('')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((domain) => domain.trim().toLowerCase())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/, 'Not a domain'))),
   SMTP_URL: z.url({ protocol: /^smtps?$/ }).default('smtp://localhost:1025'),
   MAIL_FROM: z.string().min(3).default('Toasthub <no-reply@toasthub.local>'),
   // Photo storage: any S3-compatible API. Without an endpoint the AWS SDK uses AWS S3 in the region.

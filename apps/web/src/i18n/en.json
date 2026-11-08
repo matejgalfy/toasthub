@@ -494,7 +494,8 @@
     "email": {
       "label": "Email",
       "placeholder": "you@example.com",
-      "invalid": "Enter a valid email address."
+      "invalid": "Enter a valid email address.",
+      "notAllowed": "Email address not allowed, try a different one."
     },
     "login": {
       "intro": "Enter your email and we'll send you a link to log in. No password needed.",

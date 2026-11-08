@@ -1,4 +1,4 @@
-import { Locale, ProfileVisibility, UserRole, UserStatus } from '@toasthub/shared';
+import { emailSchema, Locale, ProfileVisibility, UserRole, UserStatus } from '@toasthub/shared';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
@@ -12,6 +12,7 @@ import type { Database } from '../../db/db.module';
 import * as authSchema from '../../db/schema/auth';
 import type { MagicLinkMessage } from '../mail/mail.service';
 import { localeFromAcceptLanguage, MAGIC_LINK_TTL_MINUTES } from '../mail/magic-link-email';
+import { EMAIL_NOT_ALLOWED_MESSAGE, isEmailDomainAllowed } from './email-domain';
 import { emailRateLimitKey } from './email-rate-limit';
 
 // Must match API_PREFIX in app.setup.ts (not imported, so the Better Auth CLI can load this file).
@@ -39,7 +40,10 @@ export interface AuthLogger {
 
 export interface AuthDeps {
   db: Database;
-  env: Pick<Env, 'NODE_ENV' | 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL' | 'WEB_ORIGIN'>;
+  env: Pick<
+    Env,
+    'NODE_ENV' | 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL' | 'WEB_ORIGIN' | 'ALLOWED_EMAIL_DOMAINS'
+  >;
   sendMagicLink: (message: MagicLinkMessage) => Promise<void>;
   logger: AuthLogger;
 }
@@ -142,8 +146,14 @@ export function createAuth({ db, env, sendMagicLink, logger }: AuthDeps) {
       user: {
         create: {
           // The sign-in body may carry a `name`; ignore it so the display name is only ever set (and
-          // validated) by onboarding. An empty name means "not onboarded".
-          before: (user) => Promise.resolve({ data: { ...user, name: '' } }),
+          // validated) by onboarding. An empty name means "not onboarded". The domain check is repeated
+          // here for links sent before a domain was taken off the list (BR-AUTH-6).
+          before: (user) =>
+            Promise.resolve(
+              isEmailDomainAllowed(user.email, env.ALLOWED_EMAIL_DOMAINS) && {
+                data: { ...user, name: '' },
+              },
+            ),
         },
       },
       session: {
@@ -159,6 +169,14 @@ export function createAuth({ db, env, sendMagicLink, logger }: AuthDeps) {
         if (ctx.path !== '/sign-in/magic-link') return;
         const email: unknown = (ctx.body as { email?: unknown } | undefined)?.email;
         if (typeof email !== 'string') return;
+        // BR-AUTH-6. Says so openly: it tells nothing about whether an account exists (BR-AUTH-1). An
+        // invalid email is left to Better Auth's own 400.
+        if (
+          emailSchema.safeParse(email).success &&
+          !isEmailDomainAllowed(email, env.ALLOWED_EMAIL_DOMAINS)
+        ) {
+          throw new APIError('FORBIDDEN', { message: EMAIL_NOT_ALLOWED_MESSAGE });
+        }
         const result = await consumeRateLimit(db, emailRateLimitKey(email), MAGIC_LINK_EMAIL_LIMIT);
         if (!result.allowed) {
           throw new APIError(

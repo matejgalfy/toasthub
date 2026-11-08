@@ -25,6 +25,7 @@ import { SessionGuard } from './session.guard';
             BETTER_AUTH_SECRET: config.get('BETTER_AUTH_SECRET'),
             BETTER_AUTH_URL: config.get('BETTER_AUTH_URL'),
             WEB_ORIGIN: config.get('WEB_ORIGIN'),
+            ALLOWED_EMAIL_DOMAINS: config.get('ALLOWED_EMAIL_DOMAINS'),
           },
           sendMagicLink: (message) => mail.sendMagicLink(message),
           logger: new Logger('BetterAuth'),

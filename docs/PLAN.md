@@ -441,6 +441,7 @@ Every business rule in SPEC §4 and where it is tested (checked in M20). Paths: 
 | BR-AUTH-3 | ☑ `a/auth/auth.int.test.ts` "logs a new user in and sends them to onboarding"; `w/pages/onboarding-page.test.tsx`; `e2e/auth.spec.ts` |
 | BR-AUTH-4 | ☑ `a/auth/auth.int.test.ts` "httpOnly, SameSite=Lax session cookie valid for 30 days", "refreshes a session older than a day", "does not refresh … within a day", "accepts the bearer token" |
 | BR-AUTH-5 | ☑ `a/auth/auth.int.test.ts` "rate limits (BR-AUTH-5)"; `apps/api/src/common/rate-limit.int.test.ts` |
+| BR-AUTH-6 | ☑ `a/auth/auth.int.test.ts` "allowed email domains (BR-AUTH-6)"; `a/auth/email-domain.test.ts`; `w/features/auth/magic-link-form.test.tsx` |
 | BR-TOAST-1 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "logs one toast with its photo at the server time", "raises the count with toasts eaten now" |
 | BR-TOAST-2 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "refuses a log without a photo and saves nothing", "takes no quota for a log refused for a missing photo", "stores the photo … as WebP without EXIF", "rejects a photo over 10 MB", "rejects a file that is not a supported image"; `a/toasts/photo-pipeline.test.ts`; `w/pages/home-page.test.tsx` "logs only with a photo"; `e2e/home.spec.ts` |
 | BR-TOAST-3 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "soft-deletes the session with its toasts and removes their likes", "takes the toasts out of the home count", "the per-toast routes are gone" |

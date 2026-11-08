@@ -20,6 +20,8 @@ configMapGenerator:
     literals:
       - BETTER_AUTH_URL=https://toasthub.live
       - WEB_ORIGIN=https://toasthub.live
+      # Only these email domains can sign in (SPEC BR-AUTH-6, D66).
+      - ALLOWED_EMAIL_DOMAINS=gmail.com,muni.cz,mail.muni.cz
       # The domain verified in Resend.
       - MAIL_FROM=Toasthub <toasthub@fitbond.me>
       # MinIO through its own Ingress (s3-ingress.yaml): browsers load the presigned photo URLs from it, and the

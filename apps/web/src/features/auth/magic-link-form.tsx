@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { emailSchema } from '@toasthub/shared';
 
-import { errorMessageKey } from '@/api/errors';
+import { ApiError, errorMessageKey } from '@/api/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,13 @@ function storeLastEmail(email: string) {
   } catch {
     // Not remembered; the user types it again next time.
   }
+}
+
+// On this endpoint a 403 means only one thing: the email's domain isn't allowed (BR-AUTH-6).
+function errorKey(error: unknown) {
+  return error instanceof ApiError && error.code === 'FORBIDDEN'
+    ? 'auth.email.notAllowed'
+    : errorMessageKey(error);
 }
 
 interface MagicLinkFormProps {
@@ -84,7 +91,7 @@ export function MagicLinkForm({ submitLabel, next }: MagicLinkFormProps) {
   const message = invalid
     ? t('auth.email.invalid')
     : request.isError
-      ? t(errorMessageKey(request.error))
+      ? t(errorKey(request.error))
       : null;
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">

@@ -21,6 +21,7 @@ describe('parseEnv', () => {
       BETTER_AUTH_SECRET,
       BETTER_AUTH_URL: 'http://localhost:3000',
       WEB_ORIGIN: 'http://localhost:5173',
+      ALLOWED_EMAIL_DOMAINS: [],
       SMTP_URL: 'smtp://localhost:1025',
       MAIL_FROM: 'Toasthub <no-reply@toasthub.local>',
       S3_REGION: 'us-east-1',
@@ -46,6 +47,17 @@ describe('parseEnv', () => {
       /PORT[\s\S]*NODE_ENV|NODE_ENV[\s\S]*PORT/,
     );
     expect(() => parseEnv({})).toThrow(/DATABASE_URL[\s\S]*BETTER_AUTH_SECRET/);
+  });
+
+  it('splits the allowed email domains, lower-cased and trimmed', () => {
+    expect(
+      parseEnv({ ...required, ALLOWED_EMAIL_DOMAINS: ' Gmail.com, muni.cz,,mail.muni.cz ' })
+        .ALLOWED_EMAIL_DOMAINS,
+    ).toEqual(['gmail.com', 'muni.cz', 'mail.muni.cz']);
+    expect(parseEnv({ ...required, ALLOWED_EMAIL_DOMAINS: '' }).ALLOWED_EMAIL_DOMAINS).toEqual([]);
+    expect(() => parseEnv({ ...required, ALLOWED_EMAIL_DOMAINS: '@gmail.com' })).toThrow(
+      /ALLOWED_EMAIL_DOMAINS/,
+    );
   });
 
   it('parses the S3 path-style flag', () => {
