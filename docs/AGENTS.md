@@ -3,22 +3,59 @@
 How to work in this repo. `docs/SPEC.md` says **what** to build, `docs/PLAN.md` says **in which order**
 (milestones, status, handoff notes). This file says **how**.
 
-## Before you start
+## Workflow
 
-1. Read `docs/PLAN.md` → the milestone you are implementing and the **Handoff notes** section.
-2. Read only the SPEC sections the milestone lists. Look at existing code only where the milestone touches it.
-3. Work directly on an up-to-date `main`. A branch `m<nn>-<slug>` with a PR into `main` is optional: use one for
-   parallel milestones or when you want a review first.
-4. Before the milestone's final commit (or PR): all checks green (see below), tick the milestone in PLAN **Status**, add 2–5 lines to
-   **Handoff notes**, and add new decisions to SPEC §12.
+Pick the path by size:
+
+- **Small change** (a fix, a copy or style tweak, a refactor; no new rule, endpoint or table): just do it. Run
+  the [checks](#checks) and update the docs it makes wrong.
+- **Feature** (a new rule, endpoint, table, page or job): spec first, then code.
+  1. Agree on the scope with the owner. When a product choice is open, ask; don't guess.
+  2. Write it into SPEC: rules in §4, entities in §7, endpoints in §8, pages in §9. If it comes from §13 Future,
+     move it out of there. Record the choices in §12.
+  3. If it is bigger than one chat (about 25 files or more than one feature area), add a milestone under
+     **Post-v1** in PLAN (next free `M<n>`, a Status row, Read and Scope like the others) and follow the
+     milestone path.
+  4. Build it along the [feature checklist](#feature-checklist).
+- **Milestone** (from PLAN): read the milestone and **Handoff notes**, then only the SPEC sections it lists.
+  Look at existing code only where it touches it. Stay inside Scope; write gaps into Handoff notes. Before the
+  final commit (or PR): tick it in PLAN **Status** and add 2–5 lines to **Handoff notes**.
+
+Every path ends with the SPEC §11 Definition of Done, scoped to the change.
+
+Work directly on an up-to-date `main`. A branch `m<nn>-<slug>` or `feat/<slug>` with a PR into `main` is
+optional: use one for parallel work or when you want a review first.
+
+## Checks
+
+Before the final commit (or PR), all of these pass:
+
+```sh
+bun run format:check && bun run lint && bun run typecheck && bun run test && bun run build
+bun run e2e       # when web or an api route changed
+bun run openapi   # when a route or a shared schema changed; commit openapi.json + schema.gen.ts
+```
+
+CI runs the same and fails if `openapi.json` is stale.
 
 ## Keeping docs current
 
-Any change, not just a milestone, updates the docs it makes wrong, in the same commit:
+Any change updates the docs it makes wrong, in the same commit. Where things go:
 
-- `docs/SPEC.md` when behaviour, an endpoint, the data model or a rule changes (new decisions go in §12).
-- `docs/PLAN.md` when a milestone's scope, order or status changes, or the next agent needs a handoff note.
-- `docs/AGENTS.md` when a command, convention, helper, path or workflow described here changes.
+| What changed                                     | Update                                                   |
+| ------------------------------------------------ | -------------------------------------------------------- |
+| A business rule or behaviour                     | SPEC §4, and its row in PLAN → BR test checklist         |
+| A table or column                                | SPEC §7                                                  |
+| An endpoint (new, changed, removed)              | SPEC §8 (and `bun run openapi`)                          |
+| A page or route                                  | SPEC §9                                                  |
+| A choice someone might later question            | SPEC §12, next free `D<n>`                               |
+| An open question answered / a new idea for later | SPEC §14 (tick it, link the `D<n>`) / SPEC §13           |
+| A command, convention, helper, path or workflow  | `docs/AGENTS.md` (and `README.md` if it is a setup step) |
+| Infra, env vars, secrets, deploy, backups        | `docs/DEPLOY.md`                                         |
+| A milestone's scope, order or status             | `docs/PLAN.md`                                           |
+
+Bump SPEC's `Last updated` date when you edit it. A rule that should hold from now on goes into this file;
+Handoff notes are only for what the next person needs to pick up unfinished work.
 
 ## Owner's deployment notes
 
@@ -91,9 +128,9 @@ The pre-commit hook runs Prettier (auto-fix + re-stage) and ESLint on staged fil
 apps/web          React SPA (Vite)            → src/components, src/features/<area>, src/pages, src/api, src/i18n
 apps/api          NestJS on Fastify           → src/modules/<area>, src/config, src/db, src/common, src/jobs, test/
 packages/shared   Zod schemas, DTO types, enums, achievement definitions — imported by web and api
-e2e               Playwright tests (from M5)
-infra             docker/ and k8s/ (from M1 / M19)
-docs              SPEC.md, PLAN.md, AGENTS.md
+e2e               Playwright tests (tests/, perf/, support/, fixtures/)
+infra             docker/ and k8s/
+docs              SPEC.md, PLAN.md, AGENTS.md, DEPLOY.md
 ```
 
 ### How `@toasthub/shared` is consumed
@@ -118,8 +155,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   exports. No default exports, except where a tool requires one (config files).
 - Import order: external packages, then `@toasthub/*`, then relative imports, with a blank line between groups.
 - Comments explain _why_, not _what_. No TODO without a linked issue.
-- All user-facing text goes through i18n with both `sk` and `en` keys (from M4). Day boundaries are always
-  Europe/Bratislava (SPEC §12 D2). Use the shared time utils (from M3), never raw `Date` math.
+- All user-facing text goes through i18n with both `sk` and `en` keys. Day boundaries are always
+  Europe/Bratislava (SPEC §12 D2). Use the shared time utils, never raw `Date` math.
 
 **API (`apps/api`)**
 
@@ -132,8 +169,8 @@ docs              SPEC.md, PLAN.md, AGENTS.md
   filter maps them to the SPEC §8 format (rules in SPEC §12 D24). Never leak internal messages, stack traces or
   emails to clients.
 - Config: read env only through `ConfigService.get('NAME')`. A new variable goes into `src/config/env.ts` (Zod) and
-  `apps/api/.env.example`; one that prod needs also into the k8s `toasthub-config` ConfigMap (`infra/k8s/base`
-  - overlays) or, if secret, into the `toasthub-app` Secret (dev overlay + `seal-secrets.sh`, `docs/DEPLOY.md`).
+  `apps/api/.env.example`; one that prod needs also into the k8s `toasthub-config` ConfigMap (`infra/k8s/base` and
+  overlays) or, if secret, into the `toasthub-app` Secret (dev overlay + `seal-secrets.sh`, `docs/DEPLOY.md`).
 - Database: inject with `@Inject(DB) db: Database` (`src/db/db.module.ts`). Tables are exported from
   `src/db/schema/index.ts`; generate migrations with `db:generate`, never edit an applied one.
 - Lists: parse `pageQuerySchema` from `shared`, fetch `limit + 1` rows ordered by a unique keyset, and return
@@ -193,6 +230,39 @@ docs              SPEC.md, PLAN.md, AGENTS.md
 - Short notices (achievements, errors after an action) are `toast.success()` / `toast.error()` from `sonner`;
   the one `<Toaster>` is mounted in `app.tsx`. Plurals use i18next `_one`/`_other` keys in `en.json` and
   `_one`/`_few`/`_many`/`_other` in `sk.json` (the i18n test checks both).
+
+## Feature checklist
+
+The usual touchpoints of a feature that crosses the stack. Skip what doesn't apply.
+
+**shared**: request and response Zod schemas and enums in `packages/shared` (erasable TS, `.js` imports).
+
+**api**
+
+- [ ] Table or column in `src/db/schema/`, then `db:generate` (never edit an applied migration). Seed data in
+      `src/db/seed.ts` if the dev data should show it.
+- [ ] Module in `src/modules/<area>/`, registered in `app.module.ts`; pure rules in `<area>.policy.ts`.
+- [ ] Unit tests for the rules, an `*.int.test.ts` for every endpoint (including the 401/403/404/409 paths).
+      A new `BR-*` rule gets a row in PLAN → BR test checklist.
+- [ ] New env var: `src/config/env.ts`, `.env.example`, and the k8s ConfigMap or Secret.
+- [ ] Scheduled work: a `JobName`, its cron in `JOB_SCHEDULES`, a handler in `JobsService` that is safe to run
+      twice.
+- [ ] `bun run openapi`, then commit `openapi.json` and `schema.gen.ts`.
+
+**web**
+
+- [ ] TanStack Query hook in `src/features/<area>` around the generated client.
+- [ ] Page in `src/pages`, route in `src/routes.tsx` under the right guard; a main section also goes into
+      `components/layout/nav-items.ts`.
+- [ ] Every string in `en.json` and `sk.json` (Slovak plurals `_one`/`_few`/`_many`/`_other`).
+- [ ] Only theme tokens, mobile first at 360 px, keyboard and labels checked.
+- [ ] Page test with `renderWithApp` + `mockApi`.
+
+**e2e**
+
+- [ ] Happy path in `e2e/tests/`; a new page goes into the list in `accessibility.spec.ts`.
+
+**docs**: see [Keeping docs current](#keeping-docs-current). Then run the [checks](#checks).
 
 ## Tests
 

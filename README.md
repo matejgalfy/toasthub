@@ -26,7 +26,7 @@ Logging in locally: enter any email at http://localhost:5173/login, open the ema
 link (it is valid for 15 minutes and works once). `bun run db:seed` adds onboarded sample users
 (`ann|bob|cyril|dana|emil@example.com`) that sign in the same way.
 
-Checks (the same ones CI runs):
+Checks (the same ones CI runs; when to run which: [`docs/AGENTS.md` → Checks](docs/AGENTS.md#checks)):
 
 ```sh
 bun run format:check

@@ -2,6 +2,8 @@
 
 > Derived from `docs/SPEC.md` (2026-10-29). SPEC says **what**, this file says **in which order**.
 > Conventions and how-to-work rules live in `docs/AGENTS.md` (created in M0).
+> v1 (M0–M20) is done. New work follows `docs/AGENTS.md` → Workflow; a feature too big for one chat gets a
+> milestone under [Post-v1](#post-v1).
 
 ---
 
@@ -466,10 +468,18 @@ Every business rule in SPEC §4 and where it is tested (checked in M20). Paths: 
 
 ---
 
+## Post-v1
+
+Milestones for features after launch, numbered on from M21. Each has **Read** (SPEC sections), **Scope** and a
+row in the Status table, like the ones above. None yet.
+
+---
+
 ## Handoff notes
 
-_Append-only. Each milestone adds 2–5 lines: what exists now, conventions introduced, open issues for later
-milestones._
+_Append-only. Each milestone adds 2–5 lines: what exists now, gotchas, open issues for later milestones. A rule
+that should hold from now on goes into `docs/AGENTS.md`, not here. The notes up to M20 are the v1 history: where
+one disagrees with AGENTS.md or SPEC, those win._
 
 - **M0** — Bun workspaces (`apps/web`, `apps/api`, `packages/shared`, `e2e` = empty stub until M5), root scripts,
   ESLint/Prettier/lefthook, CI (`format:check → lint → typecheck → test → build`). `/healthz` exists at the root
