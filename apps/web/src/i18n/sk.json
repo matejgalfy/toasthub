@@ -109,7 +109,7 @@
     },
     "log": {
       "title": "Zapísať toasty",
-      "description": "Koľko toastov zapísať? Fotka je nepovinná.",
+      "description": "Koľko toastov zapísať? Pridaj k nim fotku.",
       "count": "Toasty",
       "fewer": "O toast menej",
       "more": "O toast viac",
@@ -153,7 +153,7 @@
       "title": "Upraviť toasty",
       "description": "Zapísané o {{time}}. Zmeniť to môžeš do polnoci.",
       "photoAlt": "Fotka týchto toastov",
-      "photoHidden": "Túto fotku skryl administrátor. Môžeš ju odstrániť, ale nie nahradiť.",
+      "photoHidden": "Túto fotku skryl administrátor. Nedá sa nahradiť.",
       "photoLocked": "Fotku týchto toastov skryl administrátor, takže novú už nedostanú.",
       "save": "Uložiť zmeny",
       "delete": "Vymazať"

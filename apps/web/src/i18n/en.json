@@ -105,7 +105,7 @@
     },
     "log": {
       "title": "Log toasts",
-      "description": "How many toasts did you have? A photo is optional.",
+      "description": "How many toasts did you have? Add a photo of them.",
       "count": "Toasts",
       "fewer": "One toast fewer",
       "more": "One toast more",
@@ -145,7 +145,7 @@
       "title": "Edit toasts",
       "description": "Logged at {{time}}. You can change it until midnight.",
       "photoAlt": "The photo of these toasts",
-      "photoHidden": "An admin hid this photo. You can remove it, but not replace it.",
+      "photoHidden": "An admin hid this photo. It can't be replaced.",
       "photoLocked": "An admin hid the photo of these toasts, so they can't get a new one.",
       "save": "Save changes",
       "delete": "Delete"

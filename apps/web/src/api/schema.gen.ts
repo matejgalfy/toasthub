@@ -494,7 +494,7 @@ export interface paths {
     get?: never;
     put: operations['ToastSessionsController_setPhoto'];
     post?: never;
-    delete: operations['ToastSessionsController_removePhoto'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -1263,22 +1263,6 @@ export interface components {
     };
     UpdateToastSessionDto: {
       count: number;
-    };
-    ToastSessionResponseDto_Output: {
-      session: {
-        /** Format: uuid */
-        id: string;
-        /** Format: date-time */
-        loggedAt: string;
-        /** Format: date */
-        localDate: string;
-        count: number;
-        hasPhoto: boolean;
-        /** Format: uri */
-        photoUrl: string | null;
-        photoHidden: boolean;
-        editable: boolean;
-      };
     };
     ReportToastDto: {
       reason?: string | null;
@@ -2132,13 +2116,13 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: {
+    requestBody: {
       content: {
         'multipart/form-data': {
           /** @default 1 */
           count?: number;
           /** Format: binary */
-          photo?: string;
+          photo: string;
         };
       };
     };
@@ -2243,27 +2227,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ToastSessionChangeResponseDto_Output'];
-        };
-      };
-    };
-  };
-  ToastSessionsController_removePhoto: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ToastSessionResponseDto_Output'];
         };
       };
     };

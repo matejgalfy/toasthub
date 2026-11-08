@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { signUp } from '../support/auth.js';
 import { execute } from '../support/db.js';
+import { pickPhoto } from '../support/toasts.js';
 
 // SPEC §10: WCAG 2.1 AA basics. axe finds what can be checked automatically (labels, names, contrast,
 // landmarks, ARIA); keyboard use and alt text quality still need a person.
@@ -43,6 +44,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .withTags(WCAG_TAGS)
         .analyze();
       expect(violations.map((violation) => violation.id)).toEqual([]);
+      await pickPhoto(page, log);
       await log.getByRole('button', { name: 'Log 1 toast' }).click();
       await expect(log).toBeHidden();
 

@@ -441,13 +441,13 @@ Every business rule in SPEC §4 and where it is tested (checked in M20). Paths: 
 | BR-AUTH-3 | ☑ `a/auth/auth.int.test.ts` "logs a new user in and sends them to onboarding"; `w/pages/onboarding-page.test.tsx`; `e2e/auth.spec.ts` |
 | BR-AUTH-4 | ☑ `a/auth/auth.int.test.ts` "httpOnly, SameSite=Lax session cookie valid for 30 days", "refreshes a session older than a day", "does not refresh … within a day", "accepts the bearer token" |
 | BR-AUTH-5 | ☑ `a/auth/auth.int.test.ts` "rate limits (BR-AUTH-5)"; `apps/api/src/common/rate-limit.int.test.ts` |
-| BR-TOAST-1 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "logs one toast without a body at the server time", "raises the count with toasts eaten now" |
-| BR-TOAST-2 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "stores the photo … as WebP without EXIF", "rejects a photo over 10 MB", "rejects a file that is not a supported image"; `a/toasts/photo-pipeline.test.ts` |
+| BR-TOAST-1 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "logs one toast with its photo at the server time", "raises the count with toasts eaten now" |
+| BR-TOAST-2 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "refuses a log without a photo and saves nothing", "takes no quota for a log refused for a missing photo", "stores the photo … as WebP without EXIF", "rejects a photo over 10 MB", "rejects a file that is not a supported image"; `a/toasts/photo-pipeline.test.ts`; `w/pages/home-page.test.tsx` "logs only with a photo"; `e2e/home.spec.ts` |
 | BR-TOAST-3 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "soft-deletes the session with its toasts and removes their likes", "takes the toasts out of the home count", "the per-toast routes are gone" |
 | BR-TOAST-4 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "keeps earned achievements when the session is deleted"; `e2e/profile.spec.ts` |
 | BR-TOAST-5 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "logs several toasts as one session", "rejects count=…"; `a/toast-sessions/toast-sessions.policy.test.ts` (`planCountChange`) |
 | BR-TOAST-6 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "lists only the own sessions … newest first"; `w/pages/my-toasts-page.test.tsx` |
-| BR-TOAST-7 | ☑ `a/toast-sessions/toast-sessions.policy.test.ts`; `a/toast-sessions/toast-sessions.int.test.ts` PATCH, PUT/DELETE photo, DELETE ("is a conflict on yesterday", "counts added toasts toward the hourly limit"); `e2e/toasts.spec.ts` |
+| BR-TOAST-7 | ☑ `a/toast-sessions/toast-sessions.policy.test.ts`; `a/toast-sessions/toast-sessions.int.test.ts` PATCH, PUT photo, "DELETE /toast-sessions/:id/photo is gone", DELETE ("is a conflict on yesterday", "counts added toasts toward the hourly limit"); `e2e/toasts.spec.ts` |
 | BR-MOD-1 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "count threshold flag" |
 | BR-MOD-2 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "is opened once when the day goes over the threshold"; `e2e/admin.spec.ts` |
 | BR-MOD-3 | ☑ `a/toasts/toasts.int.test.ts` "opens a photo_report flag …", "is rate limited …" |

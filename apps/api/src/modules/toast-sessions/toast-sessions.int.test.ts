@@ -4,7 +4,6 @@ import {
   addDays,
   localDate,
   PHOTO_MAX_BYTES,
-  type ToastSession,
   type ToastSessionChangeResponse,
   type ToastSessionPage,
 } from '@toasthub/shared';
@@ -81,17 +80,26 @@ function postSession(as: SignedIn, body?: Body) {
   });
 }
 
+/** A log body with the photo every session needs (BR-TOAST-2). */
+async function withPhoto(fields: Record<string, string> = {}, data?: Buffer): Promise<Body> {
+  return multipart(fields, { data: data ?? (await photo()) });
+}
+
 async function logSession(
   as: SignedIn,
-  { count, photo }: { count?: number; photo?: Buffer } = {},
+  { count, photo: data }: { count?: number; photo?: Buffer } = {},
 ): Promise<ToastSessionChangeResponse> {
   const fields: Record<string, string> = count === undefined ? {} : { count: String(count) };
-  const res = await postSession(
-    as,
-    count === undefined && !photo ? undefined : multipart(fields, photo && { data: photo }),
-  );
+  const res = await postSession(as, await withPhoto(fields, data));
   expect(res.statusCode).toBe(201);
   return res.json<ToastSessionChangeResponse>();
+}
+
+/** One of today's sessions without a photo, as logged before photos were required (SPEC §12 D64). */
+async function photolessSession(as: SignedIn): Promise<string> {
+  const [row] = await insertToasts(db, [{ userId: as.userId, eatenAt: new Date() }]);
+  if (!row) throw new Error('No toast');
+  return row.sessionId;
 }
 
 function patchCount(as: SignedIn, id: string, count: unknown) {
@@ -178,9 +186,9 @@ describe('POST /toast-sessions', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('logs one toast without a body at the server time', async () => {
+  it('logs one toast with its photo at the server time', async () => {
     const before = Date.now();
-    const res = await postSession(ann);
+    const res = await postSession(ann, await withPhoto());
     expect(res.statusCode).toBe(201);
 
     const body = res.json<ToastSessionChangeResponse>();
@@ -189,12 +197,12 @@ describe('POST /toast-sessions', () => {
       loggedAt: expect.any(String) as string,
       localDate: localDate(new Date()),
       count: 1,
-      hasPhoto: false,
-      photoUrl: null,
+      hasPhoto: true,
+      photoUrl: expect.stringMatching(/X-Amz-Expires=3600/) as string,
       photoHidden: false,
       editable: true,
     });
-    expect(withoutTimeOfDay(body.newAchievements)).toEqual(['first_bite']);
+    expect(withoutTimeOfDay(body.newAchievements)).toEqual(['first_bite', 'shutterbug']);
     const loggedAt = Date.parse(body.session.loggedAt);
     expect(loggedAt).toBeGreaterThanOrEqual(before - 1000);
     expect(loggedAt).toBeLessThanOrEqual(Date.now() + 1000);
@@ -245,13 +253,22 @@ describe('POST /toast-sessions', () => {
     expect(metadata.exif).toBeUndefined();
   });
 
-  it('accepts a multipart body without a file', async () => {
-    const res = await postSession(ann, multipart({ count: '2' }));
-    expect(res.statusCode).toBe(201);
-    expect(res.json<ToastSessionChangeResponse>().session).toMatchObject({
-      count: 2,
-      photoUrl: null,
-    });
+  it('refuses a log without a photo and saves nothing (BR-TOAST-2)', async () => {
+    for (const body of [undefined, multipart({ count: '2' })]) {
+      const res = await postSession(ann, body);
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({
+        error: { code: 'VALIDATION_ERROR', fields: { photo: 'Required' } },
+      });
+    }
+    expect(await db.select().from(toastSession)).toHaveLength(0);
+  });
+
+  it('takes no quota for a log refused for a missing photo', async () => {
+    for (let i = 0; i < TOAST_RATE_LIMIT; i++) {
+      expect((await postSession(ann)).statusCode).toBe(400);
+    }
+    await logSession(ann);
   });
 
   it.each(['0', '11', 'two'])('rejects count=%s and saves nothing', async (count) => {
@@ -297,16 +314,16 @@ describe('POST /toast-sessions', () => {
     await logSession(ann, { count: 10 });
     await logSession(ann, { count: 9 });
 
-    const res = await postSession(ann, multipart({ count: '2' }));
+    const res = await postSession(ann, await withPhoto({ count: '2' }));
     expect(res.statusCode).toBe(429);
     expect(res.json()).toMatchObject({ error: { code: 'RATE_LIMITED' } });
     expect(await db.select().from(toast)).toHaveLength(29);
     // The refused session took nothing, so the last toast still fits.
     await logSession(ann);
-    expect((await postSession(ann)).statusCode).toBe(429);
+    expect((await postSession(ann, await withPhoto())).statusCode).toBe(429);
 
     const bob = await signIn(app, 'bob@example.com');
-    expect((await postSession(bob)).statusCode).toBe(201);
+    expect((await postSession(bob, await withPhoto())).statusCode).toBe(201);
   });
 
   it('is the only way to log: the per-toast routes are gone', async () => {
@@ -344,26 +361,22 @@ describe('achievements', () => {
     return withoutTimeOfDay((await logSession(ann, options)).newAchievements);
   }
 
-  it('awards first_bite once and stores it', async () => {
-    expect(await newAchievements()).toEqual(['first_bite']);
+  it('awards first_bite and shutterbug (every log has a photo) once and stores them', async () => {
+    expect(await newAchievements()).toEqual(['first_bite', 'shutterbug']);
     expect(await newAchievements()).toEqual([]);
 
     const rows = await db
       .select()
       .from(userAchievement)
       .where(eq(userAchievement.userId, ann.userId));
-    expect(rows.map((row) => row.achievementCode)).toContain('first_bite');
-  });
-
-  it('awards shutterbug for the first session with a photo', async () => {
-    await logSession(ann);
-    expect(await newAchievements({ photo: await photo() })).toEqual(['shutterbug']);
-    expect(await newAchievements({ photo: await photo() })).toEqual([]);
+    expect(rows.map((row) => row.achievementCode)).toEqual(
+      expect.arrayContaining(['first_bite', 'shutterbug']),
+    );
   });
 
   it('awards week_warrior when the session completes a 7-day streak', async () => {
     await addPastToasts([6, 5, 4, 3, 2, 1]);
-    expect(await newAchievements()).toEqual(['first_bite', 'week_warrior']);
+    expect(await newAchievements()).toEqual(['first_bite', 'shutterbug', 'week_warrior']);
   });
 
   it('awards centurion at 100 countable toasts, also within one session', async () => {
@@ -371,7 +384,7 @@ describe('achievements', () => {
     await addPastToasts(Array.from({ length: 97 }, (_, i) => 2 + 2 * (i % 20)));
     await addPastToasts([1], { deletedAt: new Date() });
     await addPastToasts([1], { status: 'rejected' });
-    expect(await newAchievements({ count: 2 })).toEqual(['first_bite']);
+    expect(await newAchievements({ count: 2 })).toEqual(['first_bite', 'shutterbug']);
     expect(await newAchievements({ count: 2 })).toEqual(['centurion']);
   });
 
@@ -385,11 +398,15 @@ describe('achievements', () => {
     ]);
   });
 
-  it('awards shutterbug when a photo is added later', async () => {
-    const { session } = await logSession(ann);
-    const res = await putPhoto(ann, session.id, multipart({}, { data: await photo() }));
+  it('awards shutterbug when a photo is added to a session from before photos were required', async () => {
+    const sessionId = await photolessSession(ann);
+    const res = await putPhoto(ann, sessionId, multipart({}, { data: await photo() }));
     expect(res.statusCode).toBe(200);
-    expect(res.json<ToastSessionChangeResponse>().newAchievements).toEqual(['shutterbug']);
+    // The inserted session earned nothing yet, so the photo also brings first_bite.
+    expect(withoutTimeOfDay(res.json<ToastSessionChangeResponse>().newAchievements)).toEqual([
+      'first_bite',
+      'shutterbug',
+    ]);
   });
 
   it('keeps earned achievements when the session is deleted', async () => {
@@ -630,17 +647,17 @@ describe('PATCH /toast-sessions/:id', () => {
 });
 
 describe('PUT /toast-sessions/:id/photo', () => {
-  it('adds a photo to the lead toast', async () => {
-    const { session } = await logSession(ann, { count: 2 });
-    const res = await putPhoto(ann, session.id, multipart({}, { data: await photo() }));
+  it('adds a photo to a session from before photos were required', async () => {
+    const sessionId = await photolessSession(ann);
+    const res = await putPhoto(ann, sessionId, multipart({}, { data: await photo() }));
     expect(res.statusCode).toBe(200);
     const body = res.json<ToastSessionChangeResponse>();
-    expect(body.session).toMatchObject({ count: 2, hasPhoto: true });
+    expect(body.session).toMatchObject({ count: 1, hasPhoto: true });
     expect(body.session.photoUrl).toMatch(/X-Amz-Expires=3600/);
 
-    const [lead, second] = await toastsOf(session.id);
+    const [lead] = await toastsOf(sessionId);
     expect(lead?.photoKey).toMatch(/\.webp$/);
-    expect(second?.photoKey).toBeNull();
+    expect(await db.select().from(discardedPhoto)).toHaveLength(0);
   });
 
   it('replaces a photo and keeps the old object for the cleanup job', async () => {
@@ -686,6 +703,7 @@ describe('PUT /toast-sessions/:id/photo', () => {
 
   it('needs a readable photo', async () => {
     const { session } = await logSession(ann);
+    const [before] = await toastsOf(session.id);
     const missing = await putPhoto(ann, session.id);
     expect(missing.statusCode).toBe(400);
     expect(missing.json()).toMatchObject({ error: { fields: { photo: 'Required' } } });
@@ -696,52 +714,23 @@ describe('PUT /toast-sessions/:id/photo', () => {
       multipart({}, { data: Buffer.from('not an image') }),
     );
     expect(bad.statusCode).toBe(400);
-    expect((await toastsOf(session.id))[0]?.photoKey).toBeNull();
+    expect((await toastsOf(session.id))[0]?.photoKey).toBe(before?.photoKey);
   });
 });
 
 describe('DELETE /toast-sessions/:id/photo', () => {
-  it('removes the photo and keeps the object for the cleanup job', async () => {
-    const { session } = await logSession(ann, { photo: await photo() });
-    const [lead] = await toastsOf(session.id);
-
-    const res = await deletePhoto(ann, session.id);
-    expect(res.statusCode).toBe(200);
-    expect(res.json<{ session: ToastSession }>().session).toMatchObject({
-      hasPhoto: false,
-      photoUrl: null,
-    });
-    expect((await toastsOf(session.id))[0]?.photoKey).toBeNull();
-    expect((await db.select().from(discardedPhoto)).map((row) => row.key)).toEqual([
-      lead?.photoKey,
-    ]);
-    // Nothing left to remove: still fine.
-    expect((await deletePhoto(ann, session.id)).statusCode).toBe(200);
-  });
-
-  it('removes a hidden photo, after which no photo can be added', async () => {
-    const { session } = await logSession(ann, { photo: await photo() });
+  it('is gone: a photo can only be replaced, also a hidden one stays (SPEC §12 D64)', async () => {
+    const { session } = await logSession(ann);
     await db
       .update(toast)
       .set({ photoHiddenAt: new Date() })
       .where(eq(toast.sessionId, session.id));
+    const [before] = await toastsOf(session.id);
 
-    const res = await deletePhoto(ann, session.id);
-    expect(res.statusCode).toBe(200);
-    expect(res.json<{ session: ToastSession }>().session).toMatchObject({
-      hasPhoto: false,
-      photoHidden: true,
-    });
-    expect(
-      (await putPhoto(ann, session.id, multipart({}, { data: await photo() }))).statusCode,
-    ).toBe(409);
-  });
-
-  it("is a conflict on yesterday's session and forbidden on someone else's", async () => {
-    const bob = await signIn(app, 'bob@example.com');
-    expect((await deletePhoto(ann, await pastSession(ann, 1))).statusCode).toBe(409);
-    const { session } = await logSession(ann, { photo: await photo() });
-    expect((await deletePhoto(bob, session.id)).statusCode).toBe(403);
+    expect((await deletePhoto(ann, session.id)).statusCode).toBe(404);
+    const [after] = await toastsOf(session.id);
+    expect(after?.photoKey).toBe(before?.photoKey);
+    expect(after?.photoHiddenAt).toBeInstanceOf(Date);
   });
 });
 

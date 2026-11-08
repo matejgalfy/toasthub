@@ -1,10 +1,7 @@
-import { fileURLToPath } from 'node:url';
-
 import { expect, test, type Page } from '@playwright/test';
 
 import { signUp } from '../support/auth.js';
-
-const PHOTO = fileURLToPath(new URL('../fixtures/toast.jpg', import.meta.url));
+import { pickPhoto } from '../support/toasts.js';
 
 /** The big number on a home stat card ("Streak 🔥", "Clan streak 🔥"). */
 function statValue(page: Page, label: string, value: string) {
@@ -17,12 +14,16 @@ async function openLogDialog(page: Page) {
   return page.getByRole('dialog', { name: 'Log toasts' });
 }
 
-test('"Toast" → "Log 1 toast" starts a streak', async ({ page }) => {
+test('"Toast" → photo → "Log 1 toast" starts a streak', async ({ page }) => {
   await signUp(page);
   await expect(statValue(page, 'Streak 🔥', '0')).toBeVisible();
 
   const dialog = await openLogDialog(page);
-  await dialog.getByRole('button', { name: 'Log 1 toast' }).click();
+  // Every session needs a photo (BR-TOAST-2).
+  const log = dialog.getByRole('button', { name: 'Log 1 toast' });
+  await expect(log).toBeDisabled();
+  await pickPhoto(page, dialog);
+  await log.click();
 
   await expect(dialog).toBeHidden();
   await expect(statValue(page, 'Streak 🔥', '1')).toBeVisible();
@@ -40,10 +41,7 @@ test('several toasts with a photo are logged at once', async ({ page }) => {
   await dialog.getByRole('button', { name: 'One toast more' }).click();
   await dialog.getByRole('button', { name: 'One toast more' }).click();
 
-  const chooser = page.waitForEvent('filechooser');
-  await dialog.getByRole('button', { name: 'Add a photo' }).click();
-  await (await chooser).setFiles(PHOTO);
-  await expect(dialog.getByRole('img', { name: 'The photo you picked' })).toBeVisible();
+  await pickPhoto(page, dialog);
   await dialog.getByRole('button', { name: 'Log 3 toasts' }).click();
 
   await expect(dialog).toBeHidden();

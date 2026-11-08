@@ -151,7 +151,7 @@ describe('MyToastsPage', () => {
     expect(await screen.findByRole('button', { name: /3 toasts/ })).toBeInTheDocument();
   });
 
-  it('adds a photo without touching the count', async () => {
+  it('adds a photo to a session from before photos were required, without touching the count', async () => {
     const user = userEvent.setup();
     const requests = mockApi((request) =>
       request.method === 'PUT'
@@ -174,12 +174,12 @@ describe('MyToastsPage', () => {
     expect(requests.some((r) => r.method === 'PATCH')).toBe(false);
   });
 
-  it('removes the photo', async () => {
+  it('replaces the photo, but offers no way to remove it', async () => {
     const user = userEvent.setup();
     const withPhoto = session({ hasPhoto: true, photoUrl: 'https://p.example/a' });
     const requests = mockApi((request) =>
-      request.method === 'DELETE'
-        ? jsonResponse(200, { session: session() })
+      request.method === 'PUT'
+        ? jsonResponse(200, changed(session({ hasPhoto: true, photoUrl: 'https://p.example/b' })))
         : jsonResponse(200, page([withPhoto])),
     );
     renderPage();
@@ -189,28 +189,32 @@ describe('MyToastsPage', () => {
       'src',
       'https://p.example/a',
     );
-    await user.click(within(dialog).getByRole('button', { name: 'Remove photo' }));
-    expect(within(dialog).getByRole('button', { name: 'Add a photo' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Remove photo' })).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Choose another' }));
+    await user.upload(fileInput(), new File(['jpeg'], 'toast.jpg', { type: 'image/jpeg' }));
+    expect(within(dialog).getByRole('img', { name: 'The photo you picked' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Remove photo' })).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
 
     await vi.waitFor(() => {
-      expect(requests.some((r) => r.method === 'DELETE')).toBe(true);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
-    expect(requests.find((r) => r.method === 'DELETE')?.url).toBe(
+    expect(requests.find((r) => r.method === 'PUT')?.url).toBe(
       `http://localhost/api/v1/toast-sessions/${session().id}/photo`,
     );
+    expect(requests.some((r) => r.method === 'DELETE')).toBe(false);
   });
 
-  it('offers only removal for a photo an admin hid', async () => {
+  it('keeps a photo an admin hid, with no way to replace or remove it', async () => {
     const user = userEvent.setup();
     mockApi(() => jsonResponse(200, page([session({ hasPhoto: true, photoHidden: true })])));
     renderPage();
 
     const dialog = await openEdit(user, /2 toasts/);
-    expect(within(dialog).getByText(/An admin hid this photo/)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("An admin hid this photo. It can't be replaced."),
+    ).toBeInTheDocument();
     expect(within(dialog).queryByRole('button', { name: 'Add a photo' })).not.toBeInTheDocument();
-    await user.click(within(dialog).getByRole('button', { name: 'Remove photo' }));
-    expect(within(dialog).getByText(/can't get a new one/)).toBeInTheDocument();
     expect(within(dialog).queryByRole('button', { name: 'Remove photo' })).not.toBeInTheDocument();
   });
 

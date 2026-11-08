@@ -88,6 +88,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** Picks a photo in the open dialog; every session needs one (BR-TOAST-2). */
+async function pickPhoto(user: ReturnType<typeof userEvent.setup>) {
+  await user.upload(fileInput(), new File(['jpeg'], 'toast.jpg', { type: 'image/jpeg' }));
+}
+
 /** Taps "+ Toast" and returns the dialog it opens. */
 async function openLogDialog(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Toast' }));
@@ -180,6 +185,7 @@ describe('HomePage', () => {
     await screen.findByRole('group', { name: 'Streak 🔥' });
 
     const dialog = await openLogDialog(user);
+    await pickPhoto(user);
     await user.click(within(dialog).getByRole('button', { name: 'Log 1 toast' }));
 
     // The open dialog hides the page from the accessibility tree, so the card is found by its text.
@@ -216,6 +222,7 @@ describe('HomePage', () => {
     await user.click(more);
     await user.click(fewer);
     expect(within(dialog).getByRole('status', { name: 'Toasts' })).toHaveTextContent('3');
+    await pickPhoto(user);
 
     await user.click(within(dialog).getByRole('button', { name: 'Log 3 toasts' }));
 
@@ -224,7 +231,7 @@ describe('HomePage', () => {
     });
     const body = await postedBody(requests);
     expect(body).toContain(countField(3));
-    expect(body).not.toContain('name="photo"');
+    expect(body).toContain('name="photo"');
   });
 
   it('stops at 10 toasts', async () => {
@@ -248,6 +255,7 @@ describe('HomePage', () => {
 
     const dialog = await openLogDialog(user);
     await user.click(within(dialog).getByRole('button', { name: 'One toast more' }));
+    await pickPhoto(user);
     await user.click(within(dialog).getByRole('button', { name: 'Log 2 toasts' }));
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(
@@ -287,25 +295,22 @@ describe('HomePage', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:preview');
   });
 
-  it('logs without the photo once it is removed', async () => {
+  it('logs only with a photo, also after the picked one is removed', async () => {
     const user = userEvent.setup();
-    const requests = mockApi((request) =>
-      isPost(request) ? jsonResponse(201, created) : jsonResponse(200, home),
-    );
+    const requests = mockApi(() => jsonResponse(200, home));
     renderHome();
 
     const dialog = await openLogDialog(user);
-    await user.upload(fileInput(), new File(['jpeg'], 'toast.jpg', { type: 'image/jpeg' }));
+    const log = within(dialog).getByRole('button', { name: 'Log 1 toast' });
+    expect(log).toBeDisabled();
+    await pickPhoto(user);
+    expect(log).toBeEnabled();
     await user.click(within(dialog).getByRole('button', { name: 'Remove photo' }));
 
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:preview');
     expect(within(dialog).queryByRole('img')).not.toBeInTheDocument();
-    await user.click(within(dialog).getByRole('button', { name: 'Log 1 toast' }));
-
-    await vi.waitFor(() => {
-      expect(requests.some(isPost)).toBe(true);
-    });
-    expect(await postedBody(requests)).not.toContain('name="photo"');
+    expect(log).toBeDisabled();
+    expect(requests.some(isPost)).toBe(false);
   });
 
   it('refuses a photo over 10 MB without uploading it', async () => {

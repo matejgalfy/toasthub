@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { signUp } from '../support/auth.js';
+import { logToasts } from '../support/toasts.js';
 
 async function goToProfile(page: Page) {
   await page.getByRole('link', { name: 'Profile', exact: true }).click();
@@ -22,10 +23,7 @@ function achievement(page: Page, name: string) {
 test('the profile follows logged and deleted toasts; achievements stay', async ({ page }) => {
   await signUp(page);
 
-  const log = page.getByRole('dialog', { name: 'Log toasts' });
-  await page.getByRole('button', { name: 'Toast', exact: true }).click();
-  await log.getByRole('button', { name: 'Log 1 toast' }).click();
-  await expect(log).toBeHidden();
+  await logToasts(page);
   await expect(page.getByText('Achievement unlocked: First Bite')).toBeVisible();
 
   await goToProfile(page);
@@ -33,7 +31,8 @@ test('the profile follows logged and deleted toasts; achievements stay', async (
   // Today's square is the only day with a toast.
   await expect(page.getByRole('img', { name: /: 1 toast$/ })).toHaveCount(1);
   await expect(achievement(page, 'First Bite')).toContainText('Earned');
-  await expect(achievement(page, 'Shutterbug')).toContainText('Not earned yet');
+  // Every log has a photo, so the first one earns Shutterbug too (SPEC §12 D64).
+  await expect(achievement(page, 'Shutterbug')).toContainText('Earned');
 
   // Editing happens on My toasts, linked from the own profile.
   await page.getByRole('link', { name: 'My toasts' }).click();

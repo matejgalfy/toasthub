@@ -22,8 +22,6 @@ import {
   type ToastSessionPage,
   toastSessionPageSchema,
   toastSessionParamsSchema,
-  type ToastSessionResponse,
-  toastSessionResponseSchema,
   updateToastSessionSchema,
 } from '@toasthub/shared';
 import type { FastifyRequest } from 'fastify';
@@ -36,13 +34,15 @@ import { readPhotoUpload } from '../toasts/photo-upload';
 import { ToastSessionsService } from './toast-sessions.service';
 
 class ToastSessionChangeResponseDto extends createZodDto(toastSessionChangeResponseSchema) {}
-class ToastSessionResponseDto extends createZodDto(toastSessionResponseSchema) {}
 class ToastSessionPageDto extends createZodDto(toastSessionPageSchema) {}
 class ToastSessionParamsDto extends createZodDto(toastSessionParamsSchema) {}
 class UpdateToastSessionDto extends createZodDto(updateToastSessionSchema) {}
 class PageQueryDto extends createZodDto(pageQuerySchema) {}
 
 const PHOTO_PROPERTY = { type: 'string', format: 'binary' } as const;
+
+const photoRequired = () =>
+  new AppError('VALIDATION_ERROR', 'A photo is required', { [PHOTO_FIELD]: 'Required' });
 
 @ApiCookieAuth()
 @ApiBearerAuth()
@@ -51,16 +51,16 @@ export class ToastSessionsController {
   constructor(private readonly sessions: ToastSessionsService) {}
 
   /**
-   * Logs 1–10 toasts eaten now as one session. Send no body, or `multipart/form-data` with an optional
-   * `count` (default 1) and an optional `photo` (JPEG, PNG, WebP or HEIC, at most 10 MB) for the lead
-   * toast. Limited to 30 toasts per hour.
+   * Logs 1–10 toasts eaten now as one session. Send `multipart/form-data` with an optional `count`
+   * (default 1) and the required `photo` (JPEG, PNG, WebP or HEIC, at most 10 MB) for the lead toast.
+   * Limited to 30 toasts per hour.
    */
   @Post('toast-sessions')
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    required: false,
     schema: {
       type: 'object',
+      required: [PHOTO_FIELD],
       properties: {
         count: { type: 'integer', minimum: 1, maximum: TOAST_SESSION_MAX_COUNT, default: 1 },
         [PHOTO_FIELD]: PHOTO_PROPERTY,
@@ -75,6 +75,8 @@ export class ToastSessionsController {
     const { fields, photo } = await readPhotoUpload(request);
     const parsed = createToastSessionSchema.safeParse(fields);
     if (!parsed.success) throw AppError.validation(parsed.error);
+    // Before the quota, so a log without a photo costs nothing (SPEC §12 D64).
+    if (!photo) throw photoRequired();
     // After reading the count, before the photo is processed.
     await this.sessions.consumeQuota(user.id, parsed.data.count);
     return this.sessions.create(user.id, parsed.data.count, photo);
@@ -102,8 +104,9 @@ export class ToastSessionsController {
   }
 
   /**
-   * Adds or replaces the photo of today's session (`multipart/form-data` with a `photo`). 409 after the
-   * session's day or when an admin hid its photo. Counts as one toast toward the hourly limit.
+   * Replaces the photo of today's session, or adds one to a session from before photos were required
+   * (`multipart/form-data` with a `photo`). 409 after the session's day or when an admin hid its photo.
+   * Counts as one toast toward the hourly limit. A photo can't be removed.
    */
   @Put('toast-sessions/:id/photo')
   @ApiConsumes('multipart/form-data')
@@ -123,20 +126,8 @@ export class ToastSessionsController {
     await this.sessions.assertCanSetPhoto(user.id, params.id);
     await this.sessions.consumeQuota(user.id, 1);
     const { photo } = await readPhotoUpload(request);
-    if (!photo) {
-      throw new AppError('VALIDATION_ERROR', 'A photo is required', { [PHOTO_FIELD]: 'Required' });
-    }
+    if (!photo) throw photoRequired();
     return this.sessions.setPhoto(user.id, params.id, photo);
-  }
-
-  /** Removes the photo of today's session. 409 after the session's day. */
-  @Delete('toast-sessions/:id/photo')
-  @ZodResponse({ status: 200, type: ToastSessionResponseDto })
-  removePhoto(
-    @CurrentUser() user: AuthUser,
-    @Param() params: ToastSessionParamsDto,
-  ): Promise<ToastSessionResponse> {
-    return this.sessions.removePhoto(user.id, params.id);
   }
 
   /** Deletes today's session with its toasts (soft delete); likes on them are removed. */

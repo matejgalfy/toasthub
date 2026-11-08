@@ -1,10 +1,7 @@
-import { fileURLToPath } from 'node:url';
-
 import { expect, test, type Page } from '@playwright/test';
 
 import { signUp } from '../support/auth.js';
-
-const PHOTO = fileURLToPath(new URL('../fixtures/toast.jpg', import.meta.url));
+import { logToasts, pickPhoto } from '../support/toasts.js';
 
 /** The big number on the home "Streak 🔥" card. */
 function streak(page: Page, value: string) {
@@ -27,11 +24,7 @@ async function goToMyToasts(page: Page) {
 test('a session is edited on My toasts and home follows', async ({ page }) => {
   await signUp(page);
 
-  const log = page.getByRole('dialog', { name: 'Log toasts' });
-  await page.getByRole('button', { name: 'Toast', exact: true }).click();
-  await log.getByRole('button', { name: 'One toast more' }).click();
-  await log.getByRole('button', { name: 'Log 2 toasts' }).click();
-  await expect(log).toBeHidden();
+  await logToasts(page, 2);
   await expect(streak(page, '1')).toBeVisible();
 
   // One log is one session of two toasts.
@@ -42,13 +35,11 @@ test('a session is edited on My toasts and home follows', async ({ page }) => {
 
   const edit = page.getByRole('dialog', { name: 'Edit toasts' });
   await edit.getByRole('button', { name: 'One toast more' }).click();
-  const chooser = page.waitForEvent('filechooser');
-  await edit.getByRole('button', { name: 'Add a photo' }).click();
-  await (await chooser).setFiles(PHOTO);
-  await expect(edit.getByRole('img', { name: 'The photo you picked' })).toBeVisible();
+  // The photo can be replaced, never removed (SPEC §12 D64).
+  await expect(edit.getByRole('button', { name: 'Remove photo' })).toHaveCount(0);
+  await pickPhoto(page, edit, 'Choose another');
   await edit.getByRole('button', { name: 'Save changes' }).click();
   await expect(edit).toBeHidden();
-  await expect(page.getByText('Achievement unlocked: Shutterbug')).toBeVisible();
 
   const row = today.getByRole('button', { name: /3 toasts/ });
   await expect(row).toBeVisible();

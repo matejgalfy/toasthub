@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { signUp } from '../support/auth.js';
+import { logToasts } from '../support/toasts.js';
 
 /** Clan names are unique and the database isn't reset between runs. */
 function uniqueClanName(): string {
@@ -16,10 +17,7 @@ test('a clan is founded, joined on approval, and its feed liked', async ({ page,
 
   // A logs a toast, then founds the clan from the browser.
   await signUp(page, 'Ann Founder');
-  const log = page.getByRole('dialog', { name: 'Log toasts' });
-  await page.getByRole('button', { name: 'Toast', exact: true }).click();
-  await log.getByRole('button', { name: 'Log 1 toast' }).click();
-  await expect(log).toBeHidden();
+  await logToasts(page);
 
   await openClanTab(page);
   await expect(page.getByRole('heading', { name: 'Clans', level: 1 })).toBeVisible();

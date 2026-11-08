@@ -11,7 +11,6 @@ import {
   type ToastSession,
   type ToastSessionChangeResponse,
   type ToastSessionPage,
-  type ToastSessionResponse,
   ToastStatus,
 } from '@toasthub/shared';
 import { and, asc, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
@@ -105,15 +104,11 @@ export class ToastSessionsService {
   }
 
   /**
-   * Logs `count` toasts now as one session, the optional photo on its lead toast. The server sets the
+   * Logs `count` toasts now as one session, the photo on its lead toast (BR-TOAST-2). The server sets the
    * time (SPEC §4.3 BR-TOAST-1); all toasts are saved or none.
    */
-  async create(
-    userId: string,
-    count: number,
-    photo: Buffer | null,
-  ): Promise<ToastSessionChangeResponse> {
-    const photoKey = photo ? await this.storePhoto(userId, photo) : null;
+  async create(userId: string, count: number, photo: Buffer): Promise<ToastSessionChangeResponse> {
+    const photoKey = await this.storePhoto(userId, photo);
     let session: SessionRow;
     try {
       session = await this.db.transaction(async (tx) => {
@@ -134,7 +129,7 @@ export class ToastSessionsService {
         return row;
       });
     } catch (error) {
-      if (photoKey) await this.deletePhotoQuietly(photoKey);
+      await this.deletePhotoQuietly(photoKey);
       throw error;
     }
     return this.respond(userId, session.id, session.createdAt);
@@ -204,7 +199,10 @@ export class ToastSessionsService {
     assertCanSetPhoto(leadOf(loaded.toasts).photoHiddenAt !== null);
   }
 
-  /** Adds or replaces the photo on the lead toast. A replaced photo is kept for the cleanup job. */
+  /**
+   * Replaces the photo on the lead toast, or adds one to a session from before photos were required
+   * (SPEC §12 D64). A replaced photo is kept for the cleanup job.
+   */
   async setPhoto(
     userId: string,
     sessionId: string,
@@ -228,20 +226,6 @@ export class ToastSessionsService {
       throw error;
     }
     return this.respond(userId, sessionId, lead.eatenAt);
-  }
-
-  /** Removes the photo, also one an admin hid; the session then can't get a new one (SPEC §12 D44). */
-  async removePhoto(userId: string, sessionId: string): Promise<ToastSessionResponse> {
-    const today = localDate(new Date());
-    await this.db.transaction(async (tx) => {
-      const loaded = await this.loadSession(tx, sessionId);
-      assertCanEdit(factsOf(loaded), userId, today);
-      const lead = leadOf(loaded.toasts);
-      if (lead.photoKey === null) return;
-      await this.discardPhoto(tx, lead);
-      await tx.update(toast).set({ photoKey: null }).where(eq(toast.id, lead.id));
-    });
-    return { session: await this.getDto(sessionId) };
   }
 
   /**

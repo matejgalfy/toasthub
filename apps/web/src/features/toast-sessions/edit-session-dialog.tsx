@@ -1,4 +1,4 @@
-import { Check, LoaderCircle, Trash2, X } from 'lucide-react';
+import { Check, LoaderCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -19,18 +19,13 @@ import { useFormat } from '@/i18n/format';
 
 import { CountStepper } from './count-stepper';
 import { isTooLarge, PhotoPicker, photoErrorMessageKey, usePickedPhoto } from './photo-picker';
-import {
-  useDeleteSession,
-  useRemoveSessionPhoto,
-  useSetSessionPhoto,
-  useUpdateSessionCount,
-} from './toast-sessions-api';
+import { useDeleteSession, useSetSessionPhoto, useUpdateSessionCount } from './toast-sessions-api';
 
 type ErrorKey = ReturnType<typeof photoErrorMessageKey>;
 
 /**
- * Changes one of today's sessions: its count, its photo, or deletes it after a confirmation (SPEC §4.3
- * BR-TOAST-7). `session` is null while the dialog is closed.
+ * Changes one of today's sessions: its count, its photo (replace only, SPEC §12 D64), or deletes it after
+ * a confirmation (SPEC §4.3 BR-TOAST-7). `session` is null while the dialog is closed.
  */
 export function EditSessionDialog({
   session,
@@ -57,18 +52,16 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
   const format = useFormat();
   const updateCount = useUpdateSessionCount();
   const setPhoto = useSetSessionPhoto();
-  const removePhoto = useRemoveSessionPhoto();
   const deleteSession = useDeleteSession();
   const [count, setCount] = useState(session.count);
   const [picked, setPicked] = usePickedPhoto();
-  const [removeStored, setRemoveStored] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ErrorKey | null>(null);
 
   const tooLarge = isTooLarge(picked);
   const shownError = tooLarge ? 'home.photo.tooLarge' : error;
-  const changed = count !== session.count || picked !== null || removeStored;
+  const changed = count !== session.count || picked !== null;
   const time = format.dateTime(session.loggedAt, { timeStyle: 'short' });
 
   const pickPhoto = (file: File | null) => {
@@ -84,9 +77,6 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
       if (picked) {
         await setPhoto.mutateAsync({ id: session.id, photo: picked.file });
         setPicked(null);
-      } else if (removeStored) {
-        await removePhoto.mutateAsync({ id: session.id });
-        setRemoveStored(false);
       }
       if (count !== session.count) await updateCount.mutateAsync({ id: session.id, count });
       onDone();
@@ -161,23 +151,13 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
 
           <CountStepper value={count} onChange={setCount} disabled={saving} />
           {session.photoHidden ? (
-            <HiddenPhoto
-              stored={session.hasPhoto && !removeStored}
-              disabled={saving}
-              onRemove={() => {
-                setRemoveStored(true);
-              }}
-            />
+            <HiddenPhoto stored={session.hasPhoto} />
           ) : (
             <PhotoPicker
-              imageUrl={picked?.previewUrl ?? (removeStored ? null : session.photoUrl)}
+              imageUrl={picked?.previewUrl ?? session.photoUrl}
               imageKey={picked?.key}
               imageAlt={t(picked ? 'home.photo.previewAlt' : 'toasts.edit.photoAlt')}
               onPick={pickPhoto}
-              onRemove={() => {
-                pickPhoto(null);
-                setRemoveStored(session.hasPhoto);
-              }}
               disabled={saving}
             />
           )}
@@ -211,27 +191,13 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
   );
 }
 
-/** An admin hid the photo: it can be removed, but nothing replaces it (SPEC §4.3 BR-TOAST-7). */
-function HiddenPhoto({
-  stored,
-  disabled,
-  onRemove,
-}: {
-  stored: boolean;
-  disabled: boolean;
-  onRemove: () => void;
-}) {
+/** An admin hid the photo: it stays, and nothing replaces it (SPEC §4.3 BR-TOAST-7). */
+function HiddenPhoto({ stored }: { stored: boolean }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col items-center gap-2 rounded-lg bg-muted p-4 text-center text-sm text-muted-foreground">
-      <p>{t(stored ? 'toasts.edit.photoHidden' : 'toasts.edit.photoLocked')}</p>
-      {stored && (
-        <Button variant="ghost" size="sm" disabled={disabled} onClick={onRemove}>
-          <X aria-hidden="true" />
-          {t('home.photo.remove')}
-        </Button>
-      )}
-    </div>
+    <p className="rounded-lg bg-muted p-4 text-center text-sm text-muted-foreground">
+      {t(stored ? 'toasts.edit.photoHidden' : 'toasts.edit.photoLocked')}
+    </p>
   );
 }
 

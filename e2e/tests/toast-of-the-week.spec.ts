@@ -1,11 +1,8 @@
-import { fileURLToPath } from 'node:url';
-
 import { expect, test } from '@playwright/test';
 
 import { signUp } from '../support/auth.js';
 import { execute } from '../support/db.js';
-
-const PHOTO = fileURLToPath(new URL('../fixtures/toast.jpg', import.meta.url));
+import { logToasts } from '../support/toasts.js';
 
 // Last week's Monday in Europe/Bratislava, the week the home card shows.
 const LAST_WEEK = `date_trunc('week', now() AT TIME ZONE 'Europe/Bratislava')::date - 7`;
@@ -14,13 +11,7 @@ test("last week's winner shows on home", async ({ page }) => {
   const name = `Winner ${String(Date.now())}`;
   const email = await signUp(page, name);
 
-  const dialog = page.getByRole('dialog', { name: 'Log toasts' });
-  await page.getByRole('button', { name: 'Toast', exact: true }).click();
-  const chooser = page.waitForEvent('filechooser');
-  await dialog.getByRole('button', { name: 'Add a photo' }).click();
-  await (await chooser).setFiles(PHOTO);
-  await dialog.getByRole('button', { name: 'Log 1 toast' }).click();
-  await expect(dialog).toBeHidden();
+  await logToasts(page);
 
   // The draw only takes toasts of a week that has ended, which the UI can't log (no backdating): move
   // the photo toast to last Wednesday and make it last week's winner, as the Monday job would. Other

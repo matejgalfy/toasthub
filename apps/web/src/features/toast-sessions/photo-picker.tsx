@@ -52,8 +52,9 @@ export function photoErrorMessageKey(error: unknown) {
 }
 
 /**
- * Shows the photo (`imageUrl`) with "Choose another" and "Remove", or an "Add a photo" button. Picking
- * goes through a file input without `capture`, so phones offer the gallery as well as the camera.
+ * Shows the photo (`imageUrl`) with "Choose another" (and "Remove" when `onRemove` is given), or an "Add a
+ * photo" button. Picking goes through a file input without `capture`, so phones offer the gallery as well
+ * as the camera.
  */
 export function PhotoPicker({
   imageUrl,
@@ -67,7 +68,7 @@ export function PhotoPicker({
   imageAlt: string;
   imageKey?: string | number;
   onPick: (file: File) => void;
-  onRemove: () => void;
+  onRemove?: () => void;
   disabled?: boolean;
 }) {
   const { t } = useTranslation();
@@ -82,10 +83,12 @@ export function PhotoPicker({
             <Button variant="outline" size="sm" disabled={disabled} onClick={pick}>
               {t('home.photo.change')}
             </Button>
-            <Button variant="ghost" size="sm" disabled={disabled} onClick={onRemove}>
-              <X aria-hidden="true" />
-              {t('home.photo.remove')}
-            </Button>
+            {onRemove && (
+              <Button variant="ghost" size="sm" disabled={disabled} onClick={onRemove}>
+                <X aria-hidden="true" />
+                {t('home.photo.remove')}
+              </Button>
+            )}
           </div>
         </div>
       ) : (

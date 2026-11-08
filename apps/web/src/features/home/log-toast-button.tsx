@@ -22,7 +22,7 @@ import {
 
 import { useLogToasts } from './use-log-toasts';
 
-/** "+ Toast" → how many toasts and an optional photo → log (SPEC §4.3: two taps for one toast). */
+/** "+ Toast" → how many toasts and the required photo → log (SPEC §4.3 BR-TOAST-2, G1). */
 export function LogToastButton() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -102,11 +102,11 @@ function LogToastsDialog({ onDone }: { onDone: () => void }) {
       <DialogFooter>
         <Button
           size="lg"
-          disabled={tooLarge || pending}
+          // Every session needs a photo (BR-TOAST-2).
+          disabled={!photo || tooLarge || pending}
           onClick={() => {
-            logToasts.mutate(photo ? { count, photo: photo.file } : { count }, {
-              onSuccess: onDone,
-            });
+            if (!photo) return;
+            logToasts.mutate({ count, photo: photo.file }, { onSuccess: onDone });
           }}
         >
           {pending ? (

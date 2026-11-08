@@ -91,12 +91,6 @@ export function useSetSessionPhoto() {
   );
 }
 
-export function useRemoveSessionPhoto() {
-  return useSessionMutation(({ id }: { id: string }) =>
-    unwrap(api.DELETE('/api/v1/toast-sessions/{id}/photo', sessionPath(id))),
-  );
-}
-
 export function useDeleteSession() {
   return useSessionMutation(({ id }: { id: string }) =>
     unwrap(api.DELETE('/api/v1/toast-sessions/{id}', sessionPath(id))),

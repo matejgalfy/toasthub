@@ -280,7 +280,9 @@ The usual touchpoints of a feature that crosses the stack. Skip what doesn't app
   and fake the API with `mockApi(request => jsonResponse(…))` (`src/test/api.ts`), which records requests.
 - E2E tests live in `e2e/tests/*.spec.ts` (Playwright, one `mobile` project = Pixel 7 Chromium). Playwright
   starts the built api and the Vite dev server, or reuses ones already running. `signUp(page)`
-  (`e2e/support/auth.ts`) creates an onboarded user and ends on `/home`. For your own flows use
+  (`e2e/support/auth.ts`) creates an onboarded user and ends on `/home`. Log toasts from home with
+  `logToasts(page, count)` (`e2e/support/toasts.ts`, picks the fixture photo every session needs), or
+  `pickPhoto(page, dialog)` in your own dialog steps. For your own flows use
   `uniqueEmail()` + `magicLinkFor(email)` (`e2e/support/mailpit.ts`) and open the link with
   `openMagicLink(page, link)`, never `page.goto(link)`: it clears Better Auth's 5-per-minute verify limit,
   which a parallel suite on one IP would hit. The database is not reset between tests, so never rely on it

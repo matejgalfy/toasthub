@@ -1,21 +1,14 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { signUp } from '../support/auth.js';
+import { logToasts } from '../support/toasts.js';
 
 // Names are unique because the database isn't reset between runs.
 const suffix = () => Math.random().toString(36).slice(2, 8);
 
-async function logToasts(page: Page, count: number) {
+async function logToastsAtHome(page: Page, count: number) {
   await page.goto('/home');
-  await page.getByRole('button', { name: 'Toast', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Log toasts' });
-  for (let i = 1; i < count; i++) {
-    await dialog.getByRole('button', { name: 'One toast more' }).click();
-  }
-  await dialog
-    .getByRole('button', { name: count === 1 ? 'Log 1 toast' : `Log ${String(count)} toasts` })
-    .click();
-  await expect(dialog).toBeHidden();
+  await logToasts(page, count);
 }
 
 /** The number in a row's "Rank n". */
@@ -37,7 +30,7 @@ test('two users with different counts are ranked in order', async ({ page, brows
   await page.getByRole('textbox', { name: 'Name' }).fill(clanName);
   await page.getByRole('button', { name: 'Create clan' }).click();
   await expect(page.getByRole('heading', { name: clanName, level: 1 })).toBeVisible();
-  await logToasts(page, 3);
+  await logToastsAtHome(page, 3);
 
   // B joins on A's approval and logs 1 toast.
   const otherContext = await browser.newContext();
@@ -56,7 +49,7 @@ test('two users with different counts are ranked in order', async ({ page, brows
     .getByRole('region', { name: 'Join requests' })
     .getByRole('button', { name: `Approve ${bobName}` })
     .click();
-  await logToasts(other, 1);
+  await logToastsAtHome(other, 1);
 
   // The clan's own board: A first with 3, B second with 1.
   await page.getByRole('link', { name: 'Clan', exact: true }).click();

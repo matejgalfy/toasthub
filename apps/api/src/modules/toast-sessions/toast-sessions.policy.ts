@@ -27,7 +27,7 @@ export function assertCanEdit(session: SessionFacts, userId: string, today: Loca
   }
 }
 
-/** A photo an admin hid can be removed, but the session gets no other photo in its place. */
+/** A photo an admin hid stays: the session gets no other photo in its place. */
 export function assertCanSetPhoto(photoHidden: boolean): void {
   if (photoHidden) throw new AppError('CONFLICT', 'The photo of this toast session was hidden');
 }

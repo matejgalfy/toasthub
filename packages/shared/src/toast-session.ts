@@ -32,11 +32,12 @@ export const toastSessionSchema = z.object({
   localDate: localDateSchema,
   // Toasts in the session that are not deleted.
   count: z.int().nonnegative(),
-  // A photo is stored on the session, visible or hidden by an admin.
+  // A photo is stored on the session, visible or hidden by an admin. False only for sessions logged
+  // before photos were required (SPEC §12 D64).
   hasPhoto: z.boolean(),
   // Presigned and valid for 1 hour; null without a photo or when an admin hid it.
   photoUrl: z.url().nullable(),
-  // An admin hid the session's photo: it can still be removed, but no photo can be added any more.
+  // An admin hid the session's photo: it stays hidden and can't be replaced.
   photoHidden: z.boolean(),
   // Today's session without a rejected toast: count, photo and delete can be changed.
   editable: z.boolean(),
@@ -45,9 +46,6 @@ export type ToastSession = z.infer<typeof toastSessionSchema>;
 
 export const toastSessionPageSchema = pageSchema(toastSessionSchema);
 export type ToastSessionPage = z.infer<typeof toastSessionPageSchema>;
-
-export const toastSessionResponseSchema = z.object({ session: toastSessionSchema });
-export type ToastSessionResponse = z.infer<typeof toastSessionResponseSchema>;
 
 /** After logging, adding toasts or adding a photo, which can earn achievements (SPEC §4.12). */
 export const toastSessionChangeResponseSchema = z.object({

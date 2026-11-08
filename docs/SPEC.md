@@ -1,13 +1,13 @@
 # Toasthub — Specification
 
-> Status: Approved | Last updated: 2026-10-29
+> Status: Approved | Last updated: 2026-11-08
 > This file defines WHAT to build and WHY. Coding conventions and HOW-to-work rules live in `AGENTS.md`.
 
 ---
 
 ## 1. Overview
 Toasthub is a mobile-first web app where users track and compete over who eats the most toasts. Users log toasts
-in sessions (how many they ate in one sitting, optionally with a photo), build daily streaks, earn achievements, join clans, compete on leaderboards and see personal
+in sessions (how many they ate in one sitting, with a photo), build daily streaks, earn achievements, join clans, compete on leaderboards and see personal
 statistics. Every week a random photo toast is picked as **Toast of the week**, and every day the app shows a
 **toast fact of the day**.
 
@@ -17,7 +17,7 @@ architecture, tests and documentation are first-class requirements.
 
 ## 2. Goals & Non-goals
 **Goals**
-- G1: Logging a toast takes ≤ 2 taps from the home screen on a phone.
+- G1: Logging a toast from the home screen on a phone is three steps: "+ Toast", take or pick the photo, confirm (§12 D64).
 - G2: Friendly competition via leaderboards — users globally, clan vs clan, and members within a clan — for the current week, month and year.
 - G3: Daily engagement through streaks, achievements, the toast fact of the day and Toast of the week.
 - G4: Clans are the social unit: join, roles, clan feed, 🍞 likes.
@@ -77,14 +77,14 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 
 ### 4.3 Logging toasts
 - BR-TOAST-1: A toast is a timestamp set by the server at creation. No backdating, no extra fields.
-- BR-TOAST-2: A photo is optional. Upload limit 10 MB (JPEG/PNG/WebP/HEIC). Server re-encodes to WebP, max 1600 px longest side, strips EXIF (incl. GPS).
+- BR-TOAST-2: Every new session needs a photo; a log without one is refused (§12 D64). Sessions from before this rule may have none. Upload limit 10 MB (JPEG/PNG/WebP/HEIC). Server re-encodes to WebP, max 1600 px longest side, strips EXIF (incl. GPS).
 - BR-TOAST-3: Toasts are deleted per session (BR-TOAST-7), never one by one by their owner. Deletion is a soft delete; streaks, stats and leaderboards recompute; likes on the session are removed.
 - BR-TOAST-4: Achievements already earned are kept even if the toasts that triggered them are deleted.
-- BR-TOAST-5: One log from the home screen is a **toast session**: 1–10 toasts eaten in one sitting, created together. Each is its own toast; the optional photo belongs to the session's first toast (its *lead toast*).
+- BR-TOAST-5: One log from the home screen is a **toast session**: 1–10 toasts eaten in one sitting, created together. Each is its own toast; the photo belongs to the session's first toast (its *lead toast*).
 - BR-TOAST-6: A user can view their own past sessions, newest first: date and time, toast count and photo.
-- BR-TOAST-7: On the session's own day (its `local_date`, Europe/Bratislava) the owner can change its toast count (1–10), add, replace or remove its photo, and delete it. Raising the count adds toasts at the current server time (so they fall on the same day, BR-TOAST-1); lowering it soft-deletes the newest toasts, never the lead toast. Added toasts count toward the creation rate limit and the BR-MOD-1 threshold and trigger achievements like a new log; so does adding a photo (`shutterbug`). After that day ends, the session is read-only. A session with an admin-rejected toast is read-only, and a photo an admin has hidden can be removed but not replaced.
+- BR-TOAST-7: On the session's own day (its `local_date`, Europe/Bratislava) the owner can change its toast count (1–10), replace its photo (or add one to a session from before BR-TOAST-2 required it), and delete it. A photo can't be removed. Raising the count adds toasts at the current server time (so they fall on the same day, BR-TOAST-1); lowering it soft-deletes the newest toasts, never the lead toast. Added toasts count toward the creation rate limit and the BR-MOD-1 threshold and trigger achievements like a new log; so does adding a photo (`shutterbug`). After that day ends, the session is read-only. A session with an admin-rejected toast is read-only, and a photo an admin has hidden can't be replaced.
 
-**Acceptance:** from the home screen, "+ Toast" opens a dialog with the number of toasts (default 1) and an optional photo (pick / take); confirming logs them, so one toast is two taps (G1), and the today-counter and streak update immediately. There is no separate camera button. "My toasts" lists past sessions; today's sessions open an edit dialog (count, photo, delete with a confirmation) and the home counters follow the change; older sessions show no edit controls.
+**Acceptance:** from the home screen, "+ Toast" opens a dialog with the number of toasts (default 1) and the photo (pick / take); confirm stays disabled until a photo is picked, confirming logs them (G1), and the today-counter and streak update immediately. There is no separate camera button. "My toasts" lists past sessions; today's sessions open an edit dialog (count, photo, delete with a confirmation) and the home counters follow the change; older sessions show no edit controls.
 
 ### 4.4 Anti-cheat & moderation (trust-based, admin only)
 - BR-MOD-1: When a user's toast count for a day exceeds the threshold (app setting, default **8**), a `count_threshold` flag is created for admin review (once per user per day).
@@ -368,11 +368,10 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | GET | /me | Session | — | `200 {user}` | app profile incl. `onboarded` flag and `clanId` (null when in no clan, D49) |
 | PATCH | /me | Session | `{displayName?, avatarId?, locale?, profileVisibility?}` | `200 {user}` | onboarding uses this |
 | GET | /home | Session | — | `200 {todayCount, streak, clan?, clanStreak?, fact, toastOfTheWeek}` | one call for home screen |
-| POST | /toast-sessions | Session | multipart `{count?, photo?}` (count 1–10, default 1) | `201 {session, newAchievements[]}` | one transaction; the 30/hour rate limit counts toasts; photo on the lead toast |
+| POST | /toast-sessions | Session | multipart `{count?, photo}` (count 1–10, default 1) | `201 {session, newAchievements[]}` | one transaction; the 30/hour rate limit counts toasts; photo required (400 without), on the lead toast |
 | GET | /me/toast-sessions | Session | cursor | `200 {items: [{id, loggedAt, localDate, count, hasPhoto, photoUrl?, photoHidden, editable}], nextCursor}` | own sessions, newest first |
 | PATCH | /toast-sessions/:id | Session (owner) | `{count}` (1–10) | `200 {session, newAchievements[]}` | only on the session's day (BR-TOAST-7), else 409 |
 | PUT | /toast-sessions/:id/photo | Session (owner) | multipart `{photo}` | `200 {session, newAchievements[]}` | add or replace; same day rule; 409 if the photo is hidden |
-| DELETE | /toast-sessions/:id/photo | Session (owner) | — | `200 {session}` | same day rule |
 | DELETE | /toast-sessions/:id | Session (owner) | — | `204` | soft delete with its toasts; same day rule |
 | POST | /toasts/:id/like | Session | — | `204` | idempotent; on the lead toast of a session the caller can see (D48) |
 | DELETE | /toasts/:id/like | Session | — | `204` | idempotent; needs no access to the toast |
@@ -427,12 +426,12 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 | `/login` | Login | Public | Email field, "check your inbox" state |
 | `/auth/callback` | Verify link | Public | Consumes token, redirects to `/onboarding` or `/home`, error + resend on failure |
 | `/onboarding` | Onboarding | User (new) | Display name, avatar picker (8), visibility |
-| `/home` | Home | User | No visible title. Big "+ Toast" button (opens the log dialog: number of toasts, optional photo), current streak, clan streak with the clan picture, fact of the day, Toast of the week card (last week only), new-achievement toast (D57, D58) |
+| `/home` | Home | User | No visible title. Big "+ Toast" button (opens the log dialog: number of toasts, required photo), current streak, clan streak with the clan picture, fact of the day, Toast of the week card (last week only), new-achievement toast (D57, D58) |
 | `/leaderboards` | Leaderboards | User | Tabs Users / Clans, period switch week / month / year (clans default to month), clan rows show 🔥 streak, "me" row pinned |
 | `/clans` | Clan browser | User | Search, list with picture and member count, "Create clan" |
 | `/clans/new` | Create clan | User (no clan) | Name, description, picture |
 | `/clans/:id` | Clan | User | Header with picture, current / longest clan streak + request to join / cancel request / leave, tabs: Feed (members), Leaderboard, Members; requests panel for Officers+; settings for Owner |
-| `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, add / replace / remove photo, delete with a confirmation), older ones are read-only. Linked from the own profile |
+| `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, replace photo, delete with a confirmation), older ones are read-only. Linked from the own profile |
 | `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (subject to visibility); own profile links to My toasts |
 | `/settings` | Settings | User | Display name, avatar, visibility, logout |
 | `/admin` | Admin | Admin | Sub-pages: Flags, Users, Clans, Settings, Metrics, TOTW |
@@ -529,6 +528,7 @@ A feature is done when:
 | D61 | Rate limits that are not Better Auth's own (toasts 30/h, photo reports 10/h, magic links 5/h per email) share one helper, `consumeRateLimit()` (`apps/api/src/common/rate-limit.ts`), on Better Auth's `rate_limit` table: one upsert per request takes `cost` hits in a fixed window that starts at the key's first hit, all or none, so a refused request records nothing. Keys are prefixed (`toast:<userId>`, `report:<userId>`, `magic-link-email:<sha256>`). Raising a session's count takes its hits inside the edit's transaction, so a rolled-back edit gives them back. Answers §14 Q4 | Every api replica sees the same counts (two in prod, D60) without Redis or a new table; the row lock makes concurrent requests safe. A fixed window can let up to twice the limit through around a window boundary, which is fine for flood protection. The in-memory sliding window it replaces counted per pod |
 | D62 | Launch checks (M20). **Accessibility:** `e2e/tests/accessibility.spec.ts` runs axe (`@axe-core/playwright` 4.14.0, e2e devDependency) with the WCAG 2.1 A/AA tags on every signed-out page, every signed-in page, the log dialog and every admin page, in light and dark mode; it found and fixed low contrast on inactive tabs (now `text-muted-foreground`) and on dark `--destructive` (now `oklch(0.72 0.17 25)`), and two buttons whose name didn't contain their visible text (the like button is now named "Like 3" through an `sr-only` label; "Draw again: <week>"). **i18n:** the web i18n test also fails CI on empty strings and on sk/en placeholders that differ. **Logs:** pino's `streamWrite` hook masks anything shaped like an email (also `%40`-encoded) in every line, as a net behind the redact paths for library errors that quote one. **Performance:** `bun run --filter @toasthub/e2e perf` (`e2e/playwright.perf.config.ts`, not in CI) against a running production stack with `db:seed` plus `e2e/perf/bulk-data.sql` (1,000 users, a year of toasts): 300 GETs per endpoint at 10 in flight must stay under p95 300 ms, and LCP with a cold cache under 2.5 s on "4G" (9 Mbit/s, 170 ms RTT, 4× CPU, WebPageTest's profile); Lighthouse's "slow 4G" (1.6 Mbit/s) is reported, not enforced. Results in `docs/DEPLOY.md`. Route-level code splitting was measured and left out | The SPEC asks for "4G", and Lighthouse's slow 4G is closer to 3G. Splitting the routes saved 4 kB of the 250 kB (gzip) the pages share and added a round trip per chunk, so LCP got worse; most of the bundle is Zod, Radix, React and both locales, which every page needs. The next step for slow networks is `zod/mini` or loading one locale |
 | D63 | Production hosting. **Where:** `toasthub.fitbond.me`, in namespace `toasthub` of the k3s cluster on the Azure VM (x64, 4 GB) that already runs FitBond, which reuses its cert-manager, `letsencrypt` ClusterIssuer and Traefik settings. **Storage:** MinIO inside the cluster instead of Cloudflare R2 (`infra/k8s/minio/`, shared with the dev overlay, 10 Gi in prod), its S3 API on its own Ingress host `s3.toasthub.fitbond.me` with TLS (`S3_ENDPOINT`, so also the CSP `img-src`); the console is not exposed. The app and Barman use MinIO's root credentials, a third SealedSecret `minio-root`; backups go to `http://minio:9000` inside the cluster. **Mail:** Resend SMTP from `toasthub@fitbond.me` (the domain `fitbond.me` is verified once, for both apps). **Size:** api and web run 1 replica each in prod (base keeps 2). Answers §14 Q2 | No Cloudflare account, one VM for both school projects, no spend beyond the VM. Presigned URLs need a host browsers reach, so MinIO gets its own; the api uploads through the same public host (the VM reaches its own public IP, as cert-manager's HTTP-01 self-check for FitBond shows), since a URL only works on the host it was signed for. Backups on the same disk as the database protect against mistakes, not against losing the VM: the runbook copies the MinIO volume off the VM by hand. One replica each still rolls without downtime (`maxUnavailable: 0`) and leaves memory for FitBond |
+| D64 | Every toast session has a photo (BR-TOAST-2, 2026-11-08). The server enforces it: `POST /toast-sessions` without a `photo` part is a 400 `VALIDATION_ERROR` with `fields.photo`, checked after `count` and before the rate limit, so a refused log costs no quota. `DELETE /toast-sessions/:id/photo` is gone (404); `PUT …/photo` still replaces, and adds one to a photo-less session from before the rule. A photo an admin hid stays hidden and can't be removed or replaced, so such a session keeps `photoHidden: true` and no picture. Existing sessions without a photo are kept as they are, so `hasPhoto`/`photoUrl` stay in the API. `shutterbug` stays and now comes with the first log. Web: confirm in the log dialog is disabled until a photo is picked, and the edit dialog has no "Remove". Replaces the "optional photo" and "two taps" parts of G1, D41 and D44, and D44's "remove" for a hidden photo | Owner's product decision. Checking on the server holds for future native apps too. Refusing before the quota keeps a missing photo from eating the hourly limit |
 
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)
