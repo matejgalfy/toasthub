@@ -29,6 +29,10 @@ test("last week's winner shows on home", async ({ page }) => {
   `);
 
   await page.reload();
-  await expect(page.getByRole('img', { name: `Toast of the week by ${name}` })).toBeVisible();
-  await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
+  // The winner's session is in the global feed below too, so look inside the card only.
+  const card = page
+    .locator('[data-slot="card"]')
+    .filter({ has: page.getByRole('heading', { name: 'Toast of the week' }) });
+  await expect(card.getByRole('img', { name: `Toast of the week by ${name}` })).toBeVisible();
+  await expect(card.getByRole('link', { name, exact: true })).toBeVisible();
 });

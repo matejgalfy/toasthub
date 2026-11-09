@@ -114,14 +114,6 @@ describe('TotwService.draw', () => {
     expect(asked).toEqual([1]);
   });
 
-  it('enters every user, whatever their profile visibility', async () => {
-    const { service, asked } = totwWith();
-    await db.update(user).set({ profileVisibility: 'clan' }).where(eq(user.id, bob.userId));
-    const hidden = await photoToast(bob.userId, on(lastWeek, 0));
-    expect((await service.draw(lastWeek)).toastId).toBe(hidden.id);
-    expect(asked).toEqual([1]);
-  });
-
   it('picks the candidate at the random index, in id order', async () => {
     const toasts = [
       await photoToast(ann.userId, on(lastWeek, 0)),
@@ -197,8 +189,6 @@ describe('GET /toast-of-the-week', () => {
   it('lists drawn weeks newest first, with the winner, none or removed', async () => {
     const weeks = [0, 1, 2, 3].map((n) => addDays(lastWeek, -7 * n));
     const [week0, week1, week2, week3] = weeks as [LocalDate, LocalDate, LocalDate, LocalDate];
-    // A clan-only profile: the winning photo is still shown to everyone (BR-TOTW-2).
-    await db.update(user).set({ profileVisibility: 'clan' }).where(eq(user.id, bob.userId));
     const winner = await photoToast(bob.userId, on(week0, 2));
     const deleted = await photoToast(ann.userId, on(week2, 2));
     const hidden = await photoToast(bob.userId, on(week3, 2));

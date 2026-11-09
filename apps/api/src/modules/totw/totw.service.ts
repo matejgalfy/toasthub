@@ -7,7 +7,6 @@ import {
   localDate,
   localDateSchema,
   type PageQuery,
-  ProfileVisibility,
   type ToastOfTheWeek,
   type ToastOfTheWeekPage,
   ToastOfTheWeekStatus,
@@ -142,24 +141,24 @@ export class TotwService {
   /** An admin's redraw (SPEC §4.13): replaces the week's winner, or draws it for the first time. */
   async redraw(adminId: string, weekStart: LocalDate): Promise<ToastOfTheWeek> {
     await this.draw(weekStart, { replace: true, drawnBy: adminId });
-    const entry = await this.forWeek(adminId, weekStart);
+    const entry = await this.forWeek(weekStart);
     if (!entry) throw new Error('Toast of the week disappeared after a redraw');
     return entry;
   }
 
-  /** The draw for one week as the viewer sees it; null while the week isn't drawn. */
-  async forWeek(viewerId: string, weekStart: LocalDate): Promise<ToastOfTheWeek | null> {
+  /** The draw for one week; null while the week isn't drawn. */
+  async forWeek(weekStart: LocalDate): Promise<ToastOfTheWeek | null> {
     const [row] = await this.rows(eq(toastOfTheWeek.weekStart, weekStart), 1);
-    return row ? this.toEntry(viewerId, row) : null;
+    return row ? this.toEntry(row) : null;
   }
 
   /** Last week's draw, which the home screen shows all week. */
-  async lastWeek(viewerId: string, today: LocalDate): Promise<ToastOfTheWeek | null> {
-    return this.forWeek(viewerId, previousWeekStart(today));
+  async lastWeek(today: LocalDate): Promise<ToastOfTheWeek | null> {
+    return this.forWeek(previousWeekStart(today));
   }
 
   /** Every drawn week, newest first. */
-  async history(viewerId: string, { cursor, limit }: PageQuery): Promise<ToastOfTheWeekPage> {
+  async history({ cursor, limit }: PageQuery): Promise<ToastOfTheWeekPage> {
     const after = cursor === undefined ? null : decodeCursor(cursor, keysetSchema);
     const rows = await this.rows(
       after ? lt(toastOfTheWeek.weekStart, after.weekStart) : undefined,
@@ -167,7 +166,7 @@ export class TotwService {
     );
     const page = toPage(rows, limit, (row) => ({ weekStart: row.weekStart }));
     return {
-      items: await Promise.all(page.items.map((row) => this.toEntry(viewerId, row))),
+      items: await Promise.all(page.items.map((row) => this.toEntry(row))),
       nextCursor: page.nextCursor,
     };
   }
@@ -184,7 +183,6 @@ export class TotwService {
         userId: user.id,
         displayName: user.displayName,
         avatarId: user.avatarId,
-        profileVisibility: user.profileVisibility,
       })
       .from(toastOfTheWeek)
       .leftJoin(toast, eq(toast.id, toastOfTheWeek.toastId))
@@ -195,7 +193,6 @@ export class TotwService {
   }
 
   private async toEntry(
-    viewerId: string,
     row: Awaited<ReturnType<TotwService['rows']>>[number],
   ): Promise<ToastOfTheWeek> {
     const { weekStart } = row;
@@ -204,21 +201,11 @@ export class TotwService {
     if (row.toastId === null || row.userId === null || row.eatenAt === null) {
       return { weekStart, status: ToastOfTheWeekStatus.none, toast: null };
     }
-    // A winner is shown to everyone (BR-TOTW-2), so clans and visibility don't change the answer.
-    const visible = canSeePhoto(
-      { userId: viewerId, clanId: null },
-      {
-        owner: {
-          userId: row.userId,
-          profileVisibility: row.profileVisibility ?? ProfileVisibility.public,
-          clanId: null,
-        },
-        hasPhoto: row.photoKey !== null,
-        hidden: row.photoHiddenAt !== null,
-        removed: !row.countable,
-        wonToastOfTheWeek: true,
-      },
-    );
+    const visible = canSeePhoto({
+      hasPhoto: row.photoKey !== null,
+      hidden: row.photoHiddenAt !== null,
+      removed: !row.countable,
+    });
     if (!visible || row.photoKey === null) {
       return { weekStart, status: ToastOfTheWeekStatus.removed, toast: null };
     }

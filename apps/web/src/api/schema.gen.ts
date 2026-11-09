@@ -308,6 +308,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/feed': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['FeedController_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/toast-of-the-week': {
     parameters: {
       query?: never;
@@ -1039,7 +1055,7 @@ export interface components {
         clanId: string;
       };
     };
-    ClanFeedPageDto_Output: {
+    FeedPageDto_Output: {
       items: {
         /** Format: uuid */
         sessionId: string;
@@ -1198,8 +1214,6 @@ export interface components {
         /** @enum {string} */
         locale: 'sk' | 'en';
         /** @enum {string} */
-        profileVisibility: 'public' | 'clan';
-        /** @enum {string} */
         role: 'user' | 'admin';
         onboarded: boolean;
         /** Format: uuid */
@@ -1213,8 +1227,6 @@ export interface components {
       avatarId?: number | null;
       /** @enum {string} */
       locale?: 'sk' | 'en';
-      /** @enum {string} */
-      profileVisibility?: 'public' | 'clan';
     };
     ToastSessionChangeResponseDto_Output: {
       session: {
@@ -1273,8 +1285,6 @@ export interface components {
         id: string;
         displayName: string;
         avatarId: number | null;
-        /** @enum {string} */
-        access: 'full' | 'reduced';
         counts: {
           week: number;
           month: number;
@@ -1901,7 +1911,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ClanFeedPageDto_Output'];
+          'application/json': components['schemas']['FeedPageDto_Output'];
         };
       };
     };
@@ -1920,6 +1930,28 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  FeedController_list: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FeedPageDto_Output'];
+        };
       };
     };
   };

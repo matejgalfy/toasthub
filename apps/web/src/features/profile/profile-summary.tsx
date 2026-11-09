@@ -1,4 +1,4 @@
-import { History, Lock } from 'lucide-react';
+import { History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useFormat } from '@/i18n/format';
 
-/** Avatar, name and the leaderboard counts: what every viewer may see (SPEC §4.2). */
+/** Avatar, name and the leaderboard counts (SPEC §4.2). */
 export function ProfileSummary({ profile, own }: { profile: UserProfile; own: boolean }) {
   const { t } = useTranslation();
   const format = useFormat();
@@ -47,18 +47,5 @@ export function ProfileSummary({ profile, own }: { profile: UserProfile; own: bo
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-/** Shown instead of stats, heatmap, achievements and photos for a clan-only profile. */
-export function ReducedProfileNotice({ name }: { name: string }) {
-  const { t } = useTranslation();
-  return (
-    <Card>
-      <CardContent className="flex items-start gap-3">
-        <Lock className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <p className="text-muted-foreground">{t('profilePage.reduced', { name })}</p>
-      </CardContent>
-    </Card>
   );
 }

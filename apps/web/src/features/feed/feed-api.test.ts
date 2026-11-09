@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ClanFeedItem } from '@toasthub/shared';
+import type { FeedItem } from '@toasthub/shared';
 
-import { withLike } from './clans-api';
+import { isFeedQuery, withLike } from './feed-api';
 
-const item = (toastId: string, likeCount: number, likedByMe: boolean): ClanFeedItem => ({
+const item = (toastId: string, likeCount: number, likedByMe: boolean): FeedItem => ({
   sessionId: `session-${toastId}`,
   toastId,
   user: { id: 'user', displayName: 'Mia', avatarId: null },
@@ -16,7 +16,7 @@ const item = (toastId: string, likeCount: number, likedByMe: boolean): ClanFeedI
   likedByMe,
 });
 
-const feed = (...items: ClanFeedItem[][]) => ({
+const feed = (...items: FeedItem[][]) => ({
   pages: items.map((page) => ({ items: page, nextCursor: null })),
   pageParams: items.map(() => null),
 });
@@ -37,5 +37,15 @@ describe('withLike', () => {
   it("doesn't count a like twice", () => {
     const before = feed([item('a', 3, true)]);
     expect(withLike(before, 'a', true).pages[0]?.items[0]).toBe(before.pages[0]?.items[0]);
+  });
+});
+
+describe('isFeedQuery', () => {
+  it('matches the global feed and every clan feed, nothing else', () => {
+    expect(isFeedQuery({ queryKey: ['feed'] })).toBe(true);
+    expect(isFeedQuery({ queryKey: ['clans', 'c1', 'feed'] })).toBe(true);
+    expect(isFeedQuery({ queryKey: ['clans', 'c1'] })).toBe(false);
+    expect(isFeedQuery({ queryKey: ['clans', 'list', ''] })).toBe(false);
+    expect(isFeedQuery({ queryKey: ['users', 'u1', 'toasts'] })).toBe(false);
   });
 });

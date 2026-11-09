@@ -7,8 +7,6 @@ import {
 } from '@toasthub/shared';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
 
-import type { AuthUser } from '../auth/auth.config';
-import { CurrentUser } from '../auth/auth.decorators';
 import { TotwService } from './totw.service';
 
 class ToastOfTheWeekPageDto extends createZodDto(toastOfTheWeekPageSchema) {}
@@ -23,10 +21,7 @@ export class TotwController {
   /** Every drawn week, newest first: the winner, no winner, or a winner removed since. */
   @Get()
   @ZodResponse({ status: 200, type: ToastOfTheWeekPageDto })
-  history(
-    @CurrentUser() viewer: AuthUser,
-    @Query() query: PageQueryDto,
-  ): Promise<ToastOfTheWeekPage> {
-    return this.totw.history(viewer.id, query);
+  history(@Query() query: PageQueryDto): Promise<ToastOfTheWeekPage> {
+    return this.totw.history(query);
   }
 }

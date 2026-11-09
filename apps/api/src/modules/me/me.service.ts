@@ -16,7 +16,6 @@ export function toMe(row: UserRow, clanId: string | null): Me {
     displayName: row.displayName || null,
     avatarId: row.avatarId,
     locale: row.locale,
-    profileVisibility: row.profileVisibility,
     role: row.role,
     onboarded: row.displayName !== '',
     clanId,

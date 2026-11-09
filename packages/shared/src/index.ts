@@ -3,6 +3,7 @@ export * from './admin.js';
 export * from './clan-policy.js';
 export * from './clan.js';
 export * from './errors.js';
+export * from './feed.js';
 export * from './flag.js';
 export * from './health.js';
 export * from './home.js';

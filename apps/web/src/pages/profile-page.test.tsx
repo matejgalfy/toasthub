@@ -28,7 +28,6 @@ function profile(overrides: Partial<UserProfile> = {}): UserProfile {
     id: testUser.id,
     displayName: 'Toast Tester',
     avatarId: 1,
-    access: 'full',
     counts: { week: 3, month: 7, year: 40 },
     ...overrides,
   };
@@ -193,20 +192,7 @@ describe('ProfilePage', () => {
     expect(cursors).toEqual(['', '?cursor=next']);
   });
 
-  it("shows only the basics of a clan-only profile and doesn't ask for the rest", async () => {
-    const other = profile({ id: OTHER_ID, displayName: 'Shy Toaster', access: 'reduced' });
-    const requests = mockProfileApi(other, () => page([]));
-    renderProfile(OTHER_ID);
-
-    expect(await screen.findByRole('heading', { level: 1, name: 'Shy Toaster' })).toBeVisible();
-    expect(screen.getByText(/Shy Toaster shares stats, achievements and photos/)).toBeVisible();
-    expect(screen.getByText('This week').nextElementSibling).toHaveTextContent('3');
-    expect(screen.queryByRole('link', { name: 'My toasts' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region')).not.toBeInTheDocument();
-    expect(requests.map((r) => new URL(r.url).pathname)).toEqual([`/api/v1/users/${OTHER_ID}`]);
-  });
-
-  it("has no My toasts link on someone else's full profile", async () => {
+  it("shows someone else's whole profile, without a My toasts link", async () => {
     mockProfileApi(profile({ id: OTHER_ID, displayName: 'Open Toaster' }), () => page([]));
     renderProfile(OTHER_ID);
 

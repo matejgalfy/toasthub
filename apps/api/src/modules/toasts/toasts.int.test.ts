@@ -1,5 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { ProfileVisibility, UserToastPage } from '@toasthub/shared';
+import type { UserToastPage } from '@toasthub/shared';
 import { and, eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -7,16 +7,7 @@ import { type SignedIn, signIn, WEB_ORIGIN } from '../../../test/auth';
 import { createTestApp } from '../../../test/create-app';
 import { insertToasts } from '../../../test/toasts';
 import { type Database, DB } from '../../db/db.module';
-import {
-  clan,
-  clanMembership,
-  flag,
-  like,
-  toast,
-  toastOfTheWeek,
-  toastSession,
-  user,
-} from '../../db/schema';
+import { clan, clanMembership, flag, like, toast, toastSession, user } from '../../db/schema';
 import { REPORT_RATE_LIMIT } from './toasts.service';
 
 let app: NestFastifyApplication;
@@ -41,10 +32,6 @@ async function signUp(email: string, displayName: string): Promise<SignedIn> {
   const who = await signIn(app, email);
   await db.update(user).set({ displayName }).where(eq(user.id, who.userId));
   return who;
-}
-
-async function setVisibility(who: SignedIn, profileVisibility: ProfileVisibility) {
-  await db.update(user).set({ profileVisibility }).where(eq(user.id, who.userId));
 }
 
 async function sameClan(...members: SignedIn[]) {
@@ -128,18 +115,11 @@ describe('POST /toasts/:id/like', () => {
     expect(await likesOf(toastId)).toHaveLength(2);
   });
 
-  it('is a 403 for a clan-only profile, unless clanmates or a Toast of the week', async () => {
-    await setVisibility(ann, 'clan');
+  it('likes any user’s session, in a clan or not (every profile is public, D67)', async () => {
     const toastId = await annPhoto();
-    expectError(await call(bob, 'POST', `/${toastId}/like`), 403, 'FORBIDDEN');
-
-    await db.insert(toastOfTheWeek).values({ weekStart: '2026-10-26', toastId });
+    await sameClan(ann);
     expect((await call(bob, 'POST', `/${toastId}/like`)).statusCode).toBe(204);
-    await db.delete(toastOfTheWeek);
-    await db.delete(like);
-
-    await sameClan(ann, bob);
-    expect((await call(bob, 'POST', `/${toastId}/like`)).statusCode).toBe(204);
+    expect(await likesOf(toastId)).toEqual([{ userId: bob.userId }]);
   });
 
   it('is a 404 for a toast that is not a session’s lead toast', async () => {
@@ -201,7 +181,7 @@ describe('DELETE /toasts/:id/like', () => {
   it('works without access to the toast any more', async () => {
     const toastId = await annPhoto();
     await call(bob, 'POST', `/${toastId}/like`);
-    await setVisibility(ann, 'clan');
+    await db.update(toast).set({ status: 'rejected' }).where(eq(toast.id, toastId));
     expect((await call(bob, 'DELETE', `/${toastId}/like`)).statusCode).toBe(204);
     expect(await likesOf(toastId)).toEqual([]);
     expect((await call(bob, 'DELETE', `/${UNKNOWN_ID}/like`)).statusCode).toBe(204);
@@ -254,10 +234,10 @@ describe('POST /toasts/:id/report', () => {
     expect(await photoReports()).toEqual([]);
   });
 
-  it('is a 403 for a photo the reporter can’t see and a 404 for an unknown toast', async () => {
-    await setVisibility(ann, 'clan');
+  it('is a 404 for a rejected or an unknown toast', async () => {
     const toastId = await annPhoto();
-    expectError(await call(bob, 'POST', `/${toastId}/report`), 403, 'FORBIDDEN');
+    await db.update(toast).set({ status: 'rejected' }).where(eq(toast.id, toastId));
+    expectError(await call(bob, 'POST', `/${toastId}/report`), 404, 'NOT_FOUND');
     expectError(await call(bob, 'POST', `/${UNKNOWN_ID}/report`), 404, 'NOT_FOUND');
   });
 

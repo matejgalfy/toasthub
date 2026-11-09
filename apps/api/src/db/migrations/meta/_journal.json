@@ -57,6 +57,13 @@
       "when": 1793389035959,
       "tag": "0007_clan_avatar",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794260822419,
+      "tag": "0008_global_feed",
+      "breakpoints": true
     }
   ]
 }

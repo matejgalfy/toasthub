@@ -65,7 +65,6 @@ describe('magic-link sign-in', () => {
         displayName: null,
         avatarId: null,
         locale: 'en',
-        profileVisibility: 'public',
         role: 'user',
         onboarded: false,
         clanId: null,

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/page-header';
 import { PageSpinner } from '@/components/page-spinner';
 import { QueryError } from '@/components/query-error';
+import { GlobalFeed } from '@/features/feed/global-feed';
 import { HomeCards } from '@/features/home/home-cards';
 import { homeQueryOptions } from '@/features/home/home-query';
 import { LogToastButton } from '@/features/home/log-toast-button';
@@ -25,6 +26,8 @@ export function HomePage() {
         ) : (
           <HomeCards home={home.data} />
         )}
+        {/* Under the Toast of the week, the last of the home cards (SPEC §4.14). */}
+        <GlobalFeed />
       </div>
     </>
   );

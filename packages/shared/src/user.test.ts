@@ -33,9 +33,12 @@ describe('updateMeSchema', () => {
     expect(updateMeSchema.safeParse({ role: 'admin' }).success).toBe(false);
   });
 
-  it('rejects an unknown locale or visibility', () => {
+  it('rejects an unknown locale', () => {
     expect(updateMeSchema.safeParse({ locale: 'de' }).success).toBe(false);
-    expect(updateMeSchema.safeParse({ profileVisibility: 'private' }).success).toBe(false);
+  });
+
+  it('rejects profileVisibility, which is gone (SPEC §12 D67)', () => {
+    expect(updateMeSchema.safeParse({ profileVisibility: 'public' }).success).toBe(false);
   });
 });
 

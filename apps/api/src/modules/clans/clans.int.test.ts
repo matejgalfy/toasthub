@@ -2,7 +2,6 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import {
   addDays,
   type ClanDetail,
-  type ClanFeedPage,
   type ClanJoinRequestList,
   type ClanJoinRequestResponse,
   type ClanMembershipResponse,
@@ -11,6 +10,7 @@ import {
   type ClanRole,
   type ClanTransferResponse,
   type CreateClanResponse,
+  type FeedPage,
   localDate,
 } from '@toasthub/shared';
 import { and, eq, sql } from 'drizzle-orm';
@@ -773,11 +773,10 @@ describe('GET /clans/:id/feed', () => {
   const hoursAgo = (hours: number) => new Date(Date.now() - hours * 60 * 60 * 1000);
 
   function feed(as: SignedIn, query = '') {
-    return ok<ClanFeedPage>(as, 'GET', `/clans/${clanId}/feed${query}`, 200);
+    return ok<FeedPage>(as, 'GET', `/clans/${clanId}/feed${query}`, 200);
   }
 
   it('lists current members’ sessions newest first, with count, photo and likes', async () => {
-    await db.update(user).set({ profileVisibility: 'clan' }).where(eq(user.id, bob.userId));
     const older = await addSession(ann.userId, hoursAgo(3), { count: 3 });
     const newer = await addSession(bob.userId, hoursAgo(1), { count: 2, photo: true });
     await db.insert(like).values([
@@ -797,7 +796,6 @@ describe('GET /clans/:id/feed', () => {
       likeCount: 2,
       likedByMe: true,
     });
-    // Clanmates see the photo of a clan-only profile (§4.8).
     expect(first?.photoUrl).toContain(`toasts/${bob.userId}/`);
     expect(second).toMatchObject({
       sessionId: older.sessionId,

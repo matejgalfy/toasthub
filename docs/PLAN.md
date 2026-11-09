@@ -800,3 +800,8 @@ one disagrees with AGENTS.md or SPEC, those win._
   (`infra/k8s/minio/`, shared by both overlays; prod exposes only its S3 API at `s3.toasthub.live`).
   `seal-secrets.sh` now also seals `minio-root` from `minio.env`. Prod runs 1 api + 1 web pod. Backups share the
   VM's disk: copy the MinIO volume off by hand (`docs/DEPLOY.md` → Backups).
+- **Global feed, public profiles (after M20, D67):** `GET /feed` on home (`modules/feed`, shared with the clan
+  feed) under the Toast of the week, with the jump arrow; the profile visibility setting is gone from the API and
+  the UI. **Open:** the `user.profile_visibility` column and its enum are still in the schema
+  (`db/schema/auth.ts`), unused and all `public`, because a migration must stay compatible with the release
+  before (`docs/DEPLOY.md`). Once 0008 is deployed to prod, remove both from the schema and `db:generate` the drop.

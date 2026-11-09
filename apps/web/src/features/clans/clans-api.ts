@@ -1,5 +1,4 @@
 import {
-  type InfiniteData,
   infiniteQueryOptions,
   keepPreviousData,
   queryOptions,
@@ -10,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
-import type { ClanFeedPage, CreateClan, UpdateClan } from '@toasthub/shared';
+import type { CreateClan, UpdateClan } from '@toasthub/shared';
 
 import { api, unwrap } from '@/api/client';
 import { meQueryKey } from '@/features/auth/me-query';
@@ -51,7 +50,7 @@ export const clanQueryOptions = (id: string) =>
     queryFn: () => unwrap(api.GET('/api/v1/clans/{id}', clanPath(id))),
   });
 
-/** Current members' sessions, newest first (members only). */
+/** Current members' sessions, newest first (members only); likes go through `features/feed`. */
 export const clanFeedQueryOptions = (id: string) =>
   infiniteQueryOptions({
     queryKey: feedKey(id),
@@ -74,8 +73,7 @@ export const clanRequestsQueryOptions = (id: string) =>
 
 /**
  * A change to clan membership or roles. Afterwards every clan query is refetched, and so are the caller's
- * clan (`/me`), the clan streak on home, profiles, whose access follows clan membership (D45), and the
- * boards, which list clans and members.
+ * clan (`/me`), the clan streak on home, profiles and the boards, which list clans and members.
  */
 export function useClanMutation<Input, Result>(
   mutationFn: (input: Input) => Promise<Result>,
@@ -180,65 +178,4 @@ export function useTransferClan(id: string) {
   return useClanMutation(({ userId }: { userId: string }) =>
     unwrap(api.POST('/api/v1/clans/{id}/transfer', { ...clanPath(id), body: { userId } })),
   );
-}
-
-type FeedData = InfiniteData<ClanFeedPage, string | null>;
-
-/** The feed with the like on `toastId` set to `liked`. */
-export function withLike(feed: FeedData, toastId: string, liked: boolean): FeedData {
-  return {
-    ...feed,
-    pages: feed.pages.map((page) => ({
-      ...page,
-      items: page.items.map((item) =>
-        item.toastId !== toastId || item.likedByMe === liked
-          ? item
-          : { ...item, likedByMe: liked, likeCount: item.likeCount + (liked ? 1 : -1) },
-      ),
-    })),
-  };
-}
-
-/**
- * 🍞 on a session in the clan feed, shown at once and put back if the request fails. Profiles show
- * likes too, so they are refetched afterwards.
- */
-export function useToggleLike(clanId: string) {
-  const queryClient = useQueryClient();
-  const key = feedKey(clanId);
-  return useMutation({
-    mutationFn: ({ toastId, liked }: { toastId: string; liked: boolean }) => {
-      const params = { params: { path: { id: toastId } } };
-      return liked
-        ? unwrap(api.POST('/api/v1/toasts/{id}/like', params))
-        : unwrap(api.DELETE('/api/v1/toasts/{id}/like', params));
-    },
-    onMutate: async ({ toastId, liked }) => {
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<FeedData>(key);
-      if (previous) queryClient.setQueryData(key, withLike(previous, toastId, liked));
-      return { previous };
-    },
-    onError: (_error, _input, context) => {
-      if (context?.previous) queryClient.setQueryData(key, context.previous);
-    },
-    onSettled: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: key }),
-        queryClient.invalidateQueries({ queryKey: usersQueryKey }),
-      ]),
-  });
-}
-
-/** Reports a photo to the admins; the answer has no body (202). */
-export function useReportPhoto() {
-  return useMutation({
-    mutationFn: ({ toastId, reason }: { toastId: string; reason: string }) =>
-      unwrap(
-        api.POST('/api/v1/toasts/{id}/report', {
-          params: { path: { id: toastId } },
-          body: reason.trim() ? { reason: reason.trim() } : {},
-        }),
-      ),
-  });
 }

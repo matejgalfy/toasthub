@@ -6,14 +6,6 @@ import { streakSchema } from './streak.js';
 import { localDateSchema } from './time.js';
 import { avatarIdSchema } from './user.js';
 
-/**
- * What a viewer may see of a profile (SPEC §4.2): `full` = stats, heatmap, achievements and photos;
- * `reduced` = display name, avatar and leaderboard counts only.
- */
-export const ProfileAccess = { full: 'full', reduced: 'reduced' } as const;
-export const profileAccessSchema = z.enum(ProfileAccess);
-export type ProfileAccess = z.infer<typeof profileAccessSchema>;
-
 /** A user as shown in lists (clan members, join requests). Never carries the email. */
 export const userSummarySchema = z.object({
   id: z.uuid(),
@@ -38,8 +30,6 @@ export const userProfileSchema = z.object({
   id: z.uuid(),
   displayName: z.string(),
   avatarId: avatarIdSchema.nullable(),
-  // `reduced`: the other `/users/:id/*` routes answer 403 for this viewer.
-  access: profileAccessSchema,
   counts: periodCountsSchema,
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { HomeResponse } from '@toasthub/shared';
 
 import { api, unwrap } from '@/api/client';
+import { isFeedQuery } from '@/features/feed/feed-api';
 import { leaderboardsQueryKey } from '@/features/leaderboards/leaderboards-api';
 import { usersQueryKey } from '@/features/profile/profile-api';
 import {
@@ -54,6 +55,7 @@ export function useLogToasts() {
         queryClient.invalidateQueries({ queryKey: toastSessionsQueryKey }),
         queryClient.invalidateQueries({ queryKey: usersQueryKey }),
         queryClient.invalidateQueries({ queryKey: leaderboardsQueryKey }),
+        queryClient.invalidateQueries({ predicate: isFeedQuery }),
       ]),
   });
 }

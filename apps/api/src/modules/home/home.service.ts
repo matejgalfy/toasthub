@@ -37,7 +37,7 @@ export class HomeService {
       this.streaks.forUser(userId, today),
       me.clan ? this.streaks.forClan(me.clan.id, today) : null,
       this.facts.forDay(today, me.locale),
-      this.totw.lastWeek(userId, today),
+      this.totw.lastWeek(today),
     ]);
     return { todayCount, streak, clan: me.clan, clanStreak, fact, toastOfTheWeek };
   }

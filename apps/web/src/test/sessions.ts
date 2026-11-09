@@ -11,7 +11,6 @@ export const testUser: Me = {
   displayName: 'Toast Tester',
   avatarId: 1,
   locale: 'en',
-  profileVisibility: 'public',
   role: 'user',
   onboarded: true,
   clanId: null,

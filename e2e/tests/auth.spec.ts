@@ -21,7 +21,6 @@ test('a new user signs up, finishes onboarding and lands on home', async ({ page
 
   await page.getByLabel('Display name').fill('E2E Toaster');
   await page.getByRole('radio', { name: 'Cool toast' }).click();
-  await page.getByRole('radio', { name: 'Clanmates only' }).click();
   await page.getByRole('button', { name: 'Start toasting' }).click();
 
   await expect(page).toHaveURL('/home');
@@ -30,7 +29,9 @@ test('a new user signs up, finishes onboarding and lands on home', async ({ page
   // A full page load keeps the session, and onboarding saved the profile.
   await page.goto('/settings');
   await expect(page.getByLabel('Display name')).toHaveValue('E2E Toaster');
-  await expect(page.getByRole('radio', { name: 'Clanmates only' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Cool toast' })).toBeChecked();
+  // Every profile is public: there is no visibility choice (SPEC §12 D67).
+  await expect(page.getByText('Who can see your profile')).toHaveCount(0);
   await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
 });
 

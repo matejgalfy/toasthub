@@ -16,7 +16,7 @@ afterEach(() => {
 describe('OnboardingPage', () => {
   it('checks the name, then saves the profile with the UI language', async () => {
     const user = userEvent.setup();
-    const saved = { ...testUser, displayName: 'Ann', avatarId: 3, profileVisibility: 'clan' };
+    const saved = { ...testUser, displayName: 'Ann', avatarId: 3 };
     const requests = mockApi(() => jsonResponse(200, { user: saved }));
     const { queryClient } = renderWithApp(<OnboardingPage />, { session: testSession('new') });
 
@@ -29,7 +29,6 @@ describe('OnboardingPage', () => {
 
     await user.type(name, 'nn ');
     await user.click(screen.getByRole('radio', { name: 'Pixel knight' }));
-    await user.click(screen.getByRole('radio', { name: 'Clanmates only' }));
     await user.click(screen.getByRole('button', { name: 'Start toasting' }));
 
     await vi.waitFor(() => {
@@ -40,9 +39,14 @@ describe('OnboardingPage', () => {
     expect(await request?.json()).toEqual({
       displayName: 'Ann',
       avatarId: 3,
-      profileVisibility: 'clan',
       locale: 'en',
     });
+  });
+
+  it('offers no profile visibility choice (every profile is public, D67)', () => {
+    renderWithApp(<OnboardingPage />, { session: testSession('new') });
+    expect(screen.queryByText('Who can see your profile')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Clanmates only' })).not.toBeInTheDocument();
   });
 
   it('shows the API error', async () => {

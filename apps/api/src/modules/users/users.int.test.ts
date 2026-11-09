@@ -7,7 +7,6 @@ import {
   type Heatmap,
   type LocalDate,
   localDate,
-  type ProfileVisibility,
   type UserAchievements,
   type UserProfileResponse,
   type UserStats,
@@ -55,11 +54,8 @@ afterEach(async () => {
   await app.close();
 });
 
-async function onboard(who: SignedIn, displayName: string, visibility?: ProfileVisibility) {
-  await db
-    .update(user)
-    .set({ displayName, avatarId: 3, profileVisibility: visibility })
-    .where(eq(user.id, who.userId));
+async function onboard(who: SignedIn, displayName: string) {
+  await db.update(user).set({ displayName, avatarId: 3 }).where(eq(user.id, who.userId));
 }
 
 async function joinClan(name: string, ...members: SignedIn[]): Promise<string> {
@@ -127,65 +123,34 @@ async function addPhotoSession(userId: string, daysAgo: number, count = 1) {
   return { key, sessionId: session.id, lead };
 }
 
-describe.each([
-  { name: 'a public profile', visibility: 'public', clanmates: false, access: 'full' },
-  {
-    name: 'a clan-only profile seen by a clanmate',
-    visibility: 'clan',
-    clanmates: true,
-    access: 'full',
-  },
-  {
-    name: 'a clan-only profile seen by a stranger',
-    visibility: 'clan',
-    clanmates: false,
-    access: 'reduced',
-  },
-] as const)('visibility: $name', ({ visibility, clanmates, access }) => {
+describe('every profile is public (D67)', () => {
   beforeEach(async () => {
-    await onboard(bob, 'Bob', visibility);
-    if (clanmates) {
-      await joinClan('Breakfast Club', bob, ann);
-    } else {
-      // In clans, but not the same one.
-      await joinClan('Breakfast Club', bob);
-      await joinClan('Brunch Club', ann);
-    }
+    // In clans, but not the same one.
+    await joinClan('Breakfast Club', bob);
+    await joinClan('Brunch Club', ann);
     await addToasts(bob.userId, [0, 1]);
     await addPhotoSession(bob.userId, 0);
   });
 
-  it(`GET /users/:id is ${access}, with name, avatar and counts`, async () => {
+  it('GET /users/:id has name, avatar and counts', async () => {
     const { profile } = await getOk<UserProfileResponse>(ann, `/${bob.userId}`);
     expect(profile).toEqual({
       id: bob.userId,
       displayName: 'Bob',
       avatarId: 3,
-      access,
       counts: expect.objectContaining({ year: expect.any(Number) as number }) as object,
     });
   });
 
   it.each(ROUTES.slice(1))(
-    `GET /users/:id%s is ${access === 'full' ? '200' : '403'}`,
+    'GET /users/:id%s is a 200 for a user of another clan',
     async (route) => {
-      const res = await get(ann, `/${bob.userId}${route}`);
-      if (access === 'full') {
-        expect(res.statusCode).toBe(200);
-      } else {
-        expect(res.statusCode).toBe(403);
-        expect(res.json()).toMatchObject({ error: { code: 'FORBIDDEN' } });
-      }
+      expect((await get(ann, `/${bob.userId}${route}`)).statusCode).toBe(200);
     },
   );
 
-  it('GET /users/:id/toasts signs photos only for full access', async () => {
-    const res = await get(ann, `/${bob.userId}/toasts`);
-    if (access === 'full') {
-      expect(res.json<UserToastPage>().items).toHaveLength(1);
-    } else {
-      expect(res.body).not.toMatch(/X-Amz/);
-    }
+  it('GET /users/:id/toasts signs the photos', async () => {
+    expect((await getOk<UserToastPage>(ann, `/${bob.userId}/toasts`)).items).toHaveLength(1);
   });
 });
 
@@ -206,12 +171,6 @@ describe('GET /users/:id', () => {
     await insertToasts(db, [{ userId: bob.userId, eatenAt: dayAt(0), deletedAt: new Date() }]);
     const { profile } = await getOk<UserProfileResponse>(ann, `/${bob.userId}`);
     expect(profile.counts).toEqual({ week: 2, month: 2, year: 2 });
-  });
-
-  it('shows the own clan-only profile in full', async () => {
-    await onboard(ann, 'Ann', 'clan');
-    const { profile } = await getOk<UserProfileResponse>(ann, `/${ann.userId}`);
-    expect(profile.access).toBe('full');
   });
 
   it('is a 404 for an unknown, banned or not yet onboarded user', async () => {

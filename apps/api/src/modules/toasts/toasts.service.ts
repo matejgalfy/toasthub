@@ -1,21 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { FlagStatus, FlagType } from '@toasthub/shared';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { AppError } from '../../common/errors/app-error';
 import { consumeRateLimit } from '../../common/rate-limit';
 import { type Database, DB, type DbExecutor } from '../../db/db.module';
-import {
-  clanMembership,
-  flag,
-  like,
-  toast,
-  toastOfTheWeek,
-  toastSession,
-  user,
-} from '../../db/schema';
-import type { Viewer } from '../users/users.policy';
+import { flag, like, toast, toastSession } from '../../db/schema';
 import { countableToasts } from './countable-toasts';
 import { assertCanLike, assertCanReport, type ReactionFacts } from './toasts.policy';
 
@@ -33,8 +24,8 @@ export class ToastsService {
   /** Idempotent. The session row is shared-locked, so a like can't outlive a concurrent delete. */
   async like(userId: string, toastId: string): Promise<void> {
     await this.db.transaction(async (tx) => {
-      const { viewer, facts } = await this.load(tx, userId, toastId, true);
-      assertCanLike(viewer, facts);
+      const { facts } = await this.load(tx, toastId, true);
+      assertCanLike(facts);
       await tx.insert(like).values({ userId, toastId }).onConflictDoNothing();
     });
   }
@@ -52,8 +43,8 @@ export class ToastsService {
     if (!(await consumeRateLimit(this.db, `report:${userId}`, REPORT_LIMIT)).allowed) {
       throw new AppError('RATE_LIMITED', 'Too many reports, try again later');
     }
-    const { viewer, facts } = await this.load(this.db, userId, toastId, false);
-    assertCanReport(viewer, facts);
+    const { ownerId, facts } = await this.load(this.db, toastId, false);
+    assertCanReport(facts);
     const [open] = await this.db
       .select({ id: flag.id })
       .from(flag)
@@ -68,7 +59,7 @@ export class ToastsService {
     if (open) return;
     await this.db.insert(flag).values({
       type: FlagType.photo_report,
-      subjectUserId: facts.owner.userId,
+      subjectUserId: ownerId,
       toastId,
       reporterId: userId,
       // An empty reason is stored as none.
@@ -79,14 +70,12 @@ export class ToastsService {
   /** The facts the policy needs; 404 for an unknown toast. */
   private async load(
     db: DbExecutor,
-    viewerId: string,
     toastId: string,
     lockSession: boolean,
-  ): Promise<{ viewer: Viewer; facts: ReactionFacts }> {
+  ): Promise<{ ownerId: string; facts: ReactionFacts }> {
     const query = db
       .select({
         ownerId: toast.userId,
-        profileVisibility: user.profileVisibility,
         hasPhoto: sql<boolean>`${toast.photoKey} IS NOT NULL`,
         hidden: sql<boolean>`${toast.photoHiddenAt} IS NOT NULL`,
         countable: sql<boolean>`${countableToasts()}`,
@@ -96,35 +85,18 @@ export class ToastsService {
           WHERE ${earlier.sessionId} = ${toast.sessionId} AND ${earlier.deletedAt} IS NULL
             AND (${earlier.eatenAt}, ${earlier.id}) < (${toast.eatenAt}, ${toast.id})
         )`,
-        wonToastOfTheWeek: sql<boolean>`EXISTS (
-          SELECT 1 FROM ${toastOfTheWeek} WHERE ${toastOfTheWeek.toastId} = ${toast.id}
-        )`,
       })
       .from(toast)
       .innerJoin(toastSession, eq(toastSession.id, toast.sessionId))
-      .innerJoin(user, eq(user.id, toast.userId))
       .where(eq(toast.id, toastId));
     const [row] = lockSession ? await query.for('share', { of: toastSession }) : await query;
     if (!row) throw new AppError('NOT_FOUND', 'Toast not found');
-
-    const memberships = await db
-      .select({ userId: clanMembership.userId, clanId: clanMembership.clanId })
-      .from(clanMembership)
-      .where(inArray(clanMembership.userId, [viewerId, row.ownerId]));
-    const clanOf = (userId: string) =>
-      memberships.find((membership) => membership.userId === userId)?.clanId ?? null;
     return {
-      viewer: { userId: viewerId, clanId: clanOf(viewerId) },
+      ownerId: row.ownerId,
       facts: {
-        owner: {
-          userId: row.ownerId,
-          profileVisibility: row.profileVisibility,
-          clanId: clanOf(row.ownerId),
-        },
         hasPhoto: row.hasPhoto,
         hidden: row.hidden,
         removed: !row.countable,
-        wonToastOfTheWeek: row.wonToastOfTheWeek,
         isLead: row.isLead,
       },
     };

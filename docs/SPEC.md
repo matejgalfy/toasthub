@@ -1,6 +1,6 @@
 # Toasthub — Specification
 
-> Status: Approved | Last updated: 2026-11-08
+> Status: Approved | Last updated: 2026-11-09
 > This file defines WHAT to build and WHY. Coding conventions and HOW-to-work rules live in `AGENTS.md`.
 
 ---
@@ -9,7 +9,7 @@
 Toasthub is a mobile-first web app where users track and compete over who eats the most toasts. Users log toasts
 in sessions (how many they ate in one sitting, with a photo), build daily streaks, earn achievements, join clans, compete on leaderboards and see personal
 statistics. Every week a random photo toast is picked as **Toast of the week**, and every day the app shows a
-**toast fact of the day**.
+**toast fact of the day**. Home also has a global feed of everyone's toast sessions.
 
 Audience: a group of friends, growing to ~300 daily users (50–1,000 users in year one), Slovak and English speaking.
 The project is built by a team of 3 with AI coding agents (Claude, Codex, pi). Clean
@@ -31,7 +31,7 @@ architecture, tests and documentation are first-class requirements.
 - Push notifications
 - AI moderation (planned for a later version, see §13)
 - Toast details (topping, bread type, caption) and backdating toasts
-- Comments, global feed, friends / follow system
+- Comments, friends / follow system
 - Membership in more than one clan
 - All-time leaderboards
 - Self-service account deletion and data export (accepted GDPR risk, see §14)
@@ -42,7 +42,7 @@ architecture, tests and documentation are first-class requirements.
 | Role | Description | Can do |
 |------|-------------|--------|
 | Guest | Not logged in | See the landing page, request a magic link |
-| User | Registered, active | Log toast sessions, view own past sessions, edit / delete own sessions on the day they were logged, upload photos, like toasts, report photos, see leaderboards / stats / profiles (subject to visibility), create / join / leave one clan, edit own profile |
+| User | Registered, active | Log toast sessions, view own past sessions, edit / delete own sessions on the day they were logged, upload photos, like toasts, report photos, see the global feed, leaderboards / stats / profiles, create / join / leave one clan, edit own profile |
 | Admin | Internal (app-wide role) | Everything a User can, plus: review flags, hide photos, reject toasts, ban / unban users, manage any clan, edit app settings, see app metrics, re-run the Toast of the week draw |
 
 **Clan roles** (scoped to one clan, held by Users; the UI calls them Toastmeister, Vice-Toast and Toastie, D56):
@@ -74,7 +74,7 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 ### 4.2 Profile
 - Email (unique, private — never shown to other users), display name (not unique, 2–30 chars), avatar chosen from 8 preset pictures (none chosen = initials on a neutral background).
 - Language: `sk` or `en` (default from browser, changeable with the language switch in the header).
-- **Profile visibility** setting: `public` (default — any logged-in user sees profile, stats, achievements, photos) or `clan` (only clanmates see that; others see display name, avatar and leaderboard counts only).
+- Every profile is public: any logged-in user sees its stats, heatmap, achievements and photos. There is no visibility setting (§12 D67).
 
 ### 4.3 Logging toasts
 - BR-TOAST-1: A toast is a timestamp set by the server at creation. No backdating, no extra fields.
@@ -110,7 +110,7 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - Three boards: **users** (global), **clans** (clan vs clan, by total toasts), **clan members** (within one clan).
 - Periods: **this week**, **this month**, **this year**. No all-time board. The clan board defaults to **this month** (the main clan metric).
 - Ranking: by toast count desc; ties share a rank (1, 1, 3). Excluded: deleted / rejected toasts, non-active users.
-- Visible to logged-in users only. Users with `clan` visibility still appear (name, avatar, count).
+- Visible to logged-in users only.
 - Clan board counts toasts toward the clan the user was a member of **when the toast was logged** (see §12 D9).
 
 ### 4.8 Clans
@@ -119,15 +119,15 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - BR-CLAN-3: Max members is an app setting, default **10**. Joining / approving fails when full.
 - BR-CLAN-4: The Owner cannot leave without transferring ownership or deleting the clan.
 - BR-CLAN-5: A user may have at most one pending join request at a time; joining a clan cancels it, or they can cancel it themselves.
-- **Clan feed:** toast sessions of current members, newest first, one entry per session with its count, photo and 🍞 likes. Clanmates always see each other's photos regardless of profile visibility.
+- **Clan feed:** toast sessions of current members, newest first, one entry per session with its count, photo and 🍞 likes, like the global feed (§4.14).
 - **Clan page:** info, member list with roles, inner leaderboard, feed.
 
 ### 4.9 Likes
-- One reaction type: 🍞. A user can like a toast session once and unlike it; the like is stored on the session's lead toast. Sessions show the like count.
+- One reaction type: 🍞. A user can like a toast session once and unlike it; the like is stored on the session's lead toast. Sessions show the like count. A session has one set of likes: the global feed, the clan feed and the profile show the same ones.
 
 ### 4.10 Toast of the week
 - BR-TOTW-1: Drawn every Monday 00:00 for the previous Monday–Sunday week by a scheduled job.
-- BR-TOTW-2: Uniform random pick among photo toasts of that week that are not deleted, not rejected, whose photo is not hidden, from active users. **All users enter**, regardless of profile visibility; the winning photo becomes visible to all logged-in users.
+- BR-TOTW-2: Uniform random pick among photo toasts of that week that are not deleted, not rejected, whose photo is not hidden, from active users. **All active users enter**; the winning photo is shown to all logged-in users.
 - BR-TOTW-3: No eligible toast → no winner that week.
 - BR-TOTW-4: Admin can re-run the draw for a week (e.g. after hiding the winning photo). If the winning toast is removed later (deleted or rejected), the slot shows "removed". The owner can't delete or change it any more: the draw runs after its day has ended (BR-TOAST-7).
 - Winner is shown on the home screen for the following week and in a history list; the winner earns the "Golden Toast" achievement.
@@ -159,6 +159,11 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - Settings: flag daily threshold, clan max members.
 - Metrics: total users, daily active users, toasts per day (last 30 days), open flags.
 - Toast of the week: view history, re-run draw.
+
+### 4.14 Global feed
+- Home shows a feed of every user's toast sessions under the Toast of the week card, newest first, one entry per session with the user, time, count, photo, 🍞 likes and "Report" (BR-MOD-3), like the clan feed. More load as the user scrolls.
+- Left out: deleted sessions, sessions whose lead toast an admin rejected, and sessions of banned users. A photo an admin hid is not shown; the session stays.
+- While the feed is below the visible part of the screen, a round arrow button in the bottom-right corner (above the tab bar on phones) scrolls to it. It disappears as soon as the feed is in view, and comes back when the user scrolls up past it.
 
 ## 5. Tech Stack
 | Layer | Choice | Reason |
@@ -204,7 +209,7 @@ Browser (React SPA / PWA) ──HTTPS──▶ Ingress ──▶ api (NestJS, st
 ```
 - `web` is built to static files and served by an nginx container (same domain, `/api` routed to the API → no CORS in prod).
 - `api` and `worker` are the same image; the role is chosen by env var. Only the worker runs cron jobs.
-- Photos are served via short-lived (1 h) presigned GET URLs. The API checks visibility before signing.
+- Photos are served via short-lived (1 h) presigned GET URLs. The API checks before signing that the photo is not hidden or removed.
 - API is versioned: `/api/v1/...`. OpenAPI spec published at `/api/v1/docs` (non-prod) and as an artifact in CI.
 - PostgreSQL is a CloudNativePG `Cluster` resource in the same Kubernetes cluster, with continuous backups (WAL archive + base backups) to S3-compatible storage.
 - Leaderboards, stats, heatmaps and streaks are computed with direct, indexed queries on `toasts` — no rollup tables (§12 D8).
@@ -220,7 +225,7 @@ Folder structure:
     /src/api           generated client + TanStack Query hooks
     /src/i18n          sk.json, en.json
   /api                 NestJS app
-    /src/modules       (auth, users, toasts, clans, leaderboards, stats, achievements, totw, facts, moderation, admin, storage, mail)
+    /src/modules       (auth, users, toasts, clans, feed, leaderboards, stats, achievements, totw, facts, moderation, admin, storage, mail)
     /src/db            Drizzle schema (incl. Better Auth tables), migrations, seeds
     /src/jobs          pg-boss workers and cron definitions
 /packages
@@ -248,7 +253,7 @@ Don't edit their core columns by hand. App-specific user fields below are declar
 | display_name | varchar(30) | required (null until onboarding finished) |
 | avatar_id | smallint | 1–8, nullable |
 | locale | enum(`sk`,`en`) | default `en` |
-| profile_visibility | enum(`public`,`clan`) | default `public` |
+| profile_visibility | enum(`public`,`clan`) | unused since D67, all `public`; dropped in a later release |
 | role | enum(`user`,`admin`) | default `user` |
 | status | enum(`active`,`banned`) | default `active` |
 
@@ -262,7 +267,7 @@ One log of 1–10 toasts eaten in one sitting (BR-TOAST-5). Its count is the num
 | local_date | date | local day of logging; the only day the session can be edited or deleted (BR-TOAST-7) |
 | deleted_at | timestamptz | nullable (soft delete, together with its toasts) |
 
-Indexes: `(user_id, created_at desc, id)` for the history list.
+Indexes: `(user_id, created_at desc, id)` for the history list, `(created_at desc, id desc)` for the global feed.
 
 ### Entity: Toast
 | Field | Type | Constraints |
@@ -367,21 +372,21 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 |--------|------|------|---------|----------|-------|
 | * | /auth/* | — | Better Auth handler (base path `/api/v1/auth`) | | magic-link sign-in, verify, sign-out, get-session; paths and payloads as defined by Better Auth; rate-limited (BR-AUTH-5); sign-in for an email on a domain that isn't allowed is a 403 (BR-AUTH-6) |
 | GET | /me | Session | — | `200 {user}` | app profile incl. `onboarded` flag and `clanId` (null when in no clan, D49) |
-| PATCH | /me | Session | `{displayName?, avatarId?, locale?, profileVisibility?}` | `200 {user}` | onboarding uses this |
+| PATCH | /me | Session | `{displayName?, avatarId?, locale?}` | `200 {user}` | onboarding uses this |
 | GET | /home | Session | — | `200 {todayCount, streak, clan?, clanStreak?, fact, toastOfTheWeek}` | one call for home screen |
 | POST | /toast-sessions | Session | multipart `{count?, photo}` (count 1–10, default 1) | `201 {session, newAchievements[]}` | one transaction; the 30/hour rate limit counts toasts; photo required (400 without), on the lead toast |
 | GET | /me/toast-sessions | Session | cursor | `200 {items: [{id, loggedAt, localDate, count, hasPhoto, photoUrl?, photoHidden, editable}], nextCursor}` | own sessions, newest first |
 | PATCH | /toast-sessions/:id | Session (owner) | `{count}` (1–10) | `200 {session, newAchievements[]}` | only on the session's day (BR-TOAST-7), else 409 |
 | PUT | /toast-sessions/:id/photo | Session (owner) | multipart `{photo}` | `200 {session, newAchievements[]}` | add or replace; same day rule; 409 if the photo is hidden |
 | DELETE | /toast-sessions/:id | Session (owner) | — | `204` | soft delete with its toasts; same day rule |
-| POST | /toasts/:id/like | Session | — | `204` | idempotent; on the lead toast of a session the caller can see (D48) |
+| POST | /toasts/:id/like | Session | — | `204` | idempotent; on the lead toast of a session that isn't removed (D48, D67) |
 | DELETE | /toasts/:id/like | Session | — | `204` | idempotent; needs no access to the toast |
 | POST | /toasts/:id/report | Session | `{reason?}` (≤ 280) | `202` | photo toasts only (409 otherwise); 10/hour per user |
-| GET | /users/:id | Session | — | `200 {profile}` | reduced if `clan` visibility and not clanmate |
-| GET | /users/:id/toasts | Session | cursor | `200 {items[], nextCursor}` | respects visibility; visible photos, one per session (D45) |
-| GET | /users/:id/stats | Session | — | `200 {totals, averages, bestDay, streak}` | respects visibility |
-| GET | /users/:id/heatmap | Session | `?year=` | `200 {year, days: [{date, count}]}` | respects visibility; only days with toasts |
-| GET | /users/:id/achievements | Session | — | `200 {items: [{code, earnedAt?}]}` | respects visibility |
+| GET | /users/:id | Session | — | `200 {profile}` | name, avatar, leaderboard counts; every profile is public (D67) |
+| GET | /users/:id/toasts | Session | cursor | `200 {items[], nextCursor}` | visible photos, one per session (D45) |
+| GET | /users/:id/stats | Session | — | `200 {totals, averages, bestDay, streak}` | |
+| GET | /users/:id/heatmap | Session | `?year=` | `200 {year, days: [{date, count}]}` | only days with toasts |
+| GET | /users/:id/achievements | Session | — | `200 {items: [{code, earnedAt?}]}` | |
 | GET | /leaderboards/users | Session | `?period=week\|month\|year` | `200 {items: [{rank, user, count}], me}` | default `week`; top 50, `me` is the caller's row with its true rank or null (D50) |
 | GET | /leaderboards/clans | Session | `?period=week\|month\|year` | `200 {items: [{rank, clan, count, currentStreak}], myClan}` | default `month`; top 50, `myClan` like `me` (D50) |
 | GET | /clans | Session | `?search=&cursor=` | `200 {items[], nextCursor}` | |
@@ -390,7 +395,7 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | PATCH | /clans/:id | Owner | `{name?, description?, avatarId?}` | `200 {clan}` | |
 | DELETE | /clans/:id | Owner | — | `204` | removes all memberships |
 | GET | /clans/:id/leaderboard | Session | `?period=` | `200 {items: [{rank, user, count}]}` | every current member, by toasts logged for this clan; default `month` (D50) |
-| GET | /clans/:id/feed | Member | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | current members' sessions, newest first (D48) |
+| GET | /clans/:id/feed | Member | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | current members' sessions, newest first (D48); same items as `/feed` |
 | POST | /clans/:id/join | Session | — | `202 {request}` | creates a pending join request |
 | POST | /clans/:id/leave | Member | — | `204` | Owner must transfer first |
 | GET | /clans/:id/requests | Officer+ | — | `200 {items[]}` | pending only |
@@ -400,6 +405,7 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | PATCH | /clans/:id/members/:userId | Owner | `{role: officer\|member}` | `200 {membership}` | |
 | DELETE | /clans/:id/members/:userId | Officer+ | — | `204` | kick; Officers can kick Members only |
 | POST | /clans/:id/transfer | Owner | `{userId}` | `200 {owner, previousOwner}` | the former Owner becomes an Officer |
+| GET | /feed | Session | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | every user's sessions, newest first (§4.14, D67) |
 | GET | /toast-of-the-week | Session | cursor | `200 {items: [{weekStart, status, toast?}], nextCursor}` | history, newest first; `status` = `won`, `none` or `removed` (D51) |
 | GET | /admin/flags | Admin | `?type=&status=&cursor=` | `200 {items[], nextCursor}` | newest first; subject, reporter, the toast (photo also when hidden) or the day's toasts (D52) |
 | POST | /admin/flags/:id/resolve | Admin | `{action: dismiss\|reject_toasts\|hide_photo, ban?}` | `200 {flag}` | one transaction; records `resolved_by`/`resolved_at`; 409 once resolved (D52) |
@@ -426,15 +432,15 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 | `/` | Landing | Public (logged-in → `/home`) | What Toasthub is, "Log in with email" CTA, language switch |
 | `/login` | Login | Public | Email field, "check your inbox" state |
 | `/auth/callback` | Verify link | Public | Consumes token, redirects to `/onboarding` or `/home`, error + resend on failure |
-| `/onboarding` | Onboarding | User (new) | Display name, avatar picker (8), visibility |
-| `/home` | Home | User | No visible title. Big "+ Toast" button (opens the log dialog: number of toasts, required photo), current streak, clan streak with the clan picture, fact of the day, Toast of the week card (last week only), new-achievement toast (D57, D58) |
+| `/onboarding` | Onboarding | User (new) | Display name, avatar picker (8) |
+| `/home` | Home | User | No visible title. Big "+ Toast" button (opens the log dialog: number of toasts, required photo), current streak, clan streak with the clan picture, fact of the day, Toast of the week card (last week only), the global feed under it with the arrow to it (§4.14), new-achievement toast (D57, D58) |
 | `/leaderboards` | Leaderboards | User | Tabs Users / Clans, period switch week / month / year (clans default to month), clan rows show 🔥 streak, "me" row pinned |
 | `/clans` | Clan browser | User | Search, list with picture and member count, "Create clan" |
 | `/clans/new` | Create clan | User (no clan) | Name, description, picture |
 | `/clans/:id` | Clan | User | Header with picture, current / longest clan streak + request to join / cancel request / leave, tabs: Feed (members), Leaderboard, Members; requests panel for Officers+; settings for Owner |
 | `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, replace photo, delete with a confirmation), older ones are read-only. Linked from the own profile |
-| `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (subject to visibility); own profile links to My toasts |
-| `/settings` | Settings | User | Display name, avatar, visibility, logout |
+| `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid; own profile links to My toasts |
+| `/settings` | Settings | User | Display name, avatar, logout |
 | `/admin` | Admin | Admin | Sub-pages: Flags, Users, Clans, Settings, Metrics, TOTW |
 
 - Navigation: bottom tab bar on mobile (Home, Leaderboards, Clan, Profile); top nav at `md` and up.
@@ -532,6 +538,7 @@ A feature is done when:
 | D64 | Every toast session has a photo (BR-TOAST-2, 2026-11-08). The server enforces it: `POST /toast-sessions` without a `photo` part is a 400 `VALIDATION_ERROR` with `fields.photo`, checked after `count` and before the rate limit, so a refused log costs no quota. `DELETE /toast-sessions/:id/photo` is gone (404); `PUT …/photo` still replaces, and adds one to a photo-less session from before the rule. A photo an admin hid stays hidden and can't be removed or replaced, so such a session keeps `photoHidden: true` and no picture. Existing sessions without a photo are kept as they are, so `hasPhoto`/`photoUrl` stay in the API. `shutterbug` stays and now comes with the first log. Web: confirm in the log dialog is disabled until a photo is picked, and the edit dialog has no "Remove". Replaces the "optional photo" and "two taps" parts of G1, D41 and D44, and D44's "remove" for a hidden photo | Owner's product decision. Checking on the server holds for future native apps too. Refusing before the quota keeps a missing photo from eating the hourly limit |
 | D65 | Own domain `toasthub.live` (2026-11-08), registered at name.com with DNS on name.com's nameservers: `A` records for the root and `s3` to the VM. It replaces `toasthub.fitbond.me` and `s3.toasthub.fitbond.me` in the prod overlay (`BETTER_AUTH_URL`, `WEB_ORIGIN`, `S3_ENDPOINT`, both Ingress hosts); the CSP and the trusted origins follow from those. FitBond keeps `fitbond.me` at Namecheap. Mail still comes from `toasthub@fitbond.me` | Owner's choice: Toasthub gets its own name, independent of FitBond. Resend's free plan has one domain, already verified as `fitbond.me`, so the sender stays and no secret changes. Sessions are per host, so the switch signs everyone out once; photos keep working, because their URLs are signed per request |
 | D66 | Allowed email domains (BR-AUTH-6, 2026-11-08). The list is the env variable `ALLOWED_EMAIL_DOMAINS` (comma-separated, lower-cased and checked as domains at startup; empty = every domain, as in dev, tests and E2E); prod sets it in the `toasthub-config` ConfigMap. The domain after the last `@` must match an entry exactly. `POST /auth/sign-in/magic-link` with a valid email on another domain is a 403 `FORBIDDEN` "Email address not allowed, try a different one.", checked before the per-email limit, and sends nothing; an invalid email is still Better Auth's 400. Better Auth's `user.create` hook checks again, so a link sent before a domain left the list creates no account. Existing sessions of users on a removed domain are not revoked; they run out within 30 days (BR-AUTH-4), or an admin bans the user. The web shows `auth.email.notAllowed` for a 403 from this endpoint | Owner's choice: a closed group (students and friends) without an invite system. The magic link already proves the mailbox, so the domain is verified. Saying so openly is fine for BR-AUTH-1: it reveals the rule, not whether an account exists. An env variable needs no table or admin UI; a change is a ConfigMap edit and a deploy. Gmail's `+` and dot aliases still let one person make several accounts |
+| D67 | Global feed and public profiles (2026-11-09). **Profiles:** the `profile_visibility` setting is gone: migration `0008_global_feed` sets every profile to `public`, and no code reads the column any more. It and its enum are dropped in a later release, since migrations stay backwards compatible with the release before (`docs/DEPLOY.md`). `PATCH /me` refuses the field (400, strict schema), `/me` no longer returns it, and onboarding and settings have no choice. `GET /users/:id` loses `access`; it and `/toasts`, `/stats`, `/heatmap`, `/achievements` answer every signed-in user (still 404 for unknown, banned and not onboarded users). This replaces the `profileAccess` part of D45, the 403 for a toast the caller "can't see" in D48 and the visibility notes in D50 and D51: `canSeeToast()` is now "not removed" and `canSeePhoto()` "present, not hidden, not removed" (`users.policy.ts`), so a like or report on a removed toast is a 404 and nothing else is a 403. **Feed:** `GET /feed` (module `feed`) lists every non-deleted session whose lead toast is countable, of active users, newest first by `(created_at, id)` with the D44 microsecond cursor; items are the clan feed's (`feedItemSchema` in `shared`, which replaced `clanFeedItemSchema`). `FeedService` serves both feeds; the clan route checks membership first and passes its `clanId`. Index `toast_session_created_at_idx` keeps the global order cheap. Likes stay on the lead toast (D43), so a session shows the same likes in both feeds; the web updates a like optimistically in every loaded feed (`isFeedQuery`, `features/feed/feed-api.ts`). **Home:** the feed sits under the Toast of the week card; while it is wholly below the screen (an IntersectionObserver, the bottom 80 px under the tab bar don't count), a round arrow button at the bottom right scrolls to it and moves focus to its title | With a global feed everyone's photos are shown anyway, so a clan-only profile would hide nothing; one rule is simpler to explain and to test. One service for both feeds keeps their items and rules from drifting apart. The arrow tells a user on a phone that more is below the home cards without pushing the feed above them |
 
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)

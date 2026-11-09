@@ -1,4 +1,4 @@
-import { Locale, ProfileVisibility, UserRole, UserStatus } from '@toasthub/shared';
+import { Locale, UserRole, UserStatus } from '@toasthub/shared';
 import { relations, sql } from 'drizzle-orm';
 import {
   bigint,
@@ -27,7 +27,9 @@ import { citext, enumValues, id, timestamptz } from './columns';
  */
 
 export const localeEnum = pgEnum('locale', enumValues(Locale));
-export const profileVisibilityEnum = pgEnum('profile_visibility', enumValues(ProfileVisibility));
+// Unused since every profile is public (SPEC §12 D67). Migrations stay backwards compatible with the release
+// before (docs/DEPLOY.md), which still reads the column: drop it and its enum in a later release.
+export const profileVisibilityEnum = pgEnum('profile_visibility', ['public', 'clan']);
 export const userRoleEnum = pgEnum('user_role', enumValues(UserRole));
 export const userStatusEnum = pgEnum('user_status', enumValues(UserStatus));
 
@@ -46,7 +48,7 @@ export const user = pgTable(
       .notNull(),
     avatarId: smallint(),
     locale: localeEnum().default(Locale.en).notNull(),
-    profileVisibility: profileVisibilityEnum().default(ProfileVisibility.public).notNull(),
+    profileVisibility: profileVisibilityEnum().default('public').notNull(),
     role: userRoleEnum().default(UserRole.user).notNull(),
     status: userStatusEnum().default(UserStatus.active).notNull(),
   },

@@ -123,6 +123,23 @@
       "invalid": "We can't read this file. Use a JPEG, PNG, WebP or HEIC photo."
     }
   },
+  "feed": {
+    "title": "Toasts from everyone",
+    "empty": "No toasts yet. Log the first one!",
+    "jump": "Scroll to the toasts from everyone",
+    "photoAlt": "{{name}}'s photo: {{toasts}}",
+    "like": "Like",
+    "report": "Report",
+    "loadMore": "Show older toasts",
+    "reportDialog": {
+      "title": "Report this photo?",
+      "description": "An admin will look at it. You can tell them what's wrong.",
+      "reason": "Reason (optional)",
+      "submit": "Report photo",
+      "done": "Thanks. An admin will take a look.",
+      "gone": "This photo can't be reported any more."
+    }
+  },
   "totw": {
     "week": "{{start}} – {{end}}",
     "none": "No photo toast that week, so no winner.",
@@ -162,7 +179,6 @@
   "profilePage": {
     "myToasts": "My toasts",
     "notFound": "We couldn't find this profile.",
-    "reduced": "{{name}} shares stats, achievements and photos with clanmates only.",
     "counts": {
       "week": "This week",
       "month": "This month",
@@ -295,19 +311,7 @@
       "settings": "Settings"
     },
     "feed": {
-      "empty": "No toasts in this clan yet.",
-      "photoAlt": "{{name}}'s photo: {{toasts}}",
-      "like": "Like",
-      "report": "Report",
-      "loadMore": "Show older toasts"
-    },
-    "report": {
-      "title": "Report this photo?",
-      "description": "An admin will look at it. You can tell them what's wrong.",
-      "reason": "Reason (optional)",
-      "submit": "Report photo",
-      "done": "Thanks. An admin will take a look.",
-      "gone": "This photo can't be reported any more."
+      "empty": "No toasts in this clan yet."
     },
     "roles": {
       "owner": "Toastmeister",
@@ -532,13 +536,6 @@
         "monster": "Monster",
         "alien": "Alien"
       }
-    },
-    "visibility": {
-      "label": "Who can see your profile",
-      "public": "Everyone",
-      "publicHint": "Any signed-in user sees your stats, achievements and photos.",
-      "clan": "Clanmates only",
-      "clanHint": "Others see only your name, avatar and leaderboard counts."
     }
   },
   "errors": {

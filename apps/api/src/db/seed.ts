@@ -1,4 +1,4 @@
-import { ClanRole, Locale, ProfileVisibility } from '@toasthub/shared';
+import { ClanRole, Locale } from '@toasthub/shared';
 import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 
@@ -21,7 +21,6 @@ interface SeedUser {
   displayName: string;
   avatarId: number;
   locale: Locale;
-  profileVisibility: ProfileVisibility;
   clanRole: ClanRole | null;
   // Chance of toasting on a given day; the last days are always toasted for a visible streak.
   activity: number;
@@ -33,7 +32,6 @@ const SEED_USERS: SeedUser[] = [
     displayName: 'Ann',
     avatarId: 1,
     locale: 'en',
-    profileVisibility: 'public',
     clanRole: 'owner',
     activity: 0.9,
   },
@@ -42,7 +40,6 @@ const SEED_USERS: SeedUser[] = [
     displayName: 'Bob',
     avatarId: 2,
     locale: 'en',
-    profileVisibility: 'public',
     clanRole: 'officer',
     activity: 0.7,
   },
@@ -51,7 +48,6 @@ const SEED_USERS: SeedUser[] = [
     displayName: 'Cyril',
     avatarId: 3,
     locale: 'sk',
-    profileVisibility: 'clan',
     clanRole: 'member',
     activity: 0.5,
   },
@@ -60,7 +56,6 @@ const SEED_USERS: SeedUser[] = [
     displayName: 'Dana',
     avatarId: 4,
     locale: 'sk',
-    profileVisibility: 'public',
     clanRole: null,
     activity: 0.6,
   },
@@ -69,7 +64,6 @@ const SEED_USERS: SeedUser[] = [
     displayName: 'Emil',
     avatarId: 5,
     locale: 'sk',
-    profileVisibility: 'clan',
     clanRole: null,
     activity: 0.3,
   },
@@ -117,7 +111,6 @@ export async function seed(db: Database, now = new Date()): Promise<void> {
           displayName: u.displayName,
           avatarId: u.avatarId,
           locale: u.locale,
-          profileVisibility: u.profileVisibility,
           emailVerified: true,
         })),
       )

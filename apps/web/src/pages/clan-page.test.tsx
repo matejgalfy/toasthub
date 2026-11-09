@@ -2,13 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type {
-  ClanDetail,
-  ClanFeedItem,
-  ClanJoinRequest,
-  ClanMember,
-  ClanRole,
-} from '@toasthub/shared';
+import type { ClanDetail, FeedItem, ClanJoinRequest, ClanMember, ClanRole } from '@toasthub/shared';
 
 import { Toaster } from '@/components/ui/sonner';
 import { jsonResponse, mockApi } from '@/test/api';
@@ -62,7 +56,7 @@ function detail(myRole: ClanRole | null, overrides: Partial<ClanDetail> = {}): C
   };
 }
 
-const feedItem = (overrides: Partial<ClanFeedItem> = {}): ClanFeedItem => ({
+const feedItem = (overrides: Partial<FeedItem> = {}): FeedItem => ({
   sessionId: '01900000-0000-7000-8000-000000000500',
   toastId: TOAST_ID,
   user: { id: MEMBER_ID, displayName: 'Mia Member', avatarId: 3 },
@@ -92,7 +86,7 @@ function mockClanApi(
     feed = [feedItem()],
     extra,
   }: {
-    feed?: ClanFeedItem[];
+    feed?: FeedItem[];
     extra?: (r: Request) => Response | Promise<Response> | undefined;
   } = {},
 ) {

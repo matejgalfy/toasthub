@@ -8,7 +8,6 @@ import {
   monthRange,
   type PageQuery,
   type PeriodCounts,
-  ProfileAccess,
   type UserAchievements,
   type UserProfile,
   type UserStats,
@@ -35,34 +34,25 @@ import { z } from 'zod';
 import { AppError } from '../../common/errors/app-error';
 import { decodeCursor, toPage } from '../../common/pagination';
 import { type Database, DB } from '../../db/db.module';
-import { clanMembership, toast, toastOfTheWeek, user, userAchievement } from '../../db/schema';
+import { toast, user, userAchievement } from '../../db/schema';
 import { StorageService } from '../storage/storage.service';
 import { countableToasts } from '../toasts/countable-toasts';
 import { likeStats } from '../toasts/like-stats';
 import { computeStats } from './stats';
-import { canSeePhoto, type ProfileOwner, profileAccess, type Viewer } from './users.policy';
 
 const subjectColumns = {
   id: user.id,
   displayName: user.displayName,
   avatarId: user.avatarId,
-  profileVisibility: user.profileVisibility,
   status: user.status,
 };
 type SubjectRow = Pick<typeof user.$inferSelect, keyof typeof subjectColumns>;
-
-interface Access {
-  subject: SubjectRow;
-  viewer: Viewer;
-  owner: ProfileOwner;
-  access: ProfileAccess;
-}
 
 // `eaten_at` with all six fraction digits: a JS Date would round it to milliseconds and skip rows.
 const cursorAt = sql<string>`to_char(${toast.eatenAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 const keysetSchema = z.object({ at: z.iso.datetime(), id: z.uuid() });
 
-/** Profiles of any user, as far as the viewer may see them (SPEC §4.2, §4.6). */
+/** Profiles of any user; every profile is public (SPEC §4.2, §4.6, §12 D67). */
 @Injectable()
 export class UsersService {
   constructor(
@@ -70,13 +60,12 @@ export class UsersService {
     private readonly storage: StorageService,
   ) {}
 
-  async getProfile(viewerId: string, subjectId: string): Promise<UserProfile> {
-    const { subject, access } = await this.resolveAccess(viewerId, subjectId);
+  async getProfile(subjectId: string): Promise<UserProfile> {
+    const subject = await this.findSubject(subjectId);
     return {
       id: subject.id,
       displayName: subject.displayName,
       avatarId: subject.avatarId,
-      access,
       counts: await this.periodCounts(subject.id, localDate(new Date())),
     };
   }
@@ -87,7 +76,7 @@ export class UsersService {
     subjectId: string,
     { cursor, limit }: PageQuery,
   ): Promise<UserToastPage> {
-    const { viewer, owner } = await this.requireFullAccess(viewerId, subjectId);
+    await this.findSubject(subjectId);
     const after = cursor === undefined ? null : decodeCursor(cursor, keysetSchema);
     const rows = await this.db
       .select({
@@ -97,9 +86,6 @@ export class UsersService {
         localDate: toast.localDate,
         photoKey: toast.photoKey,
         cursorAt,
-        wonToastOfTheWeek: sql<boolean>`EXISTS (
-          SELECT 1 FROM ${toastOfTheWeek} WHERE ${toastOfTheWeek.toastId} = ${toast.id}
-        )`,
       })
       .from(toast)
       .where(
@@ -127,15 +113,8 @@ export class UsersService {
 
     const items = [];
     for (const row of page.items) {
-      // The query only selects visible photos; the policy stays the last word before signing.
-      const visible = canSeePhoto(viewer, {
-        owner,
-        hasPhoto: true,
-        hidden: false,
-        removed: false,
-        wonToastOfTheWeek: row.wonToastOfTheWeek,
-      });
-      if (!visible || row.photoKey === null) continue;
+      // The query selects only visible photos (`canSeePhoto`: present, not hidden, countable).
+      if (row.photoKey === null) continue;
       items.push({
         id: row.id,
         sessionId: row.sessionId,
@@ -149,17 +128,13 @@ export class UsersService {
     return { items, nextCursor: page.nextCursor };
   }
 
-  async getStats(viewerId: string, subjectId: string): Promise<UserStats> {
-    await this.requireFullAccess(viewerId, subjectId);
+  async getStats(subjectId: string): Promise<UserStats> {
+    await this.findSubject(subjectId);
     return computeStats(await this.toastDays(eq(toast.userId, subjectId)), localDate(new Date()));
   }
 
-  async getHeatmap(
-    viewerId: string,
-    subjectId: string,
-    year: number | undefined,
-  ): Promise<Heatmap> {
-    await this.requireFullAccess(viewerId, subjectId);
+  async getHeatmap(subjectId: string, year: number | undefined): Promise<Heatmap> {
+    await this.findSubject(subjectId);
     const shown = year ?? Number(localDate(new Date()).slice(0, 4));
     const range = yearRange(`${String(shown)}-01-01`);
     const days = await this.toastDays(
@@ -173,8 +148,8 @@ export class UsersService {
   }
 
   /** Every achievement in display order, with the date the user earned it. */
-  async getAchievements(viewerId: string, subjectId: string): Promise<UserAchievements> {
-    await this.requireFullAccess(viewerId, subjectId);
+  async getAchievements(subjectId: string): Promise<UserAchievements> {
+    await this.findSubject(subjectId);
     const rows = await this.db
       .select({ code: userAchievement.achievementCode, earnedAt: userAchievement.earnedAt })
       .from(userAchievement)
@@ -189,36 +164,15 @@ export class UsersService {
   }
 
   /**
-   * The subject and how much the viewer may see. 404 for an unknown or banned user and for one who hasn't
-   * finished onboarding (no display name yet), so profiles never show an empty name.
+   * 404 for an unknown or banned user and for one who hasn't finished onboarding (no display name yet), so
+   * profiles never show an empty name.
    */
-  private async resolveAccess(viewerId: string, subjectId: string): Promise<Access> {
+  private async findSubject(subjectId: string): Promise<SubjectRow> {
     const [subject] = await this.db.select(subjectColumns).from(user).where(eq(user.id, subjectId));
     if (!subject || subject.status !== UserStatus.active || subject.displayName === '') {
       throw new AppError('NOT_FOUND', 'User not found');
     }
-    const memberships = await this.db
-      .select({ userId: clanMembership.userId, clanId: clanMembership.clanId })
-      .from(clanMembership)
-      .where(inArray(clanMembership.userId, [viewerId, subjectId]));
-    const clanOf = (userId: string) =>
-      memberships.find((row) => row.userId === userId)?.clanId ?? null;
-    const viewer: Viewer = { userId: viewerId, clanId: clanOf(viewerId) };
-    const owner: ProfileOwner = {
-      userId: subject.id,
-      profileVisibility: subject.profileVisibility,
-      clanId: clanOf(subject.id),
-    };
-    return { subject, viewer, owner, access: profileAccess(viewer, owner) };
-  }
-
-  /** 403 for a viewer who only gets the reduced profile. */
-  private async requireFullAccess(viewerId: string, subjectId: string): Promise<Access> {
-    const resolved = await this.resolveAccess(viewerId, subjectId);
-    if (resolved.access !== ProfileAccess.full) {
-      throw new AppError('FORBIDDEN', 'This profile is visible to clanmates only');
-    }
-    return resolved;
+    return subject;
   }
 
   private async periodCounts(userId: string, today: LocalDate): Promise<PeriodCounts> {

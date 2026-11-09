@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { type AchievementCode, PHOTO_FIELD } from '@toasthub/shared';
 
 import { api, unwrap } from '@/api/client';
+import { isFeedQuery } from '@/features/feed/feed-api';
 import { homeQueryKey } from '@/features/home/home-query';
 import { leaderboardsQueryKey } from '@/features/leaderboards/leaderboards-api';
 import { usersQueryKey } from '@/features/profile/profile-api';
@@ -43,8 +44,8 @@ export function announceAchievements(t: TFunction, codes: readonly AchievementCo
 }
 
 /**
- * A change to a session. Counts and streaks follow it, so home, the list, the profile and the boards are
- * refetched whatever the outcome; achievements it earned pop a toast.
+ * A change to a session. Counts and streaks follow it, so home, the list, the profile, the boards and the
+ * feeds are refetched whatever the outcome; achievements it earned pop a toast.
  */
 function useSessionMutation<Input, Result>(
   mutationFn: (input: Input) => Promise<Result>,
@@ -63,6 +64,7 @@ function useSessionMutation<Input, Result>(
         queryClient.invalidateQueries({ queryKey: toastSessionsQueryKey }),
         queryClient.invalidateQueries({ queryKey: usersQueryKey }),
         queryClient.invalidateQueries({ queryKey: leaderboardsQueryKey }),
+        queryClient.invalidateQueries({ predicate: isFeedQuery }),
       ]),
   });
 }

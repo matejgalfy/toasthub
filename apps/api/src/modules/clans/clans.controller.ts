@@ -3,8 +3,6 @@ import { ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
 import {
   type ClanDetail,
   clanDetailSchema,
-  type ClanFeedPage,
-  clanFeedPageSchema,
   type ClanJoinRequestList,
   clanJoinRequestListSchema,
   type ClanJoinRequestResponse,
@@ -24,6 +22,7 @@ import {
   createClanResponseSchema,
   createClanSchema,
   type CreateClanResponse,
+  type FeedPage,
   pageQuerySchema,
   transferClanSchema,
   updateClanMemberSchema,
@@ -33,7 +32,9 @@ import { createZodDto, ZodResponse } from 'nestjs-zod';
 
 import type { AuthUser } from '../auth/auth.config';
 import { CurrentUser } from '../auth/auth.decorators';
-import { ClanFeedService } from './clan-feed.service';
+import { FeedPageDto } from '../feed/feed.controller';
+import { FeedService } from '../feed/feed.service';
+import { ClanAction } from './clans.policy';
 import { ClansService } from './clans.service';
 
 class ClanPageDto extends createZodDto(clanPageSchema) {}
@@ -52,7 +53,6 @@ class ClanMemberParamsDto extends createZodDto(clanMemberParamsSchema) {}
 class UpdateClanMemberDto extends createZodDto(updateClanMemberSchema) {}
 class TransferClanDto extends createZodDto(transferClanSchema) {}
 class ClanTransferResponseDto extends createZodDto(clanTransferResponseSchema) {}
-class ClanFeedPageDto extends createZodDto(clanFeedPageSchema) {}
 class PageQueryDto extends createZodDto(pageQuerySchema) {}
 
 @ApiCookieAuth()
@@ -61,7 +61,7 @@ class PageQueryDto extends createZodDto(pageQuerySchema) {}
 export class ClansController {
   constructor(
     private readonly clans: ClansService,
-    private readonly feedService: ClanFeedService,
+    private readonly feedService: FeedService,
   ) {}
 
   /** Clans by name, A–Z; `search` matches part of the name. */
@@ -182,13 +182,14 @@ export class ClansController {
 
   /** Toast sessions of the current members, newest first. Members only. */
   @Get('clans/:id/feed')
-  @ZodResponse({ status: 200, type: ClanFeedPageDto })
-  feed(
+  @ZodResponse({ status: 200, type: FeedPageDto })
+  async feed(
     @CurrentUser() user: AuthUser,
     @Param() params: ClanParamsDto,
     @Query() query: PageQueryDto,
-  ): Promise<ClanFeedPage> {
-    return this.feedService.list(user.id, params.id, query);
+  ): Promise<FeedPage> {
+    await this.clans.authorize(user.id, params.id, ClanAction.viewFeed);
+    return this.feedService.list(user.id, query, { clanId: params.id });
   }
 
   /** Cancels the caller's pending join request; a no-op without one. */

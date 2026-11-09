@@ -20,10 +20,10 @@ import {
 } from '@/features/profile/profile-api';
 import { ProfileSection, QueryContent } from '@/features/profile/profile-section';
 import { ProfileStats } from '@/features/profile/profile-stats';
-import { ProfileSummary, ReducedProfileNotice } from '@/features/profile/profile-summary';
+import { ProfileSummary } from '@/features/profile/profile-summary';
 import { YearHeatmap } from '@/features/profile/year-heatmap';
 
-/** A user's profile, full or reduced by their visibility (SPEC §9 `/u/:id`, §12 D45). */
+/** A user's profile; every profile is public (SPEC §9 `/u/:id`, §12 D45, D67). */
 export function ProfilePage() {
   const { id = '' } = useParams();
   if (!userParamsSchema.safeParse({ id }).success) return <ProfileNotFound />;
@@ -58,12 +58,7 @@ function ProfileView({ userId }: { userId: string }) {
   return (
     <div className="flex flex-col gap-8">
       <ProfileSummary profile={profile.data} own={profile.data.id === me.id} />
-      {/* The other routes answer 403 for a reduced view, so they aren't called at all. */}
-      {profile.data.access === 'full' ? (
-        <FullProfile userId={userId} />
-      ) : (
-        <ReducedProfileNotice name={profile.data.displayName} />
-      )}
+      <FullProfile userId={userId} />
     </div>
   );
 }

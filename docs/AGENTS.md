@@ -180,10 +180,12 @@ docs              SPEC.md, PLAN.md, AGENTS.md, DEPLOY.md
 - Counts, streaks, stats, leaderboards and achievements filter `toast` with `countableToasts()`
   (`src/modules/toasts/countable-toasts.ts`: not deleted, not rejected, owner not banned). Never re-spell it.
 - Likes live on a session's lead toast. Lists that show them get `likeCount`/`likedByMe` from `likeStats()`
-  (`src/modules/toasts/like-stats.ts`); `canSeeToast()` (`users.policy.ts`) decides who may like.
-- Photos: store and sign through `StorageService` (`src/modules/storage`). Check visibility before you call
-  `presignGet()`: `canSeePhoto()` for someone else's photo, `profileAccess()` for profile data (both pure, in
-  `src/modules/users/users.policy.ts`). New uploads go through `processPhoto()` (`toasts/photo-pipeline.ts`),
+  (`src/modules/toasts/like-stats.ts`); `canSeeToast()` (`users.policy.ts`: not removed) decides what may be liked.
+  Every profile is public (SPEC §12 D67): no route hides anything per viewer, only moderation does.
+- Feeds: the global feed and a clan's feed both come from `FeedService.list(viewerId, page, { clanId? })`
+  (`src/modules/feed`); check access before calling it. Don't write another session-list query for a feed.
+- Photos: store and sign through `StorageService` (`src/modules/storage`). Check `canSeePhoto()` (pure, in
+  `src/modules/users/users.policy.ts`: present, not hidden, not removed) before you call `presignGet()`. New uploads go through `processPhoto()` (`toasts/photo-pipeline.ts`),
   never stored raw.
 - Any new app instance (scripts, tests) uses `createFastifyAdapter()` + `await configureApp()` from `src/app.setup.ts`.
 - Scheduled work runs only in the worker (`APP_ROLE=worker`, `src/jobs`): add a `JobName`, its cron in `JOB_SCHEDULES`
@@ -227,6 +229,10 @@ docs              SPEC.md, PLAN.md, AGENTS.md, DEPLOY.md
   `null`, so the guards send the user to `/login`. Change the own profile with `useUpdateMe()`
   (`features/account`), which writes the response back into that query. Language changes go through
   `useChangeLocale()` (saves to `/me` when signed in), never `changeLocale()` directly from UI.
+- A feed is `<FeedList feed empty />` (`features/feed/feed-list.tsx`) around an infinite query of `FeedPage`.
+  Likes go through `useToggleLike()` (`features/feed/feed-api.ts`), which updates every loaded feed at once. A
+  mutation that adds, changes or removes sessions, or changes how a user is shown, also invalidates
+  `{ predicate: isFeedQuery }` (the global feed and every clan feed).
 - Short notices (achievements, errors after an action) are `toast.success()` / `toast.error()` from `sonner`;
   the one `<Toaster>` is mounted in `app.tsx`. Plurals use i18next `_one`/`_other` keys in `en.json` and
   `_one`/`_few`/`_many`/`_other` in `sk.json` (the i18n test checks both).

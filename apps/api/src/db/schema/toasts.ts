@@ -24,9 +24,10 @@ export const toastSession = pgTable(
     deletedAt: timestamptz(),
     createdAt: createdAt(),
   },
-  // The history list, newest first.
+  // The history list and the global feed (§4.14), newest first.
   (t) => [
     index('toast_session_user_id_created_at_idx').on(t.userId, t.createdAt.desc(), t.id.desc()),
+    index('toast_session_created_at_idx').on(t.createdAt.desc(), t.id.desc()),
   ],
 );
 

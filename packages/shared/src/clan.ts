@@ -4,7 +4,6 @@ import { achievementCodeSchema } from './achievements.js';
 import { pageQuerySchema, pageSchema } from './pagination.js';
 import { userSummarySchema } from './profile.js';
 import { streakSchema } from './streak.js';
-import { localDateSchema } from './time.js';
 
 export const CLAN_NAME_MAX = 40;
 export const CLAN_DESCRIPTION_MAX = 280;
@@ -147,25 +146,3 @@ export const clanTransferResponseSchema = z.object({
   previousOwner: clanMembershipSchema,
 });
 export type ClanTransferResponse = z.infer<typeof clanTransferResponseSchema>;
-
-/** One toast session of a current member in the clan feed (SPEC §4.8). */
-export const clanFeedItemSchema = z.object({
-  sessionId: z.uuid(),
-  // The session's lead toast, which likes and reports refer to.
-  toastId: z.uuid(),
-  user: userSummarySchema,
-  loggedAt: z.iso.datetime(),
-  localDate: localDateSchema,
-  // Countable toasts in the session.
-  count: z.int().positive(),
-  // Presigned and valid for 1 hour; null without a photo or when an admin hid it.
-  photoUrl: z.url().nullable(),
-  // 🍞 likes on the session, stored on its lead toast (SPEC §4.9).
-  likeCount: z.int().nonnegative(),
-  likedByMe: z.boolean(),
-});
-export type ClanFeedItem = z.infer<typeof clanFeedItemSchema>;
-
-/** Newest first. */
-export const clanFeedPageSchema = pageSchema(clanFeedItemSchema);
-export type ClanFeedPage = z.infer<typeof clanFeedPageSchema>;

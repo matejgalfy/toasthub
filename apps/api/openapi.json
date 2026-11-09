@@ -1064,7 +1064,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ClanFeedPageDto_Output"
+                  "$ref": "#/components/schemas/FeedPageDto_Output"
                 }
               }
             }
@@ -1102,6 +1102,56 @@
         ],
         "tags": [
           "Clans"
+        ]
+      }
+    },
+    "/api/v1/feed": {
+      "get": {
+        "operationId": "FeedController_list",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedPageDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Feed"
         ]
       }
     },
@@ -3785,7 +3835,7 @@
         ],
         "additionalProperties": false
       },
-      "ClanFeedPageDto_Output": {
+      "FeedPageDto_Output": {
         "type": "object",
         "properties": {
           "items": {
@@ -4483,13 +4533,6 @@
                   "en"
                 ]
               },
-              "profileVisibility": {
-                "type": "string",
-                "enum": [
-                  "public",
-                  "clan"
-                ]
-              },
               "role": {
                 "type": "string",
                 "enum": [
@@ -4518,7 +4561,6 @@
               "displayName",
               "avatarId",
               "locale",
-              "profileVisibility",
               "role",
               "onboarded",
               "clanId",
@@ -4551,13 +4593,6 @@
             "enum": [
               "sk",
               "en"
-            ]
-          },
-          "profileVisibility": {
-            "type": "string",
-            "enum": [
-              "public",
-              "clan"
             ]
           }
         },
@@ -4753,13 +4788,6 @@
                 "maximum": 8,
                 "nullable": true
               },
-              "access": {
-                "type": "string",
-                "enum": [
-                  "full",
-                  "reduced"
-                ]
-              },
               "counts": {
                 "type": "object",
                 "properties": {
@@ -4791,7 +4819,6 @@
               "id",
               "displayName",
               "avatarId",
-              "access",
               "counts"
             ],
             "additionalProperties": false

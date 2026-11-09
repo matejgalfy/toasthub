@@ -129,6 +129,23 @@
       "invalid": "Tento súbor nevieme prečítať. Použi fotku JPEG, PNG, WebP alebo HEIC."
     }
   },
+  "feed": {
+    "title": "Toasty od všetkých",
+    "empty": "Zatiaľ žiadne toasty. Zapíš ten prvý!",
+    "jump": "Posunúť na toasty od všetkých",
+    "photoAlt": "Fotka od {{name}}: {{toasts}}",
+    "like": "Páči sa mi",
+    "report": "Nahlásiť",
+    "loadMore": "Zobraziť staršie toasty",
+    "reportDialog": {
+      "title": "Nahlásiť túto fotku?",
+      "description": "Pozrie sa na ňu admin. Môžeš mu napísať, čo je zle.",
+      "reason": "Dôvod (nepovinné)",
+      "submit": "Nahlásiť fotku",
+      "done": "Ďakujeme. Admin sa na to pozrie.",
+      "gone": "Túto fotku už nie je možné nahlásiť."
+    }
+  },
   "totw": {
     "week": "{{start}} – {{end}}",
     "none": "V ten týždeň nebol žiadny toast s fotkou, takže bez víťaza.",
@@ -172,7 +189,6 @@
   "profilePage": {
     "myToasts": "Moje toasty",
     "notFound": "Tento profil sme nenašli.",
-    "reduced": "{{name}} ukazuje štatistiky, úspechy a fotky len členom svojho klanu.",
     "counts": {
       "week": "Tento týždeň",
       "month": "Tento mesiac",
@@ -311,19 +327,7 @@
       "settings": "Nastavenia"
     },
     "feed": {
-      "empty": "V tomto klane zatiaľ nikto nezapísal toast.",
-      "photoAlt": "Fotka od {{name}}: {{toasts}}",
-      "like": "Páči sa mi",
-      "report": "Nahlásiť",
-      "loadMore": "Zobraziť staršie toasty"
-    },
-    "report": {
-      "title": "Nahlásiť túto fotku?",
-      "description": "Pozrie sa na ňu admin. Môžeš mu napísať, čo je zle.",
-      "reason": "Dôvod (nepovinné)",
-      "submit": "Nahlásiť fotku",
-      "done": "Ďakujeme. Admin sa na to pozrie.",
-      "gone": "Túto fotku už nie je možné nahlásiť."
+      "empty": "V tomto klane zatiaľ nikto nezapísal toast."
     },
     "roles": {
       "owner": "Toastmeister",
@@ -548,13 +552,6 @@
         "monster": "Príšera",
         "alien": "Mimozemšťan"
       }
-    },
-    "visibility": {
-      "label": "Kto vidí tvoj profil",
-      "public": "Všetci",
-      "publicHint": "Každý prihlásený používateľ vidí tvoje štatistiky, úspechy a fotky.",
-      "clan": "Len spoluhráči z klanu",
-      "clanHint": "Ostatní uvidia len tvoje meno, avatar a počty v rebríčkoch."
     }
   },
   "errors": {

@@ -64,13 +64,12 @@ describe('GET /me', () => {
 
 describe('PATCH /me', () => {
   it('completes onboarding', async () => {
-    const res = await patchMe({ displayName: '  Ann  ', avatarId: 3, profileVisibility: 'clan' });
+    const res = await patchMe({ displayName: '  Ann  ', avatarId: 3 });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({
       user: {
         displayName: 'Ann',
         avatarId: 3,
-        profileVisibility: 'clan',
         locale: 'en',
         onboarded: true,
       },
@@ -100,7 +99,6 @@ describe('PATCH /me', () => {
     [{ displayName: 'x'.repeat(31) }, 'displayName'],
     [{ avatarId: 9 }, 'avatarId'],
     [{ locale: 'de' }, 'locale'],
-    [{ profileVisibility: 'private' }, 'profileVisibility'],
   ])('rejects %j', async (payload, field) => {
     const res = await patchMe(payload);
     expect(res.statusCode).toBe(400);
@@ -109,8 +107,14 @@ describe('PATCH /me', () => {
     expect(Object.keys(error.fields)).toEqual([field]);
   });
 
-  it('cannot change role, status or email', async () => {
-    for (const payload of [{ role: 'admin' }, { status: 'banned' }, { email: 'x@example.com' }]) {
+  it('cannot change role, status or email, and takes no profile visibility any more', async () => {
+    const payloads = [
+      { role: 'admin' },
+      { status: 'banned' },
+      { email: 'x@example.com' },
+      { profileVisibility: 'public' },
+    ];
+    for (const payload of payloads) {
       expect((await patchMe(payload)).statusCode).toBe(400);
     }
     const me = await app.inject({ url: '/api/v1/me', headers: { cookie: ann.cookie } });

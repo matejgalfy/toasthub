@@ -5,12 +5,13 @@ import type { Locale, UpdateMe } from '@toasthub/shared';
 import { api, unwrap } from '@/api/client';
 import { meQueryKey } from '@/features/auth/me-query';
 import { useSession } from '@/features/auth/session';
+import { isFeedQuery } from '@/features/feed/feed-api';
 import { usersQueryKey } from '@/features/profile/profile-api';
 import { changeLocale } from '@/i18n';
 
 /**
  * `PATCH /me`; the response replaces the session's user, so guards and header update at once. The own
- * profile page shows the name and avatar too, so it is refetched.
+ * profile page and the feeds show the name and avatar too, so they are refetched.
  */
 export function useUpdateMe() {
   const queryClient = useQueryClient();
@@ -19,6 +20,7 @@ export function useUpdateMe() {
     onSuccess: ({ user }) => {
       queryClient.setQueryData(meQueryKey, user);
       void queryClient.invalidateQueries({ queryKey: [...usersQueryKey, user.id] });
+      void queryClient.invalidateQueries({ predicate: isFeedQuery });
     },
   });
 }

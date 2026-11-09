@@ -4,10 +4,6 @@ export const Locale = { sk: 'sk', en: 'en' } as const;
 export const localeSchema = z.enum(Locale);
 export type Locale = z.infer<typeof localeSchema>;
 
-export const ProfileVisibility = { public: 'public', clan: 'clan' } as const;
-export const profileVisibilitySchema = z.enum(ProfileVisibility);
-export type ProfileVisibility = z.infer<typeof profileVisibilitySchema>;
-
 // App-wide role. Clan roles are separate and scoped to one clan.
 export const UserRole = { user: 'user', admin: 'admin' } as const;
 export const userRoleSchema = z.enum(UserRole);
@@ -34,7 +30,6 @@ export const meSchema = z.object({
   displayName: z.string().nullable(),
   avatarId: avatarIdSchema.nullable(),
   locale: localeSchema,
-  profileVisibility: profileVisibilitySchema,
   role: userRoleSchema,
   onboarded: z.boolean(),
   // The clan the user is in right now; null when in none (the Clan tab links here).
@@ -51,6 +46,5 @@ export const updateMeSchema = z.strictObject({
   displayName: displayNameSchema.optional(),
   avatarId: avatarIdSchema.nullable().optional(),
   locale: localeSchema.optional(),
-  profileVisibility: profileVisibilitySchema.optional(),
 });
 export type UpdateMe = z.infer<typeof updateMeSchema>;

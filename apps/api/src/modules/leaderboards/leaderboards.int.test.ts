@@ -129,8 +129,8 @@ function spreadCount(period: Period): number {
 }
 
 describe('GET /leaderboards/users', () => {
-  it('ranks by count with shared ranks for ties and lists every visibility', async () => {
-    const bob = await addUser('Bob', { profileVisibility: 'clan' });
+  it('ranks by count with shared ranks for ties', async () => {
+    const bob = await addUser('Bob');
     const cyril = await addUser('Cyril');
     const dana = await addUser('Dana');
     await addToasts(bob, 3);

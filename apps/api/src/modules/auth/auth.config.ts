@@ -1,4 +1,4 @@
-import { emailSchema, Locale, ProfileVisibility, UserRole, UserStatus } from '@toasthub/shared';
+import { emailSchema, Locale, UserRole, UserStatus } from '@toasthub/shared';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
@@ -95,12 +95,6 @@ export function createAuth({ db, env, sendMagicLink, logger }: AuthDeps) {
           type: Object.values(Locale),
           required: false,
           defaultValue: Locale.en,
-          input: false,
-        },
-        profileVisibility: {
-          type: Object.values(ProfileVisibility),
-          required: false,
-          defaultValue: ProfileVisibility.public,
           input: false,
         },
         role: {

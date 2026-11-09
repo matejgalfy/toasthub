@@ -1,11 +1,11 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { HomeResponse, ToastSessionChangeResponse } from '@toasthub/shared';
+import type { FeedItem, HomeResponse, ToastSessionChangeResponse } from '@toasthub/shared';
 
 import { Toaster } from '@/components/ui/sonner';
-import { jsonResponse, mockApi } from '@/test/api';
+import { jsonResponse, mockApi as mockAnyApi } from '@/test/api';
 import { renderWithApp } from '@/test/render';
 import { testSession } from '@/test/sessions';
 
@@ -35,6 +35,31 @@ const created: ToastSessionChangeResponse = {
   },
   newAchievements: [],
 };
+
+const feedItem = (overrides: Partial<FeedItem> = {}): FeedItem => ({
+  sessionId: '01900000-0000-7000-8000-0000000000f1',
+  toastId: '01900000-0000-7000-8000-0000000000f2',
+  user: { id: '01900000-0000-7000-8000-0000000000f3', displayName: 'Mia', avatarId: null },
+  loggedAt: '2026-10-29T08:00:00.000Z',
+  localDate: '2026-10-29',
+  count: 2,
+  photoUrl: 'https://photos.example/mia.webp',
+  likeCount: 1,
+  likedByMe: false,
+  ...overrides,
+});
+
+const isFeed = (request: Request) => new URL(request.url).pathname === '/api/v1/feed';
+
+/** The API of the home page; `GET /feed` answers with `feed` unless `respond` takes it. */
+function mockApi(
+  respond: (request: Request) => Response | Promise<Response>,
+  feed: FeedItem[] = [],
+) {
+  return mockAnyApi((request) =>
+    isFeed(request) ? jsonResponse(200, { items: feed, nextCursor: null }) : respond(request),
+  );
+}
 
 const rateLimited = () =>
   jsonResponse(429, { error: { code: 'RATE_LIMITED', message: 'Too many toasts' } });
@@ -199,9 +224,11 @@ describe('HomePage', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     expect(await postedBody(requests)).toContain(countField(1));
-    // The counters are refetched once the toast is saved.
+    // The counters and the feed are refetched once the toast is saved.
     await vi.waitFor(() => {
-      expect(requests.filter((request) => request.method === 'GET')).toHaveLength(2);
+      const gets = requests.filter((request) => request.method === 'GET');
+      expect(gets.filter(isFeed)).toHaveLength(2);
+      expect(gets.filter((request) => !isFeed(request))).toHaveLength(2);
     });
   });
 
@@ -348,6 +375,111 @@ describe('HomePage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Log 1 toast' }));
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent("We can't read this file.");
+  });
+});
+
+/**
+ * A stand-in for IntersectionObserver (jsdom has none): the test says where the feed is with `place()`.
+ * The feed's observer is the one that watches a `<section>`.
+ */
+function fakeIntersectionObserver() {
+  const observers: { callback: IntersectionObserverCallback; targets: Element[] }[] = [];
+  class FakeObserver {
+    private readonly entry: { callback: IntersectionObserverCallback; targets: Element[] };
+    constructor(callback: IntersectionObserverCallback) {
+      this.entry = { callback, targets: [] };
+      observers.push(this.entry);
+    }
+    observe(target: Element) {
+      this.entry.targets.push(target);
+    }
+    disconnect() {
+      this.entry.targets = [];
+    }
+  }
+  vi.stubGlobal('IntersectionObserver', FakeObserver);
+  return {
+    /** Reports the feed as on screen, or as wholly below it. */
+    place(where: 'visible' | 'below') {
+      for (const { callback, targets } of observers) {
+        for (const target of targets.filter((element) => element.tagName === 'SECTION')) {
+          const entry = {
+            target,
+            isIntersecting: where === 'visible',
+            boundingClientRect: { top: where === 'visible' ? 100 : 2000 },
+          } as unknown as IntersectionObserverEntry;
+          callback([entry], {} as IntersectionObserver);
+        }
+      }
+    },
+  };
+}
+
+describe('HomePage global feed (§4.14)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("shows everyone's sessions under the Toast of the week, and likes them", async () => {
+    const user = userEvent.setup();
+    const item = feedItem();
+    const like = deferred();
+    const requests = mockApi(
+      (request) => (isPost(request) ? like.promise : jsonResponse(200, home)),
+      [item],
+    );
+    renderHome();
+
+    const feed = await screen.findByRole('region', { name: 'Toasts from everyone' });
+    const totw = await screen.findByRole('heading', { name: 'Toast of the week' });
+    expect(totw.compareDocumentPosition(feed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(await within(feed).findByRole('link', { name: 'Mia' })).toBeVisible();
+    expect(within(feed).getByRole('img', { name: "Mia's photo: 2 toasts" })).toBeVisible();
+
+    await user.click(within(feed).getByRole('button', { name: 'Like 1' }));
+    // Shown before the server answers.
+    expect(within(feed).getByRole('button', { name: 'Like 2' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const post = requests.find(isPost);
+    expect(post?.url).toBe(`http://localhost/api/v1/toasts/${item.toastId}/like`);
+    like.resolve(new Response(null, { status: 204 }));
+  });
+
+  it('says so when nobody has logged a toast yet', async () => {
+    mockApi(() => jsonResponse(200, home));
+    renderHome();
+    expect(await screen.findByText('No toasts yet. Log the first one!')).toBeVisible();
+  });
+
+  it('shows an arrow while the feed is below the screen, which scrolls to it', async () => {
+    const user = userEvent.setup();
+    const observer = fakeIntersectionObserver();
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    mockApi(() => jsonResponse(200, home), [feedItem()]);
+    renderHome();
+    const feed = await screen.findByRole('region', { name: 'Toasts from everyone' });
+    const jump = { name: 'Scroll to the toasts from everyone' };
+    // Nothing until the browser has measured.
+    expect(screen.queryByRole('button', jump)).not.toBeInTheDocument();
+
+    act(() => {
+      observer.place('below');
+    });
+    await user.click(screen.getByRole('button', jump));
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    expect(within(feed).getByRole('heading', { name: 'Toasts from everyone' })).toHaveFocus();
+
+    act(() => {
+      observer.place('visible');
+    });
+    expect(screen.queryByRole('button', jump)).not.toBeInTheDocument();
+    act(() => {
+      observer.place('below');
+    });
+    expect(screen.getByRole('button', jump)).toBeVisible();
   });
 });
 
