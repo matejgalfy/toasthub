@@ -3,6 +3,7 @@
 export * from './achievements';
 export * from './auth';
 export * from './clans';
+export * from './comments';
 export * from './moderation';
 export * from './reference-data';
 export * from './toasts';

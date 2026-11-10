@@ -340,6 +340,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/toasts/{id}/comments': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['CommentsController_list'];
+    put?: never;
+    post: operations['CommentsController_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/comments/{id}/like': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['CommentsController_like'];
+    delete: operations['CommentsController_unlike'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/comments/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['CommentsController_delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/healthz': {
     parameters: {
       query?: never;
@@ -1101,6 +1149,56 @@ export interface components {
         } | null;
       }[];
       nextCursor: string | null;
+    };
+    CommentPageDto_Output: {
+      items: {
+        /** Format: uuid */
+        id: string;
+        /** Format: uuid */
+        toastId: string;
+        /** Format: uuid */
+        parentId: string | null;
+        /** Format: date-time */
+        createdAt: string;
+        deleted: boolean;
+        body: string | null;
+        author: {
+          /** Format: uuid */
+          id: string;
+          displayName: string;
+          avatarId: number | null;
+        } | null;
+        canDelete: boolean;
+        likeCount: number;
+        likedByMe: boolean;
+      }[];
+      nextCursor: string | null;
+    };
+    CreateCommentDto: {
+      body: string;
+      /** Format: uuid */
+      parentId?: string | null;
+    };
+    CommentDto_Output: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      toastId: string;
+      /** Format: uuid */
+      parentId: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      deleted: boolean;
+      body: string[];
+      author: {
+        /** Format: uuid */
+        id: string;
+        displayName: string;
+        avatarId: number | null;
+      } | null;
+      canDelete: boolean;
+      likeCount: number;
+      likedByMe: boolean;
     };
     HealthDto_Output: {
       /** @enum {string} */
@@ -1974,6 +2072,113 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ToastOfTheWeekPageDto_Output'];
         };
+      };
+    };
+  };
+  CommentsController_list: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+        topLevel?: 'true' | 'false';
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CommentPageDto_Output'];
+        };
+      };
+    };
+  };
+  CommentsController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateCommentDto'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CommentDto_Output'];
+        };
+      };
+    };
+  };
+  CommentsController_like: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CommentsController_unlike: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CommentsController_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

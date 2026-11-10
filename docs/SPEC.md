@@ -1,6 +1,6 @@
 # Toasthub — Specification
 
-> Status: Approved | Last updated: 2026-11-09
+> Status: Approved | Last updated: 2026-11-10
 > This file defines WHAT to build and WHY. Coding conventions and HOW-to-work rules live in `AGENTS.md`.
 
 ---
@@ -31,7 +31,7 @@ architecture, tests and documentation are first-class requirements.
 - Push notifications
 - AI moderation (planned for a later version, see §13)
 - Toast details (topping, bread type, caption) and backdating toasts
-- Comments, friends / follow system
+- Friends / follow system
 - Membership in more than one clan
 - All-time leaderboards
 - Self-service account deletion and data export (accepted GDPR risk, see §14)
@@ -165,6 +165,15 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - Left out: deleted sessions, sessions whose lead toast an admin rejected, and sessions of banned users. A photo an admin hid is not shown; the session stays.
 - While the feed is below the visible part of the screen, a round arrow button in the bottom-right corner (above the tab bar on phones) scrolls to it. It disappears as soon as the feed is in view, and comes back when the user scrolls up past it.
 
+### 4.15 Threaded comments
+- BR-COMMENT-1: Any signed-in user can read and post comments on a visible toast session, identified by its lead toast, from the global feed, clan feed and profile photo dialog. The preview shows up to 3 comments, prioritizing top-level comments and filling remaining slots with replies only when there are fewer than 3 top-level comments. "Show all comments" expands the full thread. The same thread is shared everywhere. Comments remain available if the photo is hidden or replaced; removed sessions, rejected lead toasts and banned session owners are inaccessible.
+- BR-COMMENT-2: Comments are plain text, trimmed, 1–500 characters. A comment may reply to another comment on the same session, with unlimited depth. Reply indentation is capped on mobile; explicit reply context preserves the relationship. No editing, notifications or other emoji reactions.
+- BR-COMMENT-3: Authors can delete their own comments; admins can delete any comment, after confirming a dialog that explains replies remain. Deletion keeps a placeholder and all replies, but returns neither the deleted text nor its author. Banned authors' comments also appear as placeholders. Replies to placeholders are allowed.
+- BR-COMMENT-4: Comments are paginated oldest first, with parents preceding replies; an optional top-level-only query serves previews without loading reply chains. Creation is limited to 30/hour per user using the shared database rate limiter.
+- BR-COMMENT-5: A user can 🍞 like a live comment once and unlike it, like a post. All entry points share its like count and the caller's liked state. Deleted placeholders and banned authors' comments cannot be liked and show no reactions; deleting a comment removes its likes. Other emoji reactions are deferred.
+
+**Acceptance:** read up to 3 preview comments (top-level first, replies only to fill spare slots) and expand the full thread, post a comment, reply to it and reply to the reply; the same thread appears on its profile photo. Confirm deletion of the parent: its text disappears, a deleted placeholder remains, and the replies are still visible.
+
 ## 5. Tech Stack
 | Layer | Choice | Reason |
 |-------|--------|--------|
@@ -291,6 +300,24 @@ Indexes: `(user_id, local_date)`, `(clan_id, local_date)`, `(session_id)`, `(loc
 | user_id | uuid | PK part, FK → User |
 | toast_id | uuid | PK part, FK → Toast, cascade |
 
+### Entity: Comment
+| Field | Type | Constraints |
+|-------|------|-------------|
+| id | uuid | PK |
+| toast_id | uuid | FK → Toast (session lead), cascade |
+| author_id | uuid | FK → User, cascade |
+| parent_id | uuid | nullable FK → Comment on the same toast, cascade |
+| body | text | trimmed 1–500 characters when live; null after deletion |
+| deleted_at | timestamptz | nullable; soft deletion retains reply structure |
+
+Index: `(toast_id, created_at, id)`. Parents are created before replies; parent references never change.
+
+### Entity: CommentLike
+| Field | Type | Constraints |
+|-------|------|-------------|
+| user_id | uuid | PK part, FK → User, cascade |
+| comment_id | uuid | PK part, FK → Comment, cascade |
+
 ### Entity: Clan
 | Field | Type | Constraints |
 |-------|------|-------------|
@@ -361,7 +388,7 @@ Indexes: `(user_id, local_date)`, `(clan_id, local_date)`, `(session_id)`, `(loc
 | value | jsonb | required |
 
 **Relationships:** User 1—N ToastSession 1—N Toast; User 1—N Toast; User 1—N Session; User 0..1—1 ClanMembership N—1 Clan; Clan 1—N ClanJoinRequest;
-Toast 1—N Like; User 1—N UserAchievement; ToastOfTheWeek 0..1—1 Toast; Flag N—1 User (subject) / Toast.
+Toast 1—N Like; Toast 1—N Comment; Comment 1—N Comment (replies); User 1—N Comment; User 1—N UserAchievement; ToastOfTheWeek 0..1—1 Toast; Flag N—1 User (subject) / Toast.
 
 ## 8. API
 Base path `/api/v1`. Auth: **Session** = cookie or Bearer token, active user. **Admin** = Session + `role=admin`.
@@ -381,6 +408,11 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | DELETE | /toast-sessions/:id | Session (owner) | — | `204` | soft delete with its toasts; same day rule |
 | POST | /toasts/:id/like | Session | — | `204` | idempotent; on the lead toast of a session that isn't removed (D48, D67) |
 | DELETE | /toasts/:id/like | Session | — | `204` | idempotent; needs no access to the toast |
+| GET | /toasts/:id/comments | Session | cursor, `?topLevel=true` | `200 {items: [{id, toastId, parentId, body, author, createdAt, deleted, canDelete, likeCount, likedByMe}], nextCursor}` | oldest first; `topLevel=true&limit=3` loads only preview roots; `body` and `author` null for placeholders |
+| POST | /toasts/:id/comments | Session | `{body, parentId?}` | `201 Comment` | 1–500 trimmed characters; same-toast parent; 30/hour per user |
+| DELETE | /comments/:id | Session (author/admin) | — | `204` | soft delete, replies retained |
+| POST | /comments/:id/like | Session | — | `204` | idempotent; live comments on visible sessions only |
+| DELETE | /comments/:id/like | Session | — | `204` | idempotent; no visibility requirement |
 | POST | /toasts/:id/report | Session | `{reason?}` (≤ 280) | `202` | photo toasts only (409 otherwise); 10/hour per user |
 | GET | /users/:id | Session | — | `200 {profile}` | name, avatar, leaderboard counts; every profile is public (D67) |
 | GET | /users/:id/toasts | Session | cursor | `200 {items[], nextCursor}` | visible photos, one per session (D45) |
@@ -439,10 +471,11 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 | `/clans/new` | Create clan | User (no clan) | Name, description, picture |
 | `/clans/:id` | Clan | User | Header with picture, current / longest clan streak + request to join / cancel request / leave, tabs: Feed (members), Leaderboard, Members; requests panel for Officers+; settings for Owner |
 | `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, replace photo, delete with a confirmation), older ones are read-only. Linked from the own profile |
-| `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid; own profile links to My toasts |
+| `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (photos open a dialog with the shared comment thread); own profile links to My toasts |
 | `/settings` | Settings | User | Display name, avatar, logout |
 | `/admin` | Admin | Admin | Sub-pages: Flags, Users, Clans, Settings, Metrics, TOTW |
 
+- Comment threads preview up to 3 comments on global and clan feed cards: top-level comments take priority; replies fill unused slots only when fewer than 3 top-level comments exist. "Show all comments" expands the thread. Profile photos open a dialog with the photo and the same preview. Deletion requires a confirmation dialog explaining that replies remain. Forms have labelled fields, pending/error states and retain drafts on failure. The compact layout keeps avatar sizes unchanged, uses tighter spacing and small action buttons, and keeps the auto-growing comment box visible beside its submit button. Reply depth is not limited by visual indentation.
 - Navigation: bottom tab bar on mobile (Home, Leaderboards, Clan, Profile); top nav at `md` and up.
 - Breakpoints: Tailwind defaults (`sm` 640, `md` 768, `lg` 1024); designed for 360 px wide first; content max-width ~ 640 px on desktop except admin.
 - Theme: shadcn/ui with a warm "toast" palette; light + dark following system preference.
@@ -540,10 +573,12 @@ A feature is done when:
 | D66 | Allowed email domains (BR-AUTH-6, 2026-11-08). The list is the env variable `ALLOWED_EMAIL_DOMAINS` (comma-separated, lower-cased and checked as domains at startup; empty = every domain, as in dev, tests and E2E); prod sets it in the `toasthub-config` ConfigMap. The domain after the last `@` must match an entry exactly. `POST /auth/sign-in/magic-link` with a valid email on another domain is a 403 `FORBIDDEN` "Email address not allowed, try a different one.", checked before the per-email limit, and sends nothing; an invalid email is still Better Auth's 400. Better Auth's `user.create` hook checks again, so a link sent before a domain left the list creates no account. Existing sessions of users on a removed domain are not revoked; they run out within 30 days (BR-AUTH-4), or an admin bans the user. The web shows `auth.email.notAllowed` for a 403 from this endpoint | Owner's choice: a closed group (students and friends) without an invite system. The magic link already proves the mailbox, so the domain is verified. Saying so openly is fine for BR-AUTH-1: it reveals the rule, not whether an account exists. An env variable needs no table or admin UI; a change is a ConfigMap edit and a deploy. Gmail's `+` and dot aliases still let one person make several accounts |
 | D67 | Global feed and public profiles (2026-11-09). **Profiles:** the `profile_visibility` setting is gone: migration `0008_global_feed` sets every profile to `public`, and no code reads the column any more. It and its enum are dropped in a later release, since migrations stay backwards compatible with the release before (`docs/DEPLOY.md`). `PATCH /me` refuses the field (400, strict schema), `/me` no longer returns it, and onboarding and settings have no choice. `GET /users/:id` loses `access`; it and `/toasts`, `/stats`, `/heatmap`, `/achievements` answer every signed-in user (still 404 for unknown, banned and not onboarded users). This replaces the `profileAccess` part of D45, the 403 for a toast the caller "can't see" in D48 and the visibility notes in D50 and D51: `canSeeToast()` is now "not removed" and `canSeePhoto()` "present, not hidden, not removed" (`users.policy.ts`), so a like or report on a removed toast is a 404 and nothing else is a 403. **Feed:** `GET /feed` (module `feed`) lists every non-deleted session whose lead toast is countable, of active users, newest first by `(created_at, id)` with the D44 microsecond cursor; items are the clan feed's (`feedItemSchema` in `shared`, which replaced `clanFeedItemSchema`). `FeedService` serves both feeds; the clan route checks membership first and passes its `clanId`. Index `toast_session_created_at_idx` keeps the global order cheap. Likes stay on the lead toast (D43), so a session shows the same likes in both feeds; the web updates a like optimistically in every loaded feed (`isFeedQuery`, `features/feed/feed-api.ts`). **Home:** the feed sits under the Toast of the week card; while it is wholly below the screen (an IntersectionObserver, the bottom 80 px under the tab bar don't count), a round arrow button at the bottom right scrolls to it and moves focus to its title | With a global feed everyone's photos are shown anyway, so a clan-only profile would hide nothing; one rule is simpler to explain and to test. One service for both feeds keeps their items and rules from drifting apart. The arrow tells a user on a phone that more is below the home cards without pushing the feed above them |
 
+| D68 | Threaded comments (2026-11-10). Comments belong to a session's lead toast, like likes, so photo replacement does not lose discussions. Plain text 1–500 characters; optional same-toast parent with unlimited reply depth and capped visual indentation. Authors and admins can soft-delete after confirmation; placeholders omit both body and author, preserve replies and accept further replies. Banned authors also show as placeholders. The UI previews up to 3 comments, prioritizing top-level comments and filling spare slots with replies only if fewer than 3 top-level comments exist, with "Show all comments" to expand the thread, and shares one toast-keyed paginated cache across global/clan feeds and profile photo dialogs; parents precede replies in the oldest-first API. Creation uses the shared Postgres rate limiter at 30/hour. No editing or notifications. Live comments support the same one-per-user 🍞 like/unlike as posts; other emoji reactions are deferred | Owner chose nested replies and deletion placeholders rather than deleting whole threads. Keeping discussion on the session avoids splitting it when a photo changes; capped indentation remains usable at 360 px |
+
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)
 - Native Android / iOS apps on the same API
-- Possibly: Wrapped summaries, notifications, comments
+- Possibly: Wrapped summaries, notifications
 
 ## 14. Open Questions
 - [ ] Q1: GDPR — account deletion and privacy policy are out of scope. Revisit before opening registration beyond friends.

@@ -7,6 +7,27 @@
     "close": "Close",
     "cancel": "Cancel"
   },
+  "comments": {
+    "title": "Comments",
+    "empty": "No comments yet.",
+    "body": "Comment",
+    "replyBody": "Reply",
+    "submit": "Post comment",
+    "submitReply": "Post reply",
+    "reply": "Reply",
+    "replyTo": "Reply to {{name}}",
+    "replyingTo": "Reply to {{name}}",
+    "delete": "Delete",
+    "deleteTitle": "Delete this comment?",
+    "deleteDescription": "Your comment will be replaced with a deleted placeholder. Replies will stay in the thread.",
+    "deleteBy": "Delete comment by {{name}}",
+    "deleted": "Deleted comment",
+    "showAll": "Show all comments",
+    "loadMore": "Show more comments",
+    "openPhoto": "Open photo and comments: {{toasts}} on {{date}}",
+    "posted": "Comment posted.",
+    "photoTitle": "Photo and comments"
+  },
   "nav": {
     "label": "Main",
     "home": "Home",

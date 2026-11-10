@@ -64,6 +64,27 @@
       "when": 1794260822419,
       "tag": "0008_global_feed",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794325965700,
+      "tag": "0009_short_tarantula",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794326791102,
+      "tag": "0010_cool_lionheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794327239864,
+      "tag": "0011_opposite_thunderbird",
+      "breakpoints": true
     }
   ]
 }

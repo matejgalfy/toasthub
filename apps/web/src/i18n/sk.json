@@ -7,6 +7,27 @@
     "close": "Zavrieť",
     "cancel": "Zrušiť"
   },
+  "comments": {
+    "title": "Komentáre",
+    "empty": "Zatiaľ žiadne komentáre.",
+    "body": "Komentár",
+    "replyBody": "Odpoveď",
+    "submit": "Pridať komentár",
+    "submitReply": "Pridať odpoveď",
+    "reply": "Odpovedať",
+    "replyTo": "Odpovedať: {{name}}",
+    "replyingTo": "Odpoveď na: {{name}}",
+    "delete": "Vymazať",
+    "deleteTitle": "Vymazať tento komentár?",
+    "deleteDescription": "Komentár sa nahradí označením vymazaného komentára. Odpovede zostanú vo vlákne.",
+    "deleteBy": "Vymazať komentár od: {{name}}",
+    "deleted": "Vymazaný komentár",
+    "showAll": "Zobraziť všetky komentáre",
+    "loadMore": "Zobraziť ďalšie komentáre",
+    "openPhoto": "Otvoriť fotku a komentáre: {{toasts}}, {{date}}",
+    "posted": "Komentár bol pridaný.",
+    "photoTitle": "Fotka a komentáre"
+  },
   "nav": {
     "label": "Hlavná navigácia",
     "home": "Domov",

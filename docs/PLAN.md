@@ -61,6 +61,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M18 | Production images, Sentry, CI image build | `m18-containers` | M15 | ☑ (no Sentry) |
 | M19 | Kubernetes (Kustomize, CNPG, Sealed Secrets) | `m19-k8s` | M18 | ☑ |
 | M20 | Launch hardening | `m20-hardening` | all | ☑ |
+| M21 | Threaded comments | `feat/threaded-comments` | M20 | Implemented; owner verification pending |
 
 **Parallel tracks (team of 3).** After M3, backend work (M6 → M7 → M9/M11 → M12) and frontend work
 (M4 → M5 → M8 → M8b) run side by side. M18 and M19 depend only on what they deploy and can start once M15 is merged. Two
@@ -462,6 +463,11 @@ Every business rule in SPEC §4 and where it is tested (checked in M20). Paths: 
 | BR-CLAN-3 | ☑ `a/clans/clans.int.test.ts` "is a 409 when the clan is full (BR-CLAN-3)", "approve is a 409 when the clan is full", "concurrent approvals never overfill the clan" |
 | BR-CLAN-4 | ☑ `a/clans/clans.int.test.ts` "is a 409 for the Owner (BR-CLAN-4)"; `a/clans/clans.policy.test.ts` |
 | BR-CLAN-5 | ☑ `a/clans/clans.int.test.ts` "allows one pending request at a time (BR-CLAN-5)", "cancels the creator’s pending join request", "DELETE /me/clan-request …" |
+| BR-COMMENT-1 | ☑ `a/comments/comments.int.test.ts` visibility cases; `w/features/comments/comments.test.tsx` profile dialog and shared toast thread |
+| BR-COMMENT-2 | ☑ `packages/shared/src/comment.test.ts`; `a/comments/comments.int.test.ts` payload validation, cross-toast parents and unlimited nesting; `w/features/comments/comment-tree.test.ts` deep iterative rendering |
+| BR-COMMENT-3 | ☑ `a/comments/comments.int.test.ts` author/admin deletion, anonymous placeholders, banned authors and replies retained |
+| BR-COMMENT-4 | ☑ `a/comments/comments.int.test.ts` oldest-first pages, microsecond boundaries and creation quota |
+| BR-COMMENT-5 | Source tests for comment likes; owner verification pending |
 | BR-TOTW-1 | ☑ `a/totw/totw.int.test.ts` "draws the previous week on schedule"; `a/totw/totw-draw.test.ts`; `apps/api/src/jobs/jobs.int.test.ts` (schedules) |
 | BR-TOTW-2 | ☑ `a/totw/totw.int.test.ts` "only draws visible photos of countable toasts from that week"; `a/totw/totw-draw.test.ts` "gives every candidate the same chance" |
 | BR-TOTW-3 | ☑ `a/totw/totw.int.test.ts` "records a week without a winner …"; `a/totw/totw-draw.test.ts` "has no winner without candidates" |
@@ -472,7 +478,18 @@ Every business rule in SPEC §4 and where it is tested (checked in M20). Paths: 
 ## Post-v1
 
 Milestones for features after launch, numbered on from M21. Each has **Read** (SPEC sections), **Scope** and a
-row in the Status table, like the ones above. None yet.
+row in the Status table, like the ones above.
+
+### M21 — Threaded comments
+**Read:** SPEC §4.15, §7 Comment, §8 comment endpoints, §9, §12 D68.
+
+**Scope:** shared schemas, comment table and migration, read/create/delete API with permissions and shared
+rate limit; three-comment preview prioritizing top-level comments (replies fill unused slots only when fewer
+than three roots exist) in global/clan feeds and profile photo dialogs, unlimited reply depth with capped
+indentation, confirmed deletion and deleted placeholders, 🍞 comment likes; API, web and E2E test sources. No editing, notifications or other emoji reactions.
+
+**Check:** post a root comment, reply and nested reply, open the same thread from the profile photo, then
+delete the parent and verify its replies remain. Run the scoped Definition of Done and regenerate OpenAPI.
 
 ---
 
@@ -805,3 +822,9 @@ one disagrees with AGENTS.md or SPEC, those win._
   the UI. **Open:** the `user.profile_visibility` column and its enum are still in the schema
   (`db/schema/auth.ts`), unused and all `public`, because a migration must stay compatible with the release
   before (`docs/DEPLOY.md`). Once 0008 is deployed to prod, remove both from the schema and `db:generate` the drop.
+- **M21 — Threaded comments:** shared contracts and read/create/delete routes, unlimited replies, anonymous
+  deletion placeholders, previews prioritizing three top-level comments (replies fill remaining slots only
+  when fewer roots exist), confirmed deletion and 🍞 likes. Threads
+  are shared by global/clan feeds and profile photo dialogs. Migration 0009 is preserved exactly; 0010
+  tightens its body constraint and 0011 adds comment likes. Final owner-requested changes are not verified:
+  automated checks were stopped at the owner's request; the owner will test before marking M21 complete.
