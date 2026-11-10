@@ -8,6 +8,7 @@ import {
   commentQuerySchema,
   commentSchema,
   createCommentSchema,
+  reportCommentSchema,
   toastParamsSchema,
 } from '@toasthub/shared';
 import { createZodDto, ZodResponse } from 'nestjs-zod';
@@ -20,6 +21,7 @@ class ToastParamsDto extends createZodDto(toastParamsSchema) {}
 class CommentParamsDto extends createZodDto(commentParamsSchema) {}
 class CommentQueryDto extends createZodDto(commentQuerySchema) {}
 class CreateCommentDto extends createZodDto(createCommentSchema) {}
+class ReportCommentDto extends createZodDto(reportCommentSchema) {}
 class CommentDto extends createZodDto(commentSchema) {}
 class CommentPageDto extends createZodDto(commentPageSchema) {}
 
@@ -63,6 +65,17 @@ export class CommentsController {
   @HttpCode(204)
   async unlike(@CurrentUser() user: AuthUser, @Param() params: CommentParamsDto): Promise<void> {
     await this.comments.unlike(user.id, params.id);
+  }
+
+  /** Reports a live comment for review without hiding it; rate limited per user. */
+  @Post('comments/:id/report')
+  @HttpCode(202)
+  async report(
+    @CurrentUser() user: AuthUser,
+    @Param() params: CommentParamsDto,
+    @Body() body: ReportCommentDto,
+  ): Promise<void> {
+    await this.comments.report(user.id, params.id, body.reason);
   }
 
   /** Author/admin removal keeps an anonymous placeholder and all replies. */

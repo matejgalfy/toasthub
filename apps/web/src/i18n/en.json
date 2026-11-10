@@ -21,8 +21,21 @@
     "deleteTitle": "Delete this comment?",
     "deleteDescription": "Your comment will be replaced with a deleted placeholder. Replies will stay in the thread.",
     "deleteBy": "Delete comment by {{name}}",
+    "report": "Report",
+    "reportBy": "Report comment by {{name}}",
+    "reportDialog": {
+      "title": "Report this comment?",
+      "description": "An admin will review it. The comment stays visible until then.",
+      "reason": "Reason (optional)",
+      "submit": "Send report",
+      "done": "Report sent. An admin will review the comment."
+    },
     "deleted": "Deleted comment",
     "showAll": "Show all comments",
+    "hideReplies": "Hide replies",
+    "showReplies": "Show replies",
+    "hideRepliesTo": "Hide replies to {{name}}",
+    "showRepliesTo": "Show replies to {{name}}",
     "loadMore": "Show more comments",
     "openPhoto": "Open photo and comments: {{toasts}} on {{date}}",
     "posted": "Comment posted.",
@@ -389,7 +402,8 @@
       "all": "All",
       "types": {
         "count_threshold": "Daily count",
-        "photo_report": "Photo report"
+        "photo_report": "Photo report",
+        "comment_report": "Comment report"
       },
       "statuses": {
         "open": "Open",
@@ -406,6 +420,9 @@
       "rejected": "Rejected",
       "photoAlt": "{{name}}'s reported photo",
       "noPhoto": "The photo is gone.",
+      "commentCreated": "Comment posted",
+      "commentToast": "Toast ID",
+      "commentParent": "Reply to comment ID",
       "photoHidden": "Photo hidden",
       "toastRejected": "Toast rejected",
       "toastDeleted": "Deleted by the owner",
@@ -423,7 +440,8 @@
         "title": "Resolve the flag on {{name}}",
         "description": {
           "count_threshold": "More toasts than the daily threshold on one day. Decide whether they count.",
-          "photo_report": "Someone reported this photo. Decide what happens to it."
+          "photo_report": "Someone reported this photo. Decide what happens to it.",
+          "comment_report": "Someone reported this comment. Decide whether it stays visible."
         },
         "action": "Action",
         "confirm": "Resolve",
@@ -438,6 +456,8 @@
         "rejectDayHint": "That day's toasts stop counting in stats, streaks and leaderboards.",
         "rejectToast": "Reject the reported toast",
         "rejectToastHint": "This toast stops counting. Other toasts logged with it still count.",
+        "deleteComment": "Delete the comment",
+        "deleteCommentHint": "The comment becomes a deleted placeholder. Replies stay in the thread.",
         "hidePhoto": "Hide the photo",
         "hidePhotoHint": "Nobody but the owner sees it, and these toasts can't get a new photo. The toast still counts."
       }

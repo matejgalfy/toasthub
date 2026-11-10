@@ -91,7 +91,7 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - BR-MOD-1: When a user's toast count for a day exceeds the threshold (app setting, default **8**), a `count_threshold` flag is created for admin review (once per user per day).
 - BR-MOD-2: Flagged toasts **keep counting** until an admin rejects them.
 - BR-MOD-3: Any user can report a photo (optional reason). Creates a `photo_report` flag. The photo stays visible until an admin hides it.
-- BR-MOD-4: Admin flag actions: dismiss, reject toast(s) (removed from counts), hide photo, and optionally ban the user.
+- BR-MOD-4: Admin flag actions: dismiss, reject toast(s) (removed from counts), hide photo, delete a reported comment (preserving replies), and optionally ban the user.
 - AI moderation is a non-goal for v1; design the flag model so an AI moderator can later create flags.
 
 ### 4.5 Streaks
@@ -167,10 +167,11 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 
 ### 4.15 Threaded comments
 - BR-COMMENT-1: Any signed-in user can read and post comments on a visible toast session, identified by its lead toast, from the global feed, clan feed and profile photo dialog. The preview shows up to 3 comments, prioritizing top-level comments and filling remaining slots with replies only when there are fewer than 3 top-level comments. "Show all comments" expands the full thread. The same thread is shared everywhere. Comments remain available if the photo is hidden or replaced; removed sessions, rejected lead toasts and banned session owners are inaccessible.
-- BR-COMMENT-2: Comments are plain text, trimmed, 1–500 characters. A comment may reply to another comment on the same session, with unlimited depth. Reply indentation is capped on mobile; explicit reply context preserves the relationship. No editing, notifications or other emoji reactions.
+- BR-COMMENT-2: Comments are plain text, trimmed, 1–500 characters. A comment may reply to another comment on the same session, with unlimited depth. Reply indentation is capped on mobile; explicit reply context preserves the relationship. Each comment with loaded replies has "Hide replies / Show replies" controls: collapse hides only its descendants, keeps the parent visible and preserves independent nested collapse states when reopened. No editing, notifications or other emoji reactions.
 - BR-COMMENT-3: Authors can delete their own comments; admins can delete any comment, after confirming a dialog that explains replies remain. Deletion keeps a placeholder and all replies, but returns neither the deleted text nor its author. Banned authors' comments also appear as placeholders. Replies to placeholders are allowed.
 - BR-COMMENT-4: Comments are paginated oldest first, with parents preceding replies; an optional top-level-only query serves previews without loading reply chains. Creation is limited to 30/hour per user using the shared database rate limiter.
 - BR-COMMENT-5: A user can 🍞 like a live comment once and unlike it, like a post. All entry points share its like count and the caller's liked state. Deleted placeholders and banned authors' comments cannot be liked and show no reactions; deleting a comment removes its likes. Other emoji reactions are deferred.
+- BR-COMMENT-6: Any signed-in user can report a live comment with an optional reason (trimmed, ≤ 280 characters). Reports appear in the existing admin flag queue and do not hide the comment before review. Re-reporting the same comment by the same user while their report is open returns success without adding another flag, like photo reports. Admins can dismiss the report or delete the comment with the same anonymous placeholder and preserved replies; they may also ban its author using the existing guardrails. Deleting a reported comment resolves other open reports on that comment. Reports on deleted comments or banned authors' placeholders are refused. Comment reports have an independent 10/hour per-user database rate limit.
 
 **Acceptance:** read up to 3 preview comments (top-level first, replies only to fill spare slots) and expand the full thread, post a comment, reply to it and reply to the reply; the same thread appears on its profile photo. Confirm deletion of the parent: its text disappears, a deleted placeholder remains, and the replies are still visible.
 
@@ -364,9 +365,10 @@ Index: `(toast_id, created_at, id)`. Parents are created before replies; parent 
 | Field | Type | Constraints |
 |-------|------|-------------|
 | id | uuid | PK |
-| type | enum(`count_threshold`,`photo_report`) | extensible (e.g. `ai_photo`) |
+| type | enum(`count_threshold`,`photo_report`,`comment_report`) | extensible (e.g. `ai_photo`) |
 | subject_user_id | uuid | FK → User |
 | toast_id | uuid | FK → Toast, nullable |
+| comment_id | uuid | nullable FK → Comment; required for a comment report |
 | local_date | date | nullable (for count flags; unique with user + type) |
 | reporter_id | uuid | FK → User, nullable |
 | reason | varchar(280) | nullable |
@@ -388,7 +390,7 @@ Index: `(toast_id, created_at, id)`. Parents are created before replies; parent 
 | value | jsonb | required |
 
 **Relationships:** User 1—N ToastSession 1—N Toast; User 1—N Toast; User 1—N Session; User 0..1—1 ClanMembership N—1 Clan; Clan 1—N ClanJoinRequest;
-Toast 1—N Like; Toast 1—N Comment; Comment 1—N Comment (replies); User 1—N Comment; User 1—N UserAchievement; ToastOfTheWeek 0..1—1 Toast; Flag N—1 User (subject) / Toast.
+Toast 1—N Like; Toast 1—N Comment; Comment 1—N Comment (replies); User 1—N Comment; User 1—N UserAchievement; ToastOfTheWeek 0..1—1 Toast; Flag N—1 User (subject) / Toast / Comment.
 
 ## 8. API
 Base path `/api/v1`. Auth: **Session** = cookie or Bearer token, active user. **Admin** = Session + `role=admin`.
@@ -413,6 +415,7 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | DELETE | /comments/:id | Session (author/admin) | — | `204` | soft delete, replies retained |
 | POST | /comments/:id/like | Session | — | `204` | idempotent; live comments on visible sessions only |
 | DELETE | /comments/:id/like | Session | — | `204` | idempotent; no visibility requirement |
+| POST | /comments/:id/report | Session | `{reason?}` (≤ 280) | `202` | live comments only; 10/hour per user, independent of photo reports |
 | POST | /toasts/:id/report | Session | `{reason?}` (≤ 280) | `202` | photo toasts only (409 otherwise); 10/hour per user |
 | GET | /users/:id | Session | — | `200 {profile}` | name, avatar, leaderboard counts; every profile is public (D67) |
 | GET | /users/:id/toasts | Session | cursor | `200 {items[], nextCursor}` | visible photos, one per session (D45) |
@@ -439,8 +442,8 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | POST | /clans/:id/transfer | Owner | `{userId}` | `200 {owner, previousOwner}` | the former Owner becomes an Officer |
 | GET | /feed | Session | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | every user's sessions, newest first (§4.14, D67) |
 | GET | /toast-of-the-week | Session | cursor | `200 {items: [{weekStart, status, toast?}], nextCursor}` | history, newest first; `status` = `won`, `none` or `removed` (D51) |
-| GET | /admin/flags | Admin | `?type=&status=&cursor=` | `200 {items[], nextCursor}` | newest first; subject, reporter, the toast (photo also when hidden) or the day's toasts (D52) |
-| POST | /admin/flags/:id/resolve | Admin | `{action: dismiss\|reject_toasts\|hide_photo, ban?}` | `200 {flag}` | one transaction; records `resolved_by`/`resolved_at`; 409 once resolved (D52) |
+| GET | /admin/flags | Admin | `?type=&status=&cursor=` | `200 {items[], nextCursor}` | newest first; subject, reporter, the toast (photo also when hidden), the reported comment or the day's toasts (D52, D69) |
+| POST | /admin/flags/:id/resolve | Admin | `{action: dismiss\|reject_toasts\|hide_photo\|delete_comment, ban?}` | `200 {flag}` | one transaction; records `resolved_by`/`resolved_at`; 409 once resolved (D52) |
 | GET | /admin/users | Admin | `?search=&cursor=` | `200 {items[], nextCursor}` | newest first; matches email or name; items carry the email (D52) |
 | POST | /admin/users/:id/status | Admin | `{status: active\|banned}` | `200 {user}` | ban revokes sessions; 409 for the own account |
 | PATCH | /admin/clans/:id | Admin | `{name?, description?, ownerId?}` | `200 {clan}` | `ownerId` must be a member (404); the former Owner becomes an Officer |
@@ -475,7 +478,7 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 | `/settings` | Settings | User | Display name, avatar, logout |
 | `/admin` | Admin | Admin | Sub-pages: Flags, Users, Clans, Settings, Metrics, TOTW |
 
-- Comment threads preview up to 3 comments on global and clan feed cards: top-level comments take priority; replies fill unused slots only when fewer than 3 top-level comments exist. "Show all comments" expands the thread. Profile photos open a dialog with the photo and the same preview. Deletion requires a confirmation dialog explaining that replies remain. Forms have labelled fields, pending/error states and retain drafts on failure. The compact layout keeps avatar sizes unchanged, uses tighter spacing and small action buttons, and keeps the auto-growing comment box visible beside its submit button. Reply depth is not limited by visual indentation.
+- Comment threads preview up to 3 comments on global and clan feed cards: top-level comments take priority; replies fill unused slots only when fewer than 3 top-level comments exist. "Show all comments" expands the thread. Per-comment "Hide replies / Show replies" controls collapse individual loaded subthreads without affecting siblings. Profile photos open a dialog with the photo and the same preview. Deletion requires a confirmation dialog explaining that replies remain. Forms have labelled fields, pending/error states and retain drafts on failure. The compact layout keeps avatar sizes unchanged, uses tighter spacing and small action buttons, and keeps the auto-growing comment box visible beside its submit button. Reply depth is not limited by visual indentation.
 - Navigation: bottom tab bar on mobile (Home, Leaderboards, Clan, Profile); top nav at `md` and up.
 - Breakpoints: Tailwind defaults (`sm` 640, `md` 768, `lg` 1024); designed for 360 px wide first; content max-width ~ 640 px on desktop except admin.
 - Theme: shadcn/ui with a warm "toast" palette; light + dark following system preference.
@@ -574,6 +577,8 @@ A feature is done when:
 | D67 | Global feed and public profiles (2026-11-09). **Profiles:** the `profile_visibility` setting is gone: migration `0008_global_feed` sets every profile to `public`, and no code reads the column any more. It and its enum are dropped in a later release, since migrations stay backwards compatible with the release before (`docs/DEPLOY.md`). `PATCH /me` refuses the field (400, strict schema), `/me` no longer returns it, and onboarding and settings have no choice. `GET /users/:id` loses `access`; it and `/toasts`, `/stats`, `/heatmap`, `/achievements` answer every signed-in user (still 404 for unknown, banned and not onboarded users). This replaces the `profileAccess` part of D45, the 403 for a toast the caller "can't see" in D48 and the visibility notes in D50 and D51: `canSeeToast()` is now "not removed" and `canSeePhoto()` "present, not hidden, not removed" (`users.policy.ts`), so a like or report on a removed toast is a 404 and nothing else is a 403. **Feed:** `GET /feed` (module `feed`) lists every non-deleted session whose lead toast is countable, of active users, newest first by `(created_at, id)` with the D44 microsecond cursor; items are the clan feed's (`feedItemSchema` in `shared`, which replaced `clanFeedItemSchema`). `FeedService` serves both feeds; the clan route checks membership first and passes its `clanId`. Index `toast_session_created_at_idx` keeps the global order cheap. Likes stay on the lead toast (D43), so a session shows the same likes in both feeds; the web updates a like optimistically in every loaded feed (`isFeedQuery`, `features/feed/feed-api.ts`). **Home:** the feed sits under the Toast of the week card; while it is wholly below the screen (an IntersectionObserver, the bottom 80 px under the tab bar don't count), a round arrow button at the bottom right scrolls to it and moves focus to its title | With a global feed everyone's photos are shown anyway, so a clan-only profile would hide nothing; one rule is simpler to explain and to test. One service for both feeds keeps their items and rules from drifting apart. The arrow tells a user on a phone that more is below the home cards without pushing the feed above them |
 
 | D68 | Threaded comments (2026-11-10). Comments belong to a session's lead toast, like likes, so photo replacement does not lose discussions. Plain text 1–500 characters; optional same-toast parent with unlimited reply depth and capped visual indentation. Authors and admins can soft-delete after confirmation; placeholders omit both body and author, preserve replies and accept further replies. Banned authors also show as placeholders. The UI previews up to 3 comments, prioritizing top-level comments and filling spare slots with replies only if fewer than 3 top-level comments exist, with "Show all comments" to expand the thread, and shares one toast-keyed paginated cache across global/clan feeds and profile photo dialogs; parents precede replies in the oldest-first API. Creation uses the shared Postgres rate limiter at 30/hour. No editing or notifications. Live comments support the same one-per-user 🍞 like/unlike as posts; other emoji reactions are deferred | Owner chose nested replies and deletion placeholders rather than deleting whole threads. Keeping discussion on the session avoids splitting it when a photo changes; capped indentation remains usable at 360 px |
+
+| D69 | Comment reports. Live comments can be reported with an optional ≤ 280-character reason through the existing admin queue; reporting does not hide them. Comment-report moderation offers dismiss or delete_comment (anonymous placeholder, replies preserved), plus the existing guarded author ban option. Other open reports of a deleted comment are resolved like duplicate photo reports. A dedicated Postgres comment-report quota is 10/hour per user, independent of photo reports; admins receive the comment and linked toast context, never another user's email. Admins may review a banned author's remaining comment text; public threads still show anonymous placeholders. No automatic hiding or new moderation page | Owner chose the existing photo-report workflow and queue rather than a separate system; trust-based moderation remains consistent across photos and comments |
 
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)

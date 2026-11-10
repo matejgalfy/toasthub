@@ -6,6 +6,7 @@ export const FLAG_REASON_MAX = 280;
 export const FlagType = {
   count_threshold: 'count_threshold',
   photo_report: 'photo_report',
+  comment_report: 'comment_report',
 } as const;
 export const flagTypeSchema = z.enum(FlagType);
 export type FlagType = z.infer<typeof flagTypeSchema>;
@@ -23,3 +24,7 @@ export const reportToastSchema = z.preprocess(
   z.strictObject({ reason: z.string().trim().max(FLAG_REASON_MAX).nullable().optional() }),
 );
 export type ReportToast = z.infer<typeof reportToastSchema>;
+
+/** `POST /comments/:id/report` uses the same optional reason as photo reports. */
+export const reportCommentSchema = reportToastSchema;
+export type ReportComment = z.infer<typeof reportCommentSchema>;

@@ -4,7 +4,8 @@ import type { CreateComment } from '@toasthub/shared';
 
 import { api, unwrap } from '@/api/client';
 
-export const commentsQueryKey = (toastId: string) => ['comments', toastId] as const;
+export const commentsRootQueryKey = ['comments'] as const;
+export const commentsQueryKey = (toastId: string) => [...commentsRootQueryKey, toastId] as const;
 
 export const commentsQueryOptions = (toastId: string, topLevel = false) =>
   infiniteQueryOptions({
@@ -60,6 +61,19 @@ export function useToggleCommentLike(toastId: string) {
         : unwrap(api.DELETE('/api/v1/comments/{id}/like', params));
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: commentsQueryKey(toastId) }),
+  });
+}
+
+/** Reports a comment for admin review without hiding it; the answer has no body (202). */
+export function useReportComment() {
+  return useMutation({
+    mutationFn: ({ commentId, reason }: { commentId: string; reason: string }) =>
+      unwrap(
+        api.POST('/api/v1/comments/{id}/report', {
+          params: { path: { id: commentId } },
+          body: reason.trim() ? { reason: reason.trim() } : {},
+        }),
+      ),
   });
 }
 

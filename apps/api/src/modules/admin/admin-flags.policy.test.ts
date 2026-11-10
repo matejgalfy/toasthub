@@ -6,12 +6,24 @@ const ADMIN = 'admin';
 
 const countFlag: FlagFacts = {
   status: 'open',
+  type: 'count_threshold',
+  commentId: null,
   subjectUserId: 'ann',
   toastId: null,
   localDate: '2026-10-28',
 };
 const photoFlag: FlagFacts = {
   status: 'open',
+  type: 'photo_report',
+  commentId: null,
+  subjectUserId: 'ann',
+  toastId: 'toast-1',
+  localDate: null,
+};
+const commentFlag: FlagFacts = {
+  status: 'open',
+  type: 'comment_report',
+  commentId: 'comment-1',
   subjectUserId: 'ann',
   toastId: 'toast-1',
   localDate: null,
@@ -32,6 +44,7 @@ describe('planResolution', () => {
       status: 'dismissed',
       reject: null,
       hidePhotoOf: null,
+      deleteCommentId: null,
       ban: false,
     });
   });
@@ -48,6 +61,7 @@ describe('planResolution', () => {
       status: 'actioned',
       reject: { kind: 'day', userId: 'ann', localDate: '2026-10-28' },
       hidePhotoOf: null,
+      deleteCommentId: null,
       ban: false,
     });
   });
@@ -63,6 +77,7 @@ describe('planResolution', () => {
       status: 'actioned',
       reject: null,
       hidePhotoOf: 'toast-1',
+      deleteCommentId: null,
       ban: true,
     });
   });
@@ -73,6 +88,34 @@ describe('planResolution', () => {
     );
     expect(error.code).toBe('VALIDATION_ERROR');
     expect(error.fields).toHaveProperty('action');
+  });
+
+  it('deletes the reported comment', () => {
+    expect(planResolution(commentFlag, { action: 'delete_comment', ban: false }, ADMIN)).toEqual({
+      status: 'actioned',
+      reject: null,
+      hidePhotoOf: null,
+      deleteCommentId: 'comment-1',
+      ban: false,
+    });
+  });
+
+  it('refuses to delete a comment for another flag type or a missing comment', () => {
+    for (const facts of [countFlag, photoFlag, { ...commentFlag, commentId: null }]) {
+      const error = errorOf(() =>
+        planResolution(facts, { action: 'delete_comment', ban: false }, ADMIN),
+      );
+      expect(error.code).toBe('VALIDATION_ERROR');
+      expect(error.fields).toHaveProperty('action');
+    }
+  });
+
+  it('refuses photo and toast actions for comment reports even when a toast is linked', () => {
+    for (const action of ['hide_photo', 'reject_toasts'] as const) {
+      const error = errorOf(() => planResolution(commentFlag, { action, ban: false }, ADMIN));
+      expect(error.code).toBe('VALIDATION_ERROR');
+      expect(error.fields).toHaveProperty('action');
+    }
   });
 
   it('refuses a flag that is no longer open', () => {

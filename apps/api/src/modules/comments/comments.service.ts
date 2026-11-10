@@ -4,6 +4,8 @@ import {
   type CommentPage,
   type CommentQuery,
   type CreateComment,
+  FlagStatus,
+  FlagType,
   UserRole,
   UserStatus,
 } from '@toasthub/shared';
@@ -15,13 +17,16 @@ import { AppError } from '../../common/errors/app-error';
 import { decodeCursor, toPage } from '../../common/pagination';
 import { consumeRateLimit } from '../../common/rate-limit';
 import { type Database, DB, type DbExecutor } from '../../db/db.module';
-import { comment, commentLike, toast, toastSession, user } from '../../db/schema';
+import { comment, commentLike, flag, toast, toastSession, user } from '../../db/schema';
 import type { AuthUser } from '../auth/auth.config';
 import { countableToasts } from '../toasts/countable-toasts';
 import { canSeeToast } from '../users/users.policy';
 
 export const COMMENT_RATE_LIMIT = 30;
 const CREATE_LIMIT = { window: 60 * 60, max: COMMENT_RATE_LIMIT };
+/** Independent of photo reports and comment creation; every attempt counts. */
+export const COMMENT_REPORT_RATE_LIMIT = 10;
+const REPORT_LIMIT = { window: 60 * 60, max: COMMENT_REPORT_RATE_LIMIT };
 const earlier = alias(toast, 'earlier');
 const keysetSchema = z.object({ at: z.iso.datetime(), id: z.uuid() });
 // Keep Postgres microseconds in cursors so pages cannot skip comments within the same millisecond.
@@ -153,11 +158,80 @@ export class CommentsService {
       if (row.authorId !== viewer.id && viewer.role !== UserRole.admin) {
         throw new AppError('FORBIDDEN', 'Only the author or an admin may delete this comment');
       }
-      await tx
-        .update(comment)
-        .set({ body: null, deletedAt: sql`coalesce(${comment.deletedAt}, clock_timestamp())` })
+      await this.softDelete(tx, commentId);
+    });
+  }
+
+  /** The queue may moderate comments even after their session or author becomes inaccessible. */
+  async lockForModeration(tx: DbExecutor, commentId: string): Promise<void> {
+    await tx
+      .select({ id: toastSession.id })
+      .from(comment)
+      .innerJoin(toast, eq(toast.id, comment.toastId))
+      .innerJoin(toastSession, eq(toastSession.id, toast.sessionId))
+      .where(eq(comment.id, commentId))
+      .for('share', { of: toastSession });
+    await tx
+      .select({ id: comment.id })
+      .from(comment)
+      .where(eq(comment.id, commentId))
+      .for('update');
+  }
+
+  /** Call inside a transaction with the session locked; moderation also locks the comment before flags. */
+  async softDelete(tx: DbExecutor, commentId: string): Promise<void> {
+    await tx
+      .update(comment)
+      .set({ body: null, deletedAt: sql`coalesce(${comment.deletedAt}, clock_timestamp())` })
+      .where(eq(comment.id, commentId));
+    await tx.delete(commentLike).where(eq(commentLike.commentId, commentId));
+  }
+
+  async report(userId: string, commentId: string, reason?: string | null): Promise<void> {
+    if (!(await consumeRateLimit(this.db, `comment-report:${userId}`, REPORT_LIMIT)).allowed) {
+      throw new AppError('RATE_LIMITED', 'Too many reports, try again later');
+    }
+    await this.db.transaction(async (tx) => {
+      const [target] = await tx
+        .select({ toastId: comment.toastId })
+        .from(comment)
         .where(eq(comment.id, commentId));
-      await tx.delete(commentLike).where(eq(commentLike.commentId, commentId));
+      if (!target) throw new AppError('NOT_FOUND', 'Comment not found');
+      await this.assertVisible(tx, target.toastId, true);
+      // Serialize reports with deletion and each other, after the session lock.
+      const [row] = await tx
+        .select({
+          authorId: comment.authorId,
+          deletedAt: comment.deletedAt,
+          authorStatus: user.status,
+        })
+        .from(comment)
+        .innerJoin(user, eq(user.id, comment.authorId))
+        .where(eq(comment.id, commentId))
+        .for('update', { of: comment });
+      if (!row || row.deletedAt !== null || row.authorStatus !== UserStatus.active) {
+        throw new AppError('NOT_FOUND', 'Comment not found');
+      }
+      const [open] = await tx
+        .select({ id: flag.id })
+        .from(flag)
+        .where(
+          and(
+            eq(flag.type, FlagType.comment_report),
+            eq(flag.commentId, commentId),
+            eq(flag.reporterId, userId),
+            eq(flag.status, FlagStatus.open),
+          ),
+        );
+      if (open) return;
+      await tx.insert(flag).values({
+        type: FlagType.comment_report,
+        subjectUserId: row.authorId,
+        toastId: target.toastId,
+        commentId,
+        reporterId: userId,
+        reason: reason === '' ? null : (reason ?? null),
+      });
     });
   }
 

@@ -62,6 +62,7 @@ export function FlagCard({ flag }: { flag: AdminFlag }) {
         )}
 
         {flag.type === FlagType.photo_report && <ReportDetails flag={flag} />}
+        {flag.type === FlagType.comment_report && <CommentReportDetails flag={flag} />}
 
         {flag.resolvedAt && (
           <p className="text-sm text-muted-foreground">
@@ -144,6 +145,46 @@ function ReportDetails({ flag }: { flag: AdminFlag }) {
           : t('admin.flags.reportedByDeleted')}
       </p>
       <p className="text-sm wrap-break-word text-muted-foreground">
+        {flag.reason ? t('admin.flags.reason', { reason: flag.reason }) : t('admin.flags.noReason')}
+      </p>
+    </div>
+  );
+}
+
+function CommentReportDetails({ flag }: { flag: AdminFlag }) {
+  const { t } = useTranslation();
+  const format = useFormat();
+  const comment = flag.comment;
+  return (
+    <div className="flex flex-col gap-3 text-sm">
+      <p className="wrap-anywhere whitespace-pre-wrap">{comment?.body ?? t('comments.deleted')}</p>
+      {comment && (
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1">
+          <dt className="text-muted-foreground">{t('admin.flags.commentCreated')}</dt>
+          <dd>{format.dateTime(comment.createdAt)}</dd>
+          <dt className="text-muted-foreground">{t('admin.flags.commentToast')}</dt>
+          <dd className="wrap-anywhere">{comment.toastId}</dd>
+          {comment.parentId && (
+            <>
+              <dt className="text-muted-foreground">{t('admin.flags.commentParent')}</dt>
+              <dd className="wrap-anywhere">{comment.parentId}</dd>
+            </>
+          )}
+        </dl>
+      )}
+      {flag.toast && (
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+          <li>{format.dateTime(flag.toast.eatenAt)}</li>
+          {flag.toast.status === 'rejected' && <li>{t('admin.flags.toastRejected')}</li>}
+          {flag.toast.deleted && <li>{t('admin.flags.toastDeleted')}</li>}
+        </ul>
+      )}
+      <p>
+        {flag.reporter
+          ? t('admin.flags.reportedBy', { name: flag.reporter.displayName })
+          : t('admin.flags.reportedByDeleted')}
+      </p>
+      <p className="wrap-break-word text-muted-foreground">
         {flag.reason ? t('admin.flags.reason', { reason: flag.reason }) : t('admin.flags.noReason')}
       </p>
     </div>

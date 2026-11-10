@@ -468,6 +468,7 @@ Every business rule in SPEC §4 and where it is tested (checked in M20). Paths: 
 | BR-COMMENT-3 | ☑ `a/comments/comments.int.test.ts` author/admin deletion, anonymous placeholders, banned authors and replies retained |
 | BR-COMMENT-4 | ☑ `a/comments/comments.int.test.ts` oldest-first pages, microsecond boundaries and creation quota |
 | BR-COMMENT-5 | Source tests for comment likes; owner verification pending |
+| BR-COMMENT-6 | Source tests for comment reporting and admin dismiss/delete; owner verification pending |
 | BR-TOTW-1 | ☑ `a/totw/totw.int.test.ts` "draws the previous week on schedule"; `a/totw/totw-draw.test.ts`; `apps/api/src/jobs/jobs.int.test.ts` (schedules) |
 | BR-TOTW-2 | ☑ `a/totw/totw.int.test.ts` "only draws visible photos of countable toasts from that week"; `a/totw/totw-draw.test.ts` "gives every candidate the same chance" |
 | BR-TOTW-3 | ☑ `a/totw/totw.int.test.ts` "records a week without a winner …"; `a/totw/totw-draw.test.ts` "has no winner without candidates" |
@@ -481,12 +482,13 @@ Milestones for features after launch, numbered on from M21. Each has **Read** (S
 row in the Status table, like the ones above.
 
 ### M21 — Threaded comments
-**Read:** SPEC §4.15, §7 Comment, §8 comment endpoints, §9, §12 D68.
+**Read:** SPEC §4.15, §7 Comment / CommentLike / Flag, §8 comment endpoints, §9, §12 D68–D69.
 
 **Scope:** shared schemas, comment table and migration, read/create/delete API with permissions and shared
 rate limit; three-comment preview prioritizing top-level comments (replies fill unused slots only when fewer
 than three roots exist) in global/clan feeds and profile photo dialogs, unlimited reply depth with capped
-indentation, confirmed deletion and deleted placeholders, 🍞 comment likes; API, web and E2E test sources. No editing, notifications or other emoji reactions.
+indentation, per-comment reply collapse controls, confirmed deletion and deleted placeholders, 🍞 comment likes,
+comment reporting and existing admin-queue moderation; API, web and E2E test sources. No editing, notifications or other emoji reactions.
 
 **Check:** post a root comment, reply and nested reply, open the same thread from the profile photo, then
 delete the parent and verify its replies remain. Run the scoped Definition of Done and regenerate OpenAPI.
@@ -824,7 +826,8 @@ one disagrees with AGENTS.md or SPEC, those win._
   before (`docs/DEPLOY.md`). Once 0008 is deployed to prod, remove both from the schema and `db:generate` the drop.
 - **M21 — Threaded comments:** shared contracts and read/create/delete routes, unlimited replies, anonymous
   deletion placeholders, previews prioritizing three top-level comments (replies fill remaining slots only
-  when fewer roots exist), confirmed deletion and 🍞 likes. Threads
+  when fewer roots exist), per-comment reply collapse controls, confirmed deletion, 🍞 likes and comment
+  reports through the existing admin queue (dismiss or delete while preserving replies). Threads
   are shared by global/clan feeds and profile photo dialogs. Migration 0009 is preserved exactly; 0010
-  tightens its body constraint and 0011 adds comment likes. Final owner-requested changes are not verified:
+  tightens its body constraint, 0011 adds comment likes and 0012 adds comment report flags. Final changes are not verified:
   automated checks were stopped at the owner's request; the owner will test before marking M21 complete.

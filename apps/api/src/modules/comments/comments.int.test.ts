@@ -7,8 +7,8 @@ import { type SignedIn, signIn, WEB_ORIGIN } from '../../../test/auth';
 import { createTestApp } from '../../../test/create-app';
 import { insertToasts } from '../../../test/toasts';
 import { type Database, DB } from '../../db/db.module';
-import { comment, commentLike, toast, toastSession, user } from '../../db/schema';
-import { COMMENT_RATE_LIMIT } from './comments.service';
+import { comment, commentLike, flag, toast, toastSession, user } from '../../db/schema';
+import { COMMENT_RATE_LIMIT, COMMENT_REPORT_RATE_LIMIT } from './comments.service';
 
 let app: NestFastifyApplication;
 let db: Database;
@@ -74,6 +74,10 @@ function unlikeComment(as: SignedIn | null, commentId: string) {
   return call(as, 'DELETE', `/comments/${commentId}/like`);
 }
 
+function reportComment(as: SignedIn | null, commentId: string, payload?: object) {
+  return call(as, 'POST', `/comments/${commentId}/report`, payload);
+}
+
 function expectError(res: Awaited<ReturnType<typeof call>>, status: number, code: string): void {
   expect(res.statusCode, res.body).toBe(status);
   expect(res.json<{ error: { code: string } }>().error.code).toBe(code);
@@ -85,6 +89,30 @@ async function create(as: SignedIn, toastId: string, payload: object = { body: '
   return res.json<Comment>();
 }
 
+async function commentReports() {
+  return db
+    .select({
+      type: flag.type,
+      subjectUserId: flag.subjectUserId,
+      toastId: flag.toastId,
+      commentId: flag.commentId,
+      reporterId: flag.reporterId,
+      reason: flag.reason,
+      status: flag.status,
+    })
+    .from(flag)
+    .where(eq(flag.type, 'comment_report'))
+    .orderBy(flag.id);
+}
+
+async function annPhoto(): Promise<string> {
+  const [row] = await insertToasts(db, [
+    { userId: ann.userId, photoKey: `toasts/${ann.userId}/photo.webp` },
+  ]);
+  if (!row) throw new Error('No toast');
+  return row.id;
+}
+
 describe('comments auth', () => {
   it('requires a session for listing, creating and deleting comments', async () => {
     expectError(await list(null, UNKNOWN_ID), 401, 'UNAUTHENTICATED');
@@ -92,6 +120,7 @@ describe('comments auth', () => {
     expectError(await remove(null, UNKNOWN_ID), 401, 'UNAUTHENTICATED');
     expectError(await likeComment(null, UNKNOWN_ID), 401, 'UNAUTHENTICATED');
     expectError(await unlikeComment(null, UNKNOWN_ID), 401, 'UNAUTHENTICATED');
+    expectError(await reportComment(null, UNKNOWN_ID), 401, 'UNAUTHENTICATED');
   });
 });
 
@@ -99,6 +128,7 @@ describe('comment toast visibility', () => {
   it('is a 404 for unknown toasts', async () => {
     expectError(await list(bob, UNKNOWN_ID), 404, 'NOT_FOUND');
     expectError(await post(bob, UNKNOWN_ID), 404, 'NOT_FOUND');
+    expectError(await reportComment(bob, UNKNOWN_ID), 404, 'NOT_FOUND');
   });
 
   it('is a 404 for a nonlead toast', async () => {
@@ -112,6 +142,12 @@ describe('comment toast visibility', () => {
     if (!lead || !second) throw new Error('No toasts');
     expectError(await list(bob, second.id), 404, 'NOT_FOUND');
     expectError(await post(bob, second.id), 404, 'NOT_FOUND');
+    const [secondComment] = await db
+      .insert(comment)
+      .values({ toastId: second.id, authorId: ann.userId, body: 'Nonlead comment' })
+      .returning({ id: comment.id });
+    if (!secondComment) throw new Error('No comment');
+    expectError(await reportComment(bob, secondComment.id), 404, 'NOT_FOUND');
     expect((await list(bob, lead.id)).statusCode).toBe(200);
     expect((await post(bob, lead.id)).statusCode).toBe(201);
   });
@@ -442,6 +478,136 @@ describe('POST /toasts/:id/comments', () => {
     }
     expectError(await post(bob, await annToast()), 429, 'RATE_LIMITED');
     expect((await post(ann, toastId)).statusCode).toBe(201);
+  });
+});
+
+describe('POST /comments/:id/report', () => {
+  it('opens comment_report flags for active reporters including the comment author', async () => {
+    const toastId = await annToast();
+    const annComment = await create(ann, toastId, { body: 'Ann comment' });
+    const bobComment = await create(bob, toastId, { body: 'Bob comment' });
+
+    expect((await reportComment(bob, annComment.id, { reason: '  spam  ' })).statusCode).toBe(202);
+    expect((await reportComment(bob, bobComment.id)).statusCode).toBe(202);
+    expect(await commentReports()).toEqual([
+      {
+        type: 'comment_report',
+        subjectUserId: ann.userId,
+        toastId,
+        commentId: annComment.id,
+        reporterId: bob.userId,
+        reason: 'spam',
+        status: 'open',
+      },
+      {
+        type: 'comment_report',
+        subjectUserId: bob.userId,
+        toastId,
+        commentId: bobComment.id,
+        reporterId: bob.userId,
+        reason: null,
+        status: 'open',
+      },
+    ]);
+    expect((await list(bob, toastId)).json<CommentPage>().items.map((item) => item.id)).toEqual([
+      annComment.id,
+      bobComment.id,
+    ]);
+  });
+
+  it('accepts no body, stores a blank reason as null, and validates a supplied reason', async () => {
+    const toastId = await annToast();
+    const item = await create(ann, toastId);
+    expect((await reportComment(bob, item.id)).statusCode).toBe(202);
+    const blankReason = await create(ann, toastId, { body: 'Another comment' });
+    expect((await reportComment(bob, blankReason.id, { reason: '  ' })).statusCode).toBe(202);
+    expect(await commentReports()).toMatchObject([{ reason: null }, { reason: null }]);
+    expectError(
+      await reportComment(bob, item.id, { reason: 'x'.repeat(281) }),
+      400,
+      'VALIDATION_ERROR',
+    );
+    expectError(await reportComment(bob, item.id, { reasn: 'spam' }), 400, 'VALIDATION_ERROR');
+  });
+
+  it('does not duplicate an open report by the same user, but allows another reporter', async () => {
+    const toastId = await annToast();
+    const item = await create(ann, toastId);
+    expect((await reportComment(bob, item.id, { reason: 'first' })).statusCode).toBe(202);
+    expect((await reportComment(bob, item.id, { reason: 'second' })).statusCode).toBe(202);
+    expect((await reportComment(ann, item.id, { reason: null })).statusCode).toBe(202);
+    expect(await commentReports()).toMatchObject([
+      { reporterId: bob.userId, reason: 'first', status: 'open' },
+      { reporterId: ann.userId, reason: null, status: 'open' },
+    ]);
+  });
+
+  it('is a 404 for unknown, deleted, or banned-author comments', async () => {
+    expectError(await reportComment(bob, UNKNOWN_ID), 404, 'NOT_FOUND');
+
+    const toastId = await annToast();
+    const deleted = await create(bob, toastId);
+    expect((await remove(bob, deleted.id)).statusCode).toBe(204);
+    expectError(await reportComment(ann, deleted.id), 404, 'NOT_FOUND');
+
+    const banned = await create(bob, toastId);
+    await db.update(user).set({ status: 'banned' }).where(eq(user.id, bob.userId));
+    expectError(await reportComment(ann, banned.id), 404, 'NOT_FOUND');
+  });
+
+  it('is a 404 for comments on deleted or rejected toasts and deleted sessions', async () => {
+    const deletedToastId = await annToast();
+    const deletedToastComment = await create(bob, deletedToastId);
+    await db.update(toast).set({ deletedAt: new Date() }).where(eq(toast.id, deletedToastId));
+    expectError(await reportComment(ann, deletedToastComment.id), 404, 'NOT_FOUND');
+
+    const rejectedToastId = await annToast();
+    const rejectedToastComment = await create(bob, rejectedToastId);
+    await db.update(toast).set({ status: 'rejected' }).where(eq(toast.id, rejectedToastId));
+    expectError(await reportComment(ann, rejectedToastComment.id), 404, 'NOT_FOUND');
+
+    const deletedSessionToastId = await annToast();
+    const deletedSessionComment = await create(bob, deletedSessionToastId);
+    const [deletedSessionToast] = await db
+      .select({ sessionId: toast.sessionId })
+      .from(toast)
+      .where(eq(toast.id, deletedSessionToastId));
+    if (!deletedSessionToast) throw new Error('No toast');
+    await db
+      .update(toastSession)
+      .set({ deletedAt: new Date() })
+      .where(eq(toastSession.id, deletedSessionToast.sessionId));
+    expectError(await reportComment(ann, deletedSessionComment.id), 404, 'NOT_FOUND');
+  });
+
+  it(`limits comment reports to ${String(COMMENT_REPORT_RATE_LIMIT)} per hour independently`, async () => {
+    expect(COMMENT_REPORT_RATE_LIMIT).toBe(10);
+    const photoToastId = await annPhoto();
+    for (let i = 0; i < COMMENT_REPORT_RATE_LIMIT; i++) {
+      expect((await call(bob, 'POST', `/toasts/${photoToastId}/report`)).statusCode).toBe(202);
+    }
+
+    const toastId = await annToast();
+    const bobComment = await create(bob, toastId);
+    expect((await reportComment(bob, bobComment.id)).statusCode).toBe(202);
+
+    const carol = await signUp('carol@example.com', 'Carol');
+    const comments = [];
+    for (let i = 0; i <= COMMENT_REPORT_RATE_LIMIT; i++) {
+      comments.push(await create(ann, toastId, { body: `Comment ${String(i)}` }));
+    }
+    for (const item of comments.slice(0, COMMENT_REPORT_RATE_LIMIT)) {
+      expect((await reportComment(carol, item.id)).statusCode).toBe(202);
+    }
+    expectError(
+      await reportComment(carol, comments[COMMENT_REPORT_RATE_LIMIT]?.id ?? UNKNOWN_ID),
+      429,
+      'RATE_LIMITED',
+    );
+    expect((await post(carol, toastId)).statusCode).toBe(201);
+    expect((await call(carol, 'POST', `/toasts/${photoToastId}/report`)).statusCode).toBe(202);
+    const lastCommentId = comments[COMMENT_REPORT_RATE_LIMIT]?.id ?? UNKNOWN_ID;
+    expect((await reportComment(ann, lastCommentId)).statusCode).toBe(202);
   });
 });
 

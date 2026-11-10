@@ -36,3 +36,19 @@ export function buildCommentThread(comments: Comment[]): CommentThreadRow[] {
   }
   return rows;
 }
+
+/** Collapsed rows stay visible; only their deeper preorder descendants are skipped. */
+export function visibleCommentThread(
+  rows: CommentThreadRow[],
+  collapsedReplies: ReadonlySet<string>,
+): CommentThreadRow[] {
+  const visible: CommentThreadRow[] = [];
+  let collapsedDepth: number | undefined;
+  for (const row of rows) {
+    if (collapsedDepth !== undefined && row.depth > collapsedDepth) continue;
+    collapsedDepth = undefined;
+    visible.push(row);
+    if (collapsedReplies.has(row.comment.id)) collapsedDepth = row.depth;
+  }
+  return visible;
+}

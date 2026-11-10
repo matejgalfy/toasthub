@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 
-import { COMMENT_BODY_MAX, type Comment } from '@toasthub/shared';
+import { COMMENT_BODY_MAX, FLAG_REASON_MAX, type Comment } from '@toasthub/shared';
 
 import { errorMessageKey } from '@/api/errors';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -17,11 +17,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useFormat } from '@/i18n/format';
 import { cn } from '@/lib/utils';
 
-import { buildCommentThread } from './comment-tree';
+import { buildCommentThread, visibleCommentThread } from './comment-tree';
 import {
   commentsQueryOptions,
   useCreateComment,
   useDeleteComment,
+  useReportComment,
   useToggleCommentLike,
 } from './comments-api';
 
@@ -29,6 +30,7 @@ export function Comments({ toastId }: { toastId: string }) {
   const { t } = useTranslation();
   const id = useId();
   const [expanded, setExpanded] = useState(false);
+  const [collapsedReplies, setCollapsedReplies] = useState<Set<string>>(() => new Set());
   const query = useInfiniteQuery(commentsQueryOptions(toastId, !expanded));
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   const roots = items.filter((comment) => comment.parentId === null).slice(0, 3);
@@ -37,6 +39,8 @@ export function Comments({ toastId }: { toastId: string }) {
     ...items.filter((comment) => comment.parentId !== null).slice(0, 3 - roots.length),
   ];
   const rows = buildCommentThread(expanded ? items : preview);
+  const replyParents = new Set(rows.flatMap(({ parent }) => (parent ? [parent.id] : [])));
+  const visibleRows = visibleCommentThread(rows, collapsedReplies);
   return (
     <section aria-labelledby={id} className="flex min-w-0 flex-col gap-2">
       <h3 id={id} className="font-semibold">
@@ -49,7 +53,7 @@ export function Comments({ toastId }: { toastId: string }) {
       )}
       {rows.length > 0 && (
         <ol className="flex flex-col gap-2">
-          {rows.map(({ comment, depth, parent }) => (
+          {visibleRows.map(({ comment, depth, parent }) => (
             <li
               key={comment.id}
               id={`${id}-${comment.id}`}
@@ -60,6 +64,16 @@ export function Comments({ toastId }: { toastId: string }) {
                 comment={comment}
                 parent={parent}
                 parentLink={parent ? `#${id}-${parent.id}` : undefined}
+                hasReplies={replyParents.has(comment.id)}
+                repliesExpanded={!collapsedReplies.has(comment.id)}
+                onToggleReplies={() => {
+                  setCollapsedReplies((current) => {
+                    const next = new Set(current);
+                    if (next.has(comment.id)) next.delete(comment.id);
+                    else next.add(comment.id);
+                    return next;
+                  });
+                }}
               />
             </li>
           ))}
@@ -99,16 +113,23 @@ function CommentRow({
   comment,
   parent,
   parentLink,
+  hasReplies,
+  repliesExpanded,
+  onToggleReplies,
 }: {
   toastId: string;
   comment: Comment;
   parent: Comment | null;
   parentLink?: string;
+  hasReplies: boolean;
+  repliesExpanded: boolean;
+  onToggleReplies: () => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
   const [replying, setReplying] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const remove = useDeleteComment(toastId);
   const like = useToggleCommentLike(toastId);
   const authorName = comment.author?.displayName ?? t('comments.deleted');
@@ -177,6 +198,32 @@ function CommentRow({
         >
           {t('comments.reply')}
         </Button>
+        {hasReplies && (
+          <Button
+            variant="ghost"
+            size="xs"
+            aria-label={t(repliesExpanded ? 'comments.hideRepliesTo' : 'comments.showRepliesTo', {
+              name: authorName,
+            })}
+            aria-expanded={repliesExpanded}
+            onClick={onToggleReplies}
+          >
+            {t(repliesExpanded ? 'comments.hideReplies' : 'comments.showReplies')}
+          </Button>
+        )}
+        {!comment.deleted && (
+          <Button
+            variant="ghost"
+            size="xs"
+            className="text-muted-foreground"
+            aria-label={t('comments.reportBy', { name: authorName })}
+            onClick={() => {
+              setReporting(true);
+            }}
+          >
+            {t('comments.report')}
+          </Button>
+        )}
         {comment.canDelete && !comment.deleted && (
           <Button
             variant="ghost"
@@ -212,6 +259,14 @@ function CommentRow({
         pending={remove.isPending}
         error={remove.error}
       />
+      {reporting && (
+        <CommentReportDialog
+          commentId={comment.id}
+          onClose={() => {
+            setReporting(false);
+          }}
+        />
+      )}
       {replying && (
         <CommentForm
           toastId={toastId}
@@ -222,6 +277,50 @@ function CommentRow({
         />
       )}
     </article>
+  );
+}
+
+function CommentReportDialog({ commentId, onClose }: { commentId: string; onClose: () => void }) {
+  const { t } = useTranslation();
+  const id = useId();
+  const [reason, setReason] = useState('');
+  const report = useReportComment();
+  return (
+    <ConfirmDialog
+      open
+      onCancel={onClose}
+      onConfirm={() => {
+        if (report.isPending || reason.trim().length > FLAG_REASON_MAX) return;
+        report.mutate(
+          { commentId, reason },
+          {
+            onSuccess: () => {
+              toast.success(t('comments.reportDialog.done'));
+              onClose();
+            },
+          },
+        );
+      }}
+      title={t('comments.reportDialog.title')}
+      description={t('comments.reportDialog.description')}
+      confirmLabel={t('comments.reportDialog.submit')}
+      pending={report.isPending}
+      error={report.error}
+    >
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={id}>{t('comments.reportDialog.reason')}</Label>
+        <Textarea
+          id={id}
+          rows={3}
+          maxLength={FLAG_REASON_MAX}
+          value={reason}
+          disabled={report.isPending}
+          onChange={(event) => {
+            setReason(event.target.value);
+          }}
+        />
+      </div>
+    </ConfirmDialog>
   );
 }
 

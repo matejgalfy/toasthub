@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Comment } from '@toasthub/shared';
 
-import { buildCommentThread } from './comment-tree';
+import { buildCommentThread, visibleCommentThread } from './comment-tree';
 
 const comment = (id: string, parentId: string | null = null): Comment => ({
   id,
@@ -65,5 +65,43 @@ describe('buildCommentThread', () => {
     );
     expect(rows).toHaveLength(15000);
     expect(rows.at(-1)?.depth).toBe(14999);
+  });
+});
+
+describe('visibleCommentThread', () => {
+  const rows = buildCommentThread([
+    comment('root'),
+    comment('reply', 'root'),
+    comment('nested', 'reply'),
+    comment('sibling', 'root'),
+    comment('other'),
+    comment('other-reply', 'other'),
+  ]);
+  const ids = (collapsed: ReadonlySet<string>) =>
+    visibleCommentThread(rows, collapsed).map(({ comment }) => comment.id);
+
+  it('hides only descendants while keeping the parent and sibling threads visible', () => {
+    expect(ids(new Set(['reply']))).toEqual(['root', 'reply', 'sibling', 'other', 'other-reply']);
+    expect(ids(new Set(['root']))).toEqual(['root', 'other', 'other-reply']);
+    expect(ids(new Set())).toEqual(['root', 'reply', 'nested', 'sibling', 'other', 'other-reply']);
+  });
+
+  it('preserves a nested collapse when its ancestor is expanded again', () => {
+    const collapsed = new Set(['reply', 'root']);
+    expect(ids(collapsed)).toEqual(['root', 'other', 'other-reply']);
+    collapsed.delete('root');
+    expect(ids(collapsed)).toEqual(['root', 'reply', 'sibling', 'other', 'other-reply']);
+    collapsed.delete('reply');
+    expect(ids(collapsed)).toContain('nested');
+  });
+
+  it('supports very deep collapsed threads without recursion', () => {
+    const deepRows = buildCommentThread(
+      Array.from({ length: 15000 }, (_, index) =>
+        comment(String(index), index ? String(index - 1) : null),
+      ),
+    );
+    expect(visibleCommentThread(deepRows, new Set(['1']))).toHaveLength(2);
+    expect(visibleCommentThread(deepRows, new Set())).toHaveLength(15000);
   });
 });

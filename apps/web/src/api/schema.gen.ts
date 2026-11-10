@@ -324,22 +324,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/toast-of-the-week': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations['TotwController_history'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/toasts/{id}/comments': {
     parameters: {
       query?: never;
@@ -372,6 +356,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/comments/{id}/report': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['CommentsController_report'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/comments/{id}': {
     parameters: {
       query?: never;
@@ -383,6 +383,22 @@ export interface paths {
     put?: never;
     post?: never;
     delete: operations['CommentsController_delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/toast-of-the-week': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['TotwController_history'];
+    put?: never;
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -685,7 +701,7 @@ export interface components {
         /** Format: uuid */
         id: string;
         /** @enum {string} */
-        type: 'count_threshold' | 'photo_report';
+        type: 'count_threshold' | 'photo_report' | 'comment_report';
         /** @enum {string} */
         status: 'open' | 'dismissed' | 'actioned';
         /** Format: date-time */
@@ -727,6 +743,18 @@ export interface components {
           photoUrl: string | null;
           photoHidden: boolean;
           earlierPhotoUrls: string[];
+        } | null;
+        comment: {
+          /** Format: uuid */
+          id: string;
+          /** Format: uuid */
+          toastId: string;
+          /** Format: uuid */
+          parentId: string | null;
+          /** Format: date-time */
+          createdAt: string;
+          body: string | null;
+          deleted: boolean;
         } | null;
         resolvedBy: {
           /** Format: uuid */
@@ -741,7 +769,7 @@ export interface components {
     };
     ResolveFlagDto: {
       /** @enum {string} */
-      action: 'dismiss' | 'reject_toasts' | 'hide_photo';
+      action: 'dismiss' | 'reject_toasts' | 'hide_photo' | 'delete_comment';
       /** @default false */
       ban: boolean;
     };
@@ -750,7 +778,7 @@ export interface components {
         /** Format: uuid */
         id: string;
         /** @enum {string} */
-        type: 'count_threshold' | 'photo_report';
+        type: 'count_threshold' | 'photo_report' | 'comment_report';
         /** @enum {string} */
         status: 'open' | 'dismissed' | 'actioned';
         /** Format: date-time */
@@ -792,6 +820,18 @@ export interface components {
           photoUrl: string | null;
           photoHidden: boolean;
           earlierPhotoUrls: string[];
+        } | null;
+        comment: {
+          /** Format: uuid */
+          id: string;
+          /** Format: uuid */
+          toastId: string;
+          /** Format: uuid */
+          parentId: string | null;
+          /** Format: date-time */
+          createdAt: string;
+          body: string | null;
+          deleted: boolean;
         } | null;
         resolvedBy: {
           /** Format: uuid */
@@ -1127,29 +1167,6 @@ export interface components {
       }[];
       nextCursor: string | null;
     };
-    ToastOfTheWeekPageDto_Output: {
-      items: {
-        /** Format: date */
-        weekStart: string;
-        /** @enum {string} */
-        status: 'won' | 'none' | 'removed';
-        toast: {
-          /** Format: uuid */
-          id: string;
-          user: {
-            /** Format: uuid */
-            id: string;
-            displayName: string;
-            avatarId: number | null;
-          };
-          /** Format: date-time */
-          eatenAt: string;
-          /** Format: uri */
-          photoUrl: string;
-        } | null;
-      }[];
-      nextCursor: string | null;
-    };
     CommentPageDto_Output: {
       items: {
         /** Format: uuid */
@@ -1199,6 +1216,32 @@ export interface components {
       canDelete: boolean;
       likeCount: number;
       likedByMe: boolean;
+    };
+    ReportCommentDto: {
+      reason?: string | null;
+    };
+    ToastOfTheWeekPageDto_Output: {
+      items: {
+        /** Format: date */
+        weekStart: string;
+        /** @enum {string} */
+        status: 'won' | 'none' | 'removed';
+        toast: {
+          /** Format: uuid */
+          id: string;
+          user: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            avatarId: number | null;
+          };
+          /** Format: date-time */
+          eatenAt: string;
+          /** Format: uri */
+          photoUrl: string;
+        } | null;
+      }[];
+      nextCursor: string | null;
     };
     HealthDto_Output: {
       /** @enum {string} */
@@ -1487,7 +1530,7 @@ export interface operations {
       query?: {
         cursor?: string;
         limit?: number;
-        type?: 'count_threshold' | 'photo_report';
+        type?: 'count_threshold' | 'photo_report' | 'comment_report';
         status?: 'open' | 'dismissed' | 'actioned';
       };
       header?: never;
@@ -2053,28 +2096,6 @@ export interface operations {
       };
     };
   };
-  TotwController_history: {
-    parameters: {
-      query?: {
-        cursor?: string;
-        limit?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ToastOfTheWeekPageDto_Output'];
-        };
-      };
-    };
-  };
   CommentsController_list: {
     parameters: {
       query?: {
@@ -2163,6 +2184,29 @@ export interface operations {
       };
     };
   };
+  CommentsController_report: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReportCommentDto'];
+      };
+    };
+    responses: {
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   CommentsController_delete: {
     parameters: {
       query?: never;
@@ -2179,6 +2223,28 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  TotwController_history: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ToastOfTheWeekPageDto_Output'];
+        };
       };
     };
   };

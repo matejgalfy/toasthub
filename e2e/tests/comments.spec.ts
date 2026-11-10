@@ -40,6 +40,13 @@ test('nested comments are shared with profile photos and survive parent deletion
   await session.getByRole('textbox', { name: 'Reply', exact: true }).fill('And tomatoes');
   await session.getByRole('button', { name: 'Post reply', exact: true }).click();
   await expect(session.getByText('And tomatoes', { exact: true })).toBeVisible();
+  await root.getByRole('button', { name: `Hide replies to ${name}`, exact: true }).click();
+  await expect(root).toBeVisible();
+  await expect(session.getByText('With cheese', { exact: true })).toHaveCount(0);
+  await expect(session.getByText('And tomatoes', { exact: true })).toHaveCount(0);
+  await root.getByRole('button', { name: `Show replies to ${name}`, exact: true }).click();
+  await expect(session.getByText('With cheese', { exact: true })).toBeVisible();
+  await expect(session.getByText('And tomatoes', { exact: true })).toBeVisible();
   await session.getByRole('textbox', { name: 'Comment', exact: true }).fill('A fourth comment');
   await session.getByRole('button', { name: 'Post comment', exact: true }).click();
   await expect(session.getByText('A fourth comment', { exact: true })).toBeVisible();

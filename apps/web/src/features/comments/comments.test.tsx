@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { toast } from 'sonner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Comment, CommentPage, UserToast } from '@toasthub/shared';
@@ -69,6 +70,7 @@ describe('Comments', () => {
     expect(screen.getByText('Preview third')).toBeVisible();
     expect(screen.getByText('Preview fourth')).toBeVisible();
     expect(screen.queryByText('Preview reply')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Hide replies to / })).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Comment' })).toBeVisible();
     expect(requests).toHaveLength(1);
     await user.click(screen.getByRole('button', { name: 'Show all comments' }));
@@ -101,6 +103,65 @@ describe('Comments', () => {
       '?topLevel=true&limit=3',
       '?limit=3',
     ]);
+  });
+
+  it('hides and restores subthreads while preserving independent nested collapse states', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi(() =>
+      jsonResponse(
+        200,
+        page([
+          comment(ROOT, 'Root body'),
+          comment(REPLY, 'Child body', ROOT),
+          comment('nested', 'Nested body', REPLY),
+          comment('sibling', 'Sibling body', ROOT),
+          comment('other', 'Other root body'),
+        ]),
+      ),
+    );
+    renderComments();
+    await screen.findByText('Root body');
+    await user.click(screen.getByRole('button', { name: 'Show all comments' }));
+    await screen.findByText('Nested body');
+    const requestCount = requests.length;
+    const root = screen.getByText('Root body').closest('li');
+    const child = screen.getByText('Child body').closest('li');
+    const sibling = screen.getByText('Sibling body').closest('li');
+    if (!root || !child || !sibling) throw new Error('Missing thread rows');
+    expect(
+      within(sibling).queryByRole('button', { name: /^Hide replies to / }),
+    ).not.toBeInTheDocument();
+    const hideRoot = within(root).getByRole('button', { name: 'Hide replies to Mia' });
+    expect(hideRoot).toHaveAttribute('aria-expanded', 'true');
+    await user.click(within(child).getByRole('button', { name: 'Hide replies to Mia' }));
+    expect(screen.queryByText('Nested body')).not.toBeInTheDocument();
+    expect(screen.getByText('Child body')).toBeVisible();
+    expect(screen.getByText('Sibling body')).toBeVisible();
+    expect(within(child).getByRole('button', { name: 'Show replies to Mia' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+
+    await user.click(hideRoot);
+    expect(screen.getByText('Root body')).toBeVisible();
+    expect(screen.getByText('Other root body')).toBeVisible();
+    expect(screen.queryByText('Child body')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sibling body')).not.toBeInTheDocument();
+    const showRoot = within(root).getByRole('button', { name: 'Show replies to Mia' });
+    expect(showRoot).toHaveAttribute('aria-expanded', 'false');
+    await user.click(showRoot);
+    expect(screen.getByText('Child body')).toBeVisible();
+    expect(screen.getByText('Sibling body')).toBeVisible();
+    expect(screen.queryByText('Nested body')).not.toBeInTheDocument();
+    const restoredChild = screen.getByText('Child body').closest('li');
+    if (!restoredChild) throw new Error('Missing restored child');
+    await user.click(within(restoredChild).getByRole('button', { name: 'Show replies to Mia' }));
+    expect(screen.getByText('Nested body')).toBeVisible();
+    expect(within(root).getByRole('button', { name: 'Hide replies to Mia' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(requests).toHaveLength(requestCount);
   });
 
   it('creates trimmed roots and replies to deleted placeholders with the correct requests', async () => {
@@ -216,6 +277,81 @@ describe('Comments', () => {
     ).toBe(true);
   });
 
+  it('reports live comments without hiding them, trims the reason and shows success', async () => {
+    const user = userEvent.setup();
+    const success = vi.spyOn(toast, 'success');
+    const requests = mockApi((request) =>
+      request.method === 'POST'
+        ? new Response(null, { status: 202 })
+        : jsonResponse(200, page([{ ...comment(ROOT, 'Keep visible'), canDelete: false }])),
+    );
+    renderComments();
+    await user.click(await screen.findByRole('button', { name: 'Report comment by Mia' }));
+    const dialog = screen.getByRole('dialog', { name: 'Report this comment?' });
+    const reason = within(dialog).getByRole('textbox', { name: 'Reason (optional)' });
+    expect(reason).toHaveAttribute('maxlength', '280');
+    await user.type(reason, '  Spam  ');
+    await user.click(within(dialog).getByRole('button', { name: 'Send report' }));
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const post = requests.find((request) => request.method === 'POST');
+    expect(new URL(post?.url ?? '').pathname).toBe(`/api/v1/comments/${ROOT}/report`);
+    expect(await post?.json()).toEqual({ reason: 'Spam' });
+    expect(screen.getByText('Keep visible')).toBeVisible();
+    expect(success).toHaveBeenCalledWith('Report sent. An admin will review the comment.');
+  });
+
+  it('allows a report without a reason and cancels without sending one', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi((request) =>
+      request.method === 'POST'
+        ? new Response(null, { status: 202 })
+        : jsonResponse(200, page([comment(ROOT, 'Root')])),
+    );
+    renderComments();
+    await user.click(await screen.findByRole('button', { name: 'Report comment by Mia' }));
+    let dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByRole('textbox', { name: 'Reason (optional)' }), 'Draft');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(requests.some((request) => request.method === 'POST')).toBe(false);
+    await user.click(screen.getByRole('button', { name: 'Report comment by Mia' }));
+    dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('textbox', { name: 'Reason (optional)' })).toHaveValue('');
+    await user.click(within(dialog).getByRole('button', { name: 'Send report' }));
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(await requests.find((request) => request.method === 'POST')?.json()).toEqual({});
+  });
+
+  it('keeps the report draft during pending and errors and allows retry', async () => {
+    const user = userEvent.setup();
+    let finish: ((response: Response) => void) | undefined;
+    let fail = true;
+    mockApi((request) => {
+      if (request.method === 'POST') {
+        if (fail)
+          return new Promise<Response>((resolve) => {
+            finish = resolve;
+          });
+        return new Response(null, { status: 202 });
+      }
+      return jsonResponse(200, page([comment(ROOT, 'Root')]));
+    });
+    renderComments();
+    await user.click(await screen.findByRole('button', { name: 'Report comment by Mia' }));
+    const dialog = screen.getByRole('dialog');
+    const reason = within(dialog).getByRole('textbox', { name: 'Reason (optional)' });
+    await user.type(reason, 'Keep this reason');
+    await user.click(within(dialog).getByRole('button', { name: 'Send report' }));
+    await vi.waitFor(() => expect(reason).toBeDisabled());
+    expect(reason).toHaveValue('Keep this reason');
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    finish?.(jsonResponse(500, { error: { code: 'INTERNAL', message: 'Failed' } }));
+    expect(await within(dialog).findByRole('alert')).toBeVisible();
+    expect(reason).toHaveValue('Keep this reason');
+    fail = false;
+    await user.click(within(dialog).getByRole('button', { name: 'Send report' }));
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
   it('does not allow reactions to deleted placeholders', async () => {
     mockApi(() =>
       jsonResponse(
@@ -234,6 +370,7 @@ describe('Comments', () => {
     renderComments();
     expect(await screen.findByText('Deleted comment')).toBeVisible();
     expect(screen.queryByRole('button', { name: /^Like / })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Report comment by / })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reply to Deleted comment' })).toBeVisible();
   });
 
@@ -325,8 +462,14 @@ describe('Comments', () => {
     );
     renderComments();
     await user.click(await screen.findByRole('button', { name: 'Show all comments' }));
-    await user.click(await screen.findByRole('button', { name: 'Show more comments' }));
+    const loadMore = await screen.findByRole('button', { name: 'Show more comments' });
+    expect(screen.queryByRole('button', { name: /^Hide replies to / })).not.toBeInTheDocument();
+    await user.click(loadMore);
     expect(await screen.findByText('Child')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Hide replies to Mia' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     const rows = screen.getAllByRole('listitem');
     expect(rows[1]?.getAttribute('style')).toContain('margin-inline-start: 0.75rem');
     expect(requests.map((request) => new URL(request.url).search)).toEqual([

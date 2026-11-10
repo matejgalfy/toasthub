@@ -27,7 +27,7 @@ export type AdminFlagListQuery = z.infer<typeof adminFlagListQuerySchema>;
 export const flagParamsSchema = z.object({ id: z.uuid() });
 export type FlagParams = z.infer<typeof flagParamsSchema>;
 
-/** The toast a photo report is about, as an admin sees it: also when hidden, rejected or deleted. */
+/** A report's linked toast, as an admin sees it: also when hidden, rejected or deleted. */
 export const adminFlagToastSchema = z.object({
   id: z.uuid(),
   sessionId: z.uuid(),
@@ -50,20 +50,33 @@ export const adminFlagDaySchema = z.object({
 });
 export type AdminFlagDay = z.infer<typeof adminFlagDaySchema>;
 
+/** The reported comment's current text; deletion clears it but preserves its thread context. */
+export const adminFlagCommentSchema = z.object({
+  id: z.uuid(),
+  toastId: z.uuid(),
+  parentId: z.uuid().nullable(),
+  createdAt: z.iso.datetime(),
+  body: z.string().nullable(),
+  deleted: z.boolean(),
+});
+export type AdminFlagComment = z.infer<typeof adminFlagCommentSchema>;
+
 export const adminFlagSchema = z.object({
   id: z.uuid(),
   type: flagTypeSchema,
   status: flagStatusSchema,
   createdAt: z.iso.datetime(),
   subject: userSummarySchema.extend({ status: userStatusSchema }),
-  // Photo reports: who reported it (null once that user is deleted) and the optional reason.
+  // Photo/comment reports: who reported it (null once that user is deleted) and the optional reason.
   reporter: userSummarySchema.nullable(),
   reason: z.string().nullable(),
-  // Count flags: the day and its toasts. Null on photo reports.
+  // Count flags: the day and its toasts. Null on reports.
   localDate: localDateSchema.nullable(),
   day: adminFlagDaySchema.nullable(),
-  // Photo reports: the reported toast. Null on count flags.
+  // Reports: the linked toast. Null on count flags.
   toast: adminFlagToastSchema.nullable(),
+  // Comment reports: the reported comment. Null on other flag types.
+  comment: adminFlagCommentSchema.nullable(),
   resolvedBy: userSummarySchema.nullable(),
   resolvedAt: z.iso.datetime().nullable(),
 });
@@ -73,11 +86,12 @@ export type AdminFlag = z.infer<typeof adminFlagSchema>;
 export const adminFlagPageSchema = pageSchema(adminFlagSchema);
 export type AdminFlagPage = z.infer<typeof adminFlagPageSchema>;
 
-/** BR-MOD-4 actions. `reject_toasts` = the day's toasts of a count flag, the reported toast of a photo report. */
+/** `reject_toasts`: count day's toasts or photo report's toast. `delete_comment`: comment reports only. */
 export const FlagAction = {
   dismiss: 'dismiss',
   reject_toasts: 'reject_toasts',
   hide_photo: 'hide_photo',
+  delete_comment: 'delete_comment',
 } as const;
 export const flagActionSchema = z.enum(FlagAction);
 export type FlagAction = z.infer<typeof flagActionSchema>;
