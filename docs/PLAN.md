@@ -831,3 +831,7 @@ one disagrees with AGENTS.md or SPEC, those win._
   are shared by global/clan feeds and profile photo dialogs. Migration 0009 is preserved exactly; 0010
   tightens its body constraint, 0011 adds comment likes and 0012 adds comment report flags. Final changes are not verified:
   automated checks were stopped at the owner's request; the owner will test before marking M21 complete.
+- **M21 CI signup setup:** CI at `4a12b9c` passed the check and unit/integration jobs; E2E passed 16/18,
+  with the last two tests failing before the inbox screen. The suite sends 22 login-link requests against
+  the shared 20/hour IP quota. `signUp()` now resets only that request counter, retaining its row to
+  avoid recreate races; production limits and unrelated counters are unchanged. No local test rerun.

@@ -13,6 +13,11 @@ export async function execute(query: string): Promise<void> {
   }
 }
 
+/** Clears only the shared login-request IP quota; keeping its row avoids parallel recreate races. */
+export function resetMagicLinkRequestRateLimit(): Promise<void> {
+  return execute(`UPDATE rate_limit SET count = 0 WHERE key LIKE '%|/sign-in/magic-link'`);
+}
+
 /**
  * Better Auth's magic-link plugin allows 5 verifies per minute per IP, and every test comes from
  * 127.0.0.1, so a suite with more sign-ups than that would get 429s. Cleared before each verify.

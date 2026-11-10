@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-import { resetVerifyRateLimit } from './db.js';
+import { resetMagicLinkRequestRateLimit, resetVerifyRateLimit } from './db.js';
 import { magicLinkFor, uniqueEmail } from './mailpit.js';
 
 const VERIFY_ATTEMPTS = 3;
@@ -21,6 +21,7 @@ export async function signUp(page: Page, displayName = 'E2E Toaster'): Promise<s
   const email = uniqueEmail();
   await page.goto('/login');
   await page.getByLabel('Email').fill(email);
+  await resetMagicLinkRequestRateLimit();
   await page.getByRole('button', { name: 'Send login link' }).click();
   await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();
 
