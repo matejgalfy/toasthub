@@ -1,10 +1,18 @@
-import { FlagAction, FlagStatus, type LocalDate, type ResolveFlag } from '@toasthub/shared';
+import {
+  FlagAction,
+  FlagStatus,
+  FlagType,
+  type LocalDate,
+  type ResolveFlag,
+} from '@toasthub/shared';
 
 import { AppError } from '../../common/errors/app-error';
 
 /** What resolving needs to know about a flag. */
 export interface FlagFacts {
   status: FlagStatus;
+  type: FlagType;
+  commentId: string | null;
   subjectUserId: string;
   // Photo reports point at a toast, count flags at a day.
   toastId: string | null;
@@ -20,6 +28,7 @@ export interface Resolution {
   reject: RejectScope | null;
   // The toast whose photo is hidden.
   hidePhotoOf: string | null;
+  deleteCommentId: string | null;
   ban: boolean;
 }
 
@@ -35,6 +44,22 @@ export function planResolution(
 ): Resolution {
   if (flag.status !== FlagStatus.open) {
     throw new AppError('CONFLICT', 'This flag is already resolved');
+  }
+  if (
+    action === FlagAction.delete_comment &&
+    (flag.type !== FlagType.comment_report || flag.commentId === null)
+  ) {
+    throw new AppError('VALIDATION_ERROR', 'Request validation failed', {
+      action: 'This flag has no comment to delete',
+    });
+  }
+  if (
+    flag.type === FlagType.comment_report &&
+    (action === FlagAction.hide_photo || action === FlagAction.reject_toasts)
+  ) {
+    throw new AppError('VALIDATION_ERROR', 'Request validation failed', {
+      action: 'Comment reports can only be dismissed or the comment deleted',
+    });
   }
   if (action === FlagAction.hide_photo && flag.toastId === null) {
     throw new AppError('VALIDATION_ERROR', 'Request validation failed', {
@@ -61,6 +86,7 @@ export function planResolution(
     status: action === FlagAction.dismiss && !ban ? FlagStatus.dismissed : FlagStatus.actioned,
     reject,
     hidePhotoOf,
+    deleteCommentId: action === FlagAction.delete_comment ? flag.commentId : null,
     ban,
   };
 }

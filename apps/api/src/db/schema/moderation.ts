@@ -13,6 +13,7 @@ import {
 
 import { user } from './auth';
 import { createdAt, enumValues, id, timestamptz } from './columns';
+import { comment } from './comments';
 import { toast } from './toasts';
 
 export const flagTypeEnum = pgEnum('flag_type', enumValues(FlagType));
@@ -27,6 +28,7 @@ export const flag = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     toastId: uuid().references(() => toast.id, { onDelete: 'set null' }),
+    commentId: uuid().references(() => comment.id, { onDelete: 'set null' }),
     localDate: date(),
     reporterId: uuid().references(() => user.id, { onDelete: 'set null' }),
     reason: varchar({ length: FLAG_REASON_MAX }),
@@ -36,7 +38,7 @@ export const flag = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    // One count flag per user and day: inserts use ON CONFLICT DO NOTHING. Photo reports have a null
+    // One count flag per user and day: inserts use ON CONFLICT DO NOTHING. Reports have a null
     // `local_date`, and nulls never conflict.
     uniqueIndex('flag_subject_type_local_date_unique').on(t.subjectUserId, t.type, t.localDate),
     // The admin queue, newest first by UUID v7.

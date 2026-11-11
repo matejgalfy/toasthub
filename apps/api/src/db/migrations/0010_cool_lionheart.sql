@@ -1,0 +1,2 @@
+ALTER TABLE "comment" DROP CONSTRAINT "comment_body_length";--> statement-breakpoint
+ALTER TABLE "comment" ADD CONSTRAINT "comment_body_length" CHECK (("comment"."body" IS NULL AND "comment"."deleted_at" IS NOT NULL) OR ("comment"."body" IS NOT NULL AND "comment"."deleted_at" IS NULL AND char_length("comment"."body") BETWEEN 1 AND 500));

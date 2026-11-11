@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Comments } from '@/features/comments/comments';
 import { useFormat } from '@/i18n/format';
 import { cn } from '@/lib/utils';
 
@@ -147,6 +148,7 @@ function FeedItem({
             </Button>
           )}
         </div>
+        <Comments toastId={item.toastId} />
       </CardContent>
     </Card>
   );

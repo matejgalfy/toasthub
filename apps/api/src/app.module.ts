@@ -6,6 +6,7 @@ import { DbModule } from './db/db.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClansModule } from './modules/clans/clans.module';
+import { CommentsModule } from './modules/comments/comments.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { HealthModule } from './modules/health/health.module';
 import { HomeModule } from './modules/home/home.module';
@@ -25,6 +26,7 @@ import { UsersModule } from './modules/users/users.module';
     AdminModule,
     AuthModule,
     ClansModule,
+    CommentsModule,
     FeedModule,
     HealthModule,
     HomeModule,

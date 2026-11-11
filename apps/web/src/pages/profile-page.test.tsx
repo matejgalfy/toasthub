@@ -185,7 +185,9 @@ describe('ProfilePage', () => {
     await user.click(within(section).getByRole('button', { name: 'Show more photos' }));
 
     expect(await within(section).findByRole('img', { name: `1 toast on ${date}` })).toBeVisible();
-    expect(within(section).queryByRole('button')).not.toBeInTheDocument();
+    expect(
+      within(section).queryByRole('button', { name: 'Show more photos' }),
+    ).not.toBeInTheDocument();
     const cursors = requests
       .filter((r) => new URL(r.url).pathname.endsWith('/toasts'))
       .map((r) => new URL(r.url).search);

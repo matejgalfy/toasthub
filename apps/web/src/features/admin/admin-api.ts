@@ -22,6 +22,7 @@ import type {
 
 import { api, unwrap } from '@/api/client';
 import { clanKey, clansQueryKey, useClanMutation } from '@/features/clans/clans-api';
+import { commentsRootQueryKey } from '@/features/comments/comments-api';
 import { feedQueryKey } from '@/features/feed/feed-api';
 import { homeQueryKey } from '@/features/home/home-query';
 import { leaderboardsQueryKey } from '@/features/leaderboards/leaderboards-api';
@@ -87,14 +88,15 @@ export const adminMetricsQueryOptions = queryOptions({
 });
 
 /**
- * Rejecting toasts, hiding a photo and banning change what every page counts and shows (SPEC §12 D52),
- * so all of it is refetched: the admin views, home, the feed, profiles, boards, Toast of the week and clans
- * (with their feeds).
+ * Rejecting toasts, hiding a photo, deleting a comment and banning change what pages count and show,
+ * so all of it is refetched: admin views, comments, home, feeds, profiles, boards, Toast of the week
+ * and clans (with their feeds).
  */
 function invalidateModerated(queryClient: QueryClient) {
   return Promise.all(
     [
       adminQueryKey,
+      commentsRootQueryKey,
       homeQueryKey,
       feedQueryKey,
       usersQueryKey,

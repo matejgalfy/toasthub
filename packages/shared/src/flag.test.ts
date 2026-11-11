@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { reportToastSchema } from './flag.js';
+import { reportCommentSchema, reportToastSchema } from './flag.js';
 
 describe('reportToastSchema', () => {
   it('accepts a missing body as no reason', () => {
@@ -12,6 +12,16 @@ describe('reportToastSchema', () => {
     expect(reportToastSchema.parse({ reason: '  spam ' })).toEqual({ reason: 'spam' });
     expect(reportToastSchema.safeParse({ reason: 'x'.repeat(280) }).success).toBe(true);
     expect(reportToastSchema.safeParse({ reason: 'x'.repeat(281) }).success).toBe(false);
+  });
+
+  it('is also exported as the comment report schema', () => {
+    expect(reportCommentSchema).toBe(reportToastSchema);
+    expect(reportCommentSchema.parse(undefined)).toEqual({});
+    expect(reportCommentSchema.parse(null)).toEqual({});
+    expect(reportCommentSchema.parse({ reason: null })).toEqual({ reason: null });
+    expect(reportCommentSchema.parse({ reason: '  spam ' })).toEqual({ reason: 'spam' });
+    expect(reportCommentSchema.safeParse({ reason: 'x'.repeat(280) }).success).toBe(true);
+    expect(reportCommentSchema.safeParse({ reason: 'x'.repeat(281) }).success).toBe(false);
   });
 
   it('rejects unknown fields', () => {

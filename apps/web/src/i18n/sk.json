@@ -7,6 +7,40 @@
     "close": "Zavrieť",
     "cancel": "Zrušiť"
   },
+  "comments": {
+    "title": "Komentáre",
+    "empty": "Zatiaľ žiadne komentáre.",
+    "body": "Komentár",
+    "replyBody": "Odpoveď",
+    "submit": "Pridať komentár",
+    "submitReply": "Pridať odpoveď",
+    "reply": "Odpovedať",
+    "replyTo": "Odpovedať: {{name}}",
+    "replyingTo": "Odpoveď na: {{name}}",
+    "delete": "Vymazať",
+    "deleteTitle": "Vymazať tento komentár?",
+    "deleteDescription": "Komentár sa nahradí označením vymazaného komentára. Odpovede zostanú vo vlákne.",
+    "deleteBy": "Vymazať komentár od: {{name}}",
+    "report": "Nahlásiť",
+    "reportBy": "Nahlásiť komentár od: {{name}}",
+    "reportDialog": {
+      "title": "Nahlásiť tento komentár?",
+      "description": "Pozrie sa naň admin. Dovtedy zostane komentár viditeľný.",
+      "reason": "Dôvod (nepovinný)",
+      "submit": "Odoslať hlásenie",
+      "done": "Hlásenie odoslané. Admin posúdi komentár."
+    },
+    "deleted": "Vymazaný komentár",
+    "showAll": "Zobraziť všetky komentáre",
+    "hideReplies": "Skryť odpovede",
+    "showReplies": "Zobraziť odpovede",
+    "hideRepliesTo": "Skryť odpovede na komentár od: {{name}}",
+    "showRepliesTo": "Zobraziť odpovede na komentár od: {{name}}",
+    "loadMore": "Zobraziť ďalšie komentáre",
+    "openPhoto": "Otvoriť fotku a komentáre: {{toasts}}, {{date}}",
+    "posted": "Komentár bol pridaný.",
+    "photoTitle": "Fotka a komentáre"
+  },
   "nav": {
     "label": "Hlavná navigácia",
     "home": "Domov",
@@ -384,7 +418,8 @@
       "all": "Všetky",
       "types": {
         "count_threshold": "Denný počet",
-        "photo_report": "Nahlásená fotka"
+        "photo_report": "Nahlásená fotka",
+        "comment_report": "Nahlásený komentár"
       },
       "statuses": {
         "open": "Otvorené",
@@ -401,6 +436,9 @@
       "rejected": "Zamietnuté",
       "photoAlt": "Nahlásená fotka používateľa {{name}}",
       "noPhoto": "Fotka už neexistuje.",
+      "commentCreated": "Komentár pridaný",
+      "commentToast": "ID toastu",
+      "commentParent": "Odpoveď na komentár s ID",
       "photoHidden": "Fotka skrytá",
       "toastRejected": "Toast zamietnutý",
       "toastDeleted": "Vlastník ho zmazal",
@@ -418,7 +456,8 @@
         "title": "Vyriešiť hlásenie na {{name}}",
         "description": {
           "count_threshold": "Viac toastov za jeden deň, než povoľuje denný limit. Rozhodni, či sa počítajú.",
-          "photo_report": "Niekto nahlásil túto fotku. Rozhodni, čo sa s ňou stane."
+          "photo_report": "Niekto nahlásil túto fotku. Rozhodni, čo sa s ňou stane.",
+          "comment_report": "Niekto nahlásil tento komentár. Rozhodni, či zostane viditeľný."
         },
         "action": "Akcia",
         "confirm": "Vyriešiť",
@@ -433,6 +472,8 @@
         "rejectDayHint": "Toasty z toho dňa sa prestanú počítať do štatistík, sérií a rebríčkov.",
         "rejectToast": "Zamietnuť nahlásený toast",
         "rejectToastHint": "Tento toast sa prestane počítať. Ostatné toasty zapísané s ním sa počítajú ďalej.",
+        "deleteComment": "Vymazať komentár",
+        "deleteCommentHint": "Komentár sa nahradí označením vymazaného komentára. Odpovede zostanú vo vlákne.",
         "hidePhoto": "Skryť fotku",
         "hidePhotoHint": "Uvidí ju len vlastník a tieto toasty už nedostanú novú fotku. Toast sa počíta ďalej."
       }

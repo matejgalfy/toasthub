@@ -17,8 +17,9 @@ import { z } from 'zod';
 import { AppError } from '../../common/errors/app-error';
 import { decodeCursor, toPage } from '../../common/pagination';
 import { type Database, DB, type DbExecutor } from '../../db/db.module';
-import { discardedPhoto, flag, toast, toastSession, user } from '../../db/schema';
+import { comment, discardedPhoto, flag, toast, toastSession, user } from '../../db/schema';
 import { AuthService } from '../auth/auth.service';
+import { CommentsService } from '../comments/comments.service';
 import { StorageService } from '../storage/storage.service';
 import { planResolution, type RejectScope } from './admin-flags.policy';
 
@@ -65,6 +66,14 @@ const flagColumns = {
     photoKey: reported.photoKey,
     photoHiddenAt: reported.photoHiddenAt,
   },
+  comment: {
+    id: comment.id,
+    toastId: comment.toastId,
+    parentId: comment.parentId,
+    body: comment.body,
+    deletedAt: comment.deletedAt,
+    createdAt: comment.createdAt,
+  },
   dayActive: dayCount(ToastStatus.active),
   dayRejected: dayCount(ToastStatus.rejected),
 };
@@ -76,6 +85,7 @@ export class AdminFlagsService {
     @Inject(DB) private readonly db: Database,
     private readonly auth: AuthService,
     private readonly storage: StorageService,
+    private readonly comments: CommentsService,
   ) {}
 
   /** Flags newest first, optionally of one type and status. */
@@ -95,13 +105,25 @@ export class AdminFlagsService {
 
   /**
    * Applies an admin's action (BR-MOD-4) in one transaction and records who resolved the flag. Hiding or
-   * rejecting a toast also closes the other open photo reports on it, which have nothing left to review.
+   * rejecting a toast closes its other open photo reports; deleting a comment closes its open reports.
    */
   async resolve(adminId: string, flagId: string, body: ResolveFlag): Promise<AdminFlagResponse> {
     await this.db.transaction(async (tx) => {
+      // Comment reports share a target lock before any flag lock. Two admins resolving different
+      // reports on one comment cannot deadlock while closing each other's flags.
+      const [target] = await tx
+        .select({ type: flag.type, commentId: flag.commentId })
+        .from(flag)
+        .where(eq(flag.id, flagId));
+      if (!target) throw new AppError('NOT_FOUND', 'Flag not found');
+      if (target.type === FlagType.comment_report && target.commentId !== null) {
+        await this.comments.lockForModeration(tx, target.commentId);
+      }
       const [row] = await tx
         .select({
           status: flag.status,
+          type: flag.type,
+          commentId: flag.commentId,
           subjectUserId: flag.subjectUserId,
           toastId: flag.toastId,
           localDate: flag.localDate,
@@ -111,6 +133,9 @@ export class AdminFlagsService {
         .for('update');
       if (!row) throw new AppError('NOT_FOUND', 'Flag not found');
       const plan = planResolution(row, body, adminId);
+      if (plan.deleteCommentId !== null) {
+        await this.comments.softDelete(tx, plan.deleteCommentId);
+      }
 
       const touched = plan.reject ? await this.rejectToasts(tx, plan.reject) : [];
       if (plan.hidePhotoOf !== null) {
@@ -127,6 +152,18 @@ export class AdminFlagsService {
         .update(flag)
         .set({ status: plan.status, ...resolved })
         .where(eq(flag.id, flagId));
+      if (plan.deleteCommentId !== null) {
+        await tx
+          .update(flag)
+          .set({ status: FlagStatus.actioned, ...resolved })
+          .where(
+            and(
+              eq(flag.type, FlagType.comment_report),
+              eq(flag.status, FlagStatus.open),
+              eq(flag.commentId, plan.deleteCommentId),
+            ),
+          );
+      }
       if (touched.length > 0) {
         await tx
           .update(flag)
@@ -182,6 +219,7 @@ export class AdminFlagsService {
         .leftJoin(reporter, eq(reporter.id, flag.reporterId))
         .leftJoin(resolver, eq(resolver.id, flag.resolvedBy))
         .leftJoin(reported, eq(reported.id, flag.toastId))
+        .leftJoin(comment, eq(comment.id, flag.commentId))
         .where(where)
         // UUID v7: newest first.
         .orderBy(desc(flag.id))
@@ -230,6 +268,14 @@ export class AdminFlagsService {
             earlierPhotoUrls: await Promise.all(
               (earlierKeys.get(reportedToast.id) ?? []).map((r) => this.storage.presignGet(r.key)),
             ),
+          },
+          comment: row.comment && {
+            id: row.comment.id,
+            toastId: row.comment.toastId,
+            parentId: row.comment.parentId,
+            createdAt: row.comment.createdAt.toISOString(),
+            body: row.comment.body,
+            deleted: row.comment.deletedAt !== null,
           },
           resolvedBy: row.resolvedBy,
           resolvedAt: row.resolvedAt?.toISOString() ?? null,

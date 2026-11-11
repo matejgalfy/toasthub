@@ -23,6 +23,7 @@ const countFlag: AdminFlag = {
   localDate: '2026-10-29',
   day: { active: 9, rejected: 0 },
   toast: null,
+  comment: null,
   resolvedBy: null,
   resolvedAt: null,
 };
@@ -49,6 +50,25 @@ const photoFlag: AdminFlag = {
   },
   resolvedBy: { id: testUser.id, displayName: 'Toast Tester', avatarId: 1 },
   resolvedAt: '2026-10-29T11:00:00.000Z',
+};
+
+const commentFlag: AdminFlag = {
+  ...countFlag,
+  id: '01900000-0000-7000-8000-000000000f03',
+  type: 'comment_report',
+  localDate: null,
+  day: null,
+  reporter: photoFlag.reporter,
+  reason: 'Harassment',
+  toast: photoFlag.toast,
+  comment: {
+    id: '01900000-0000-7000-8000-000000000201',
+    toastId: '01900000-0000-7000-8000-000000000101',
+    parentId: '01900000-0000-7000-8000-000000000202',
+    createdAt: '2026-10-29T09:00:00.000Z',
+    body: 'Reported comment text',
+    deleted: false,
+  },
 };
 
 const page = (items: AdminFlag[]): AdminFlagPage => ({ items, nextCursor: null });
@@ -93,6 +113,81 @@ describe('AdminFlagsPage', () => {
     expect(card).toHaveTextContent('Reported by Bob Baker');
     expect(card).toHaveTextContent('Reason: Not a toast');
     expect(card).toHaveTextContent('Resolved by Toast Tester');
+    expect(within(card).queryByRole('button', { name: /Resolve/ })).not.toBeInTheDocument();
+  });
+
+  it('shows comment report context and only dismiss or delete actions, with optional ban', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi((request) =>
+      request.method === 'POST'
+        ? jsonResponse(200, { flag: { ...commentFlag, status: 'actioned' } })
+        : jsonResponse(200, page([commentFlag])),
+    );
+    const { queryClient } = renderPage();
+    queryClient.setQueryData(['comments', 'loaded-toast', 'thread'], { pages: [] });
+    queryClient.setQueryData(['comments', 'loaded-toast', 'preview'], { pages: [] });
+    const card = within(await screen.findByRole('list', { name: 'Flags' })).getAllByRole(
+      'listitem',
+    )[0];
+    if (!card) throw new Error('Missing comment report card');
+    expect(within(card).getByText('Comment report')).toBeVisible();
+    expect(within(card).getByText('Reported comment text')).toBeVisible();
+    expect(card).toHaveTextContent('Reported by Bob Baker');
+    expect(card).toHaveTextContent('Reason: Harassment');
+    expect(card).toHaveTextContent('01900000-0000-7000-8000-000000000101');
+    expect(card).toHaveTextContent('01900000-0000-7000-8000-000000000202');
+    expect(within(card).queryByRole('img', { name: /reported photo/ })).not.toBeInTheDocument();
+    await user.click(within(card).getByRole('button', { name: 'Resolve the flag on Ann Able' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getAllByRole('radio')).toHaveLength(2);
+    expect(within(dialog).getByLabelText('Dismiss')).toBeVisible();
+    await user.click(within(dialog).getByLabelText('Delete the comment'));
+    await user.click(within(dialog).getByLabelText('Also ban Ann Able'));
+    await user.click(within(dialog).getByRole('button', { name: 'Resolve' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const post = requests.find((request) => request.method === 'POST');
+    expect(await post?.json()).toEqual({ action: 'delete_comment', ban: true });
+    expect(queryClient.getQueryState(['comments', 'loaded-toast', 'thread'])?.isInvalidated).toBe(
+      true,
+    );
+    expect(queryClient.getQueryState(['comments', 'loaded-toast', 'preview'])?.isInvalidated).toBe(
+      true,
+    );
+  });
+
+  it('filters the queue by comment reports', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi(() => jsonResponse(200, page([])));
+    renderPage();
+    await screen.findByText('No flags here.');
+    await user.selectOptions(screen.getByLabelText('Type'), 'Comment report');
+    await waitFor(() => {
+      expect(new URL(requests.at(-1)?.url ?? '').searchParams.get('type')).toBe('comment_report');
+    });
+  });
+
+  it('shows deleted reported comments as placeholders without losing queue context', async () => {
+    mockApi(() =>
+      jsonResponse(
+        200,
+        page([
+          {
+            ...commentFlag,
+            status: 'actioned',
+            comment: commentFlag.comment
+              ? { ...commentFlag.comment, body: null, deleted: true }
+              : null,
+          },
+        ]),
+      ),
+    );
+    renderPage();
+    const card = within(await screen.findByRole('list', { name: 'Flags' })).getAllByRole(
+      'listitem',
+    )[0];
+    if (!card) throw new Error('Missing deleted comment report card');
+    expect(card).toHaveTextContent('Deleted comment');
+    expect(card).toHaveTextContent('Reported by Bob Baker');
     expect(within(card).queryByRole('button', { name: /Resolve/ })).not.toBeInTheDocument();
   });
 

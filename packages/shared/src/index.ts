@@ -2,6 +2,7 @@ export * from './achievements.js';
 export * from './admin.js';
 export * from './clan-policy.js';
 export * from './clan.js';
+export * from './comment.js';
 export * from './errors.js';
 export * from './feed.js';
 export * from './flag.js';

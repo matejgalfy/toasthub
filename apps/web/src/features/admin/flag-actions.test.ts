@@ -18,6 +18,7 @@ const countFlag: AdminFlag = {
   localDate: '2026-10-29',
   day: { active: 9, rejected: 0 },
   toast: null,
+  comment: null,
   resolvedBy: null,
   resolvedAt: null,
 };
@@ -40,6 +41,19 @@ const photoFlag: AdminFlag = {
   },
 };
 
+const commentReport: AdminFlag = {
+  ...photoFlag,
+  type: 'comment_report',
+  comment: {
+    id: '01900000-0000-7000-8000-000000000201',
+    toastId: '01900000-0000-7000-8000-000000000101',
+    parentId: null,
+    createdAt: '2026-10-29T08:00:00.000Z',
+    body: 'This comment is inappropriate.',
+    deleted: false,
+  },
+};
+
 describe('flagActionChoices', () => {
   it("offers dismiss and rejecting the day's toasts on a count flag", () => {
     expect(flagActionChoices(countFlag).map((choice) => choice.label)).toEqual([
@@ -56,15 +70,27 @@ describe('flagActionChoices', () => {
     ]);
   });
 
+  it('offers only dismiss and delete-comment actions on a comment report with toast context', () => {
+    expect(flagActionChoices(commentReport).map(({ action }) => action)).toEqual([
+      'dismiss',
+      'delete_comment',
+    ]);
+  });
+
   it('offers nothing once the flag is resolved', () => {
     expect(flagActionChoices({ ...photoFlag, status: 'actioned' })).toEqual([]);
     expect(flagActionChoices({ ...countFlag, status: 'dismissed' })).toEqual([]);
+    expect(flagActionChoices({ ...commentReport, status: 'actioned' })).toEqual([]);
   });
 });
 
 describe('canBanSubject', () => {
   it('allows banning an active subject other than the admin', () => {
     expect(canBanSubject(countFlag, ADMIN_ID)).toBe(true);
+  });
+
+  it('allows banning an active subject on a comment report', () => {
+    expect(canBanSubject(commentReport, ADMIN_ID)).toBe(true);
   });
 
   it('never offers banning oneself or someone already banned', () => {
