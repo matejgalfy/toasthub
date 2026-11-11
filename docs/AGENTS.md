@@ -10,7 +10,9 @@ Pick the path by size:
 - **Small change** (a fix, a copy or style tweak, a refactor; no new rule, endpoint or table): just do it. Run
   the [checks](#checks) and update the docs it makes wrong.
 - **Feature** (a new rule, endpoint, table, page or job): spec first, then code.
-  1. Agree on the scope with the owner. When a product choice is open, ask; don't guess.
+  1. Agree on the scope with the owner. If anything in the request is unclear (scope, behaviour, edge cases,
+     who may do what, UI, limits), ask before writing SPEC or code, and keep asking until nothing is left open.
+     Never fill a gap with a guess; a reasonable default counts only once the owner has confirmed it.
   2. Write it into SPEC: rules in §4, entities in §7, endpoints in §8, pages in §9. If it comes from §13 Future,
      move it out of there. Record the choices in §12.
   3. If it is bigger than one chat (about 25 files or more than one feature area), add a milestone under
@@ -173,6 +175,12 @@ docs              SPEC.md, PLAN.md, AGENTS.md, DEPLOY.md
   overlays) or, if secret, into the `toasthub-app` Secret (dev overlay + `seal-secrets.sh`, `docs/DEPLOY.md`).
 - Database: inject with `@Inject(DB) db: Database` (`src/db/db.module.ts`). Tables are exported from
   `src/db/schema/index.ts`; generate migrations with `db:generate`, never edit an applied one.
+- Migrations must be **backwards compatible with the release before**: they run before the rollout, old pods
+  keep serving on the new schema during it, a rollback deploys the old code without undoing them, and a deploy
+  may follow a merge without anyone checking. So expand, then contract: add tables, nullable columns or columns
+  with a default; drop, rename or tighten (`NOT NULL`, new constraint, type change) only in a later release, once
+  no deployed version reads or writes the old shape. A rename is add new → write both and backfill → read new →
+  drop old, over several releases. Note a pending contract step in SPEC §12 (like D67's `profile_visibility`).
 - Lists: parse `pageQuerySchema` from `shared`, fetch `limit + 1` rows ordered by a unique keyset, and return
   `toPage(rows, limit, keysetOf)`. Read the cursor with `decodeCursor(cursor, keysetSchema)` (`src/common/pagination.ts`).
 - A check-then-insert can lose a race to a unique index: catch it with `uniqueViolation(error)` (`src/db/pg-error.ts`,
@@ -246,7 +254,8 @@ The usual touchpoints of a feature that crosses the stack. Skip what doesn't app
 **api**
 
 - [ ] Table or column in `src/db/schema/`, then `db:generate` (never edit an applied migration). Seed data in
-      `src/db/seed.ts` if the dev data should show it.
+      `src/db/seed.ts` if the dev data should show it. The migration works with the previous release's code
+      (expand now, contract later; see Conventions).
 - [ ] Module in `src/modules/<area>/`, registered in `app.module.ts`; pure rules in `<area>.policy.ts`.
 - [ ] Unit tests for the rules, an `*.int.test.ts` for every endpoint (including the 401/403/404/409 paths).
       A new `BR-*` rule gets a row in PLAN → BR test checklist.
