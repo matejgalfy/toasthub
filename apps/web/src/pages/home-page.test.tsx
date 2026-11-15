@@ -28,6 +28,7 @@ const created: ToastSessionChangeResponse = {
     loggedAt: '2026-10-29T08:00:00.000Z',
     localDate: '2026-10-29',
     count: 1,
+    description: null,
     hasPhoto: false,
     photoUrl: null,
     photoHidden: false,
@@ -43,6 +44,7 @@ const feedItem = (overrides: Partial<FeedItem> = {}): FeedItem => ({
   loggedAt: '2026-10-29T08:00:00.000Z',
   localDate: '2026-10-29',
   count: 2,
+  description: null,
   photoUrl: 'https://photos.example/mia.webp',
   likeCount: 1,
   likedByMe: false,
@@ -216,6 +218,7 @@ describe('HomePage', () => {
     // The open dialog hides the page from the accessibility tree, so the card is found by its text.
     expect(screen.getByText('Streak 🔥').closest('[role="group"]')).toHaveTextContent('3days');
     expect(within(dialog).getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(within(dialog).getByRole('textbox', { name: 'Description (optional)' })).toBeDisabled();
 
     saved = true;
     pending.resolve(jsonResponse(201, { ...created, newAchievements: ['first_bite'] }));
@@ -291,6 +294,47 @@ describe('HomePage', () => {
     expect(screen.getByText('Streak 🔥').closest('[role="group"]')).toHaveTextContent('2days');
   });
 
+  it('logs an optional description with the photo and trims its surrounding whitespace', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi((request) =>
+      isPost(request) ? jsonResponse(201, created) : jsonResponse(200, home),
+    );
+    renderHome();
+
+    const dialog = await openLogDialog(user);
+    const description = within(dialog).getByRole('textbox', { name: 'Description (optional)' });
+    expect(dialog).toHaveClass('max-h-[90dvh]', 'overflow-y-auto');
+    expect(description).toHaveAttribute('maxlength', '500');
+    await user.type(description, '  Breakfast\nwith friends  ');
+    await pickPhoto(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Log 1 toast' }));
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(await postedBody(requests)).toContain(
+      'name="description"\r\n\r\nBreakfast\r\nwith friends\r\n',
+    );
+  });
+
+  it('omits a blank optional description when logging', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi((request) =>
+      isPost(request) ? jsonResponse(201, created) : jsonResponse(200, home),
+    );
+    renderHome();
+
+    const dialog = await openLogDialog(user);
+    await user.type(within(dialog).getByRole('textbox', { name: 'Description (optional)' }), '   ');
+    await pickPhoto(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Log 1 toast' }));
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(await postedBody(requests)).not.toContain('name="description"');
+  });
+
   it('uploads the photo with the session', async () => {
     const user = userEvent.setup();
     const requests = mockApi((request) =>
@@ -317,6 +361,7 @@ describe('HomePage', () => {
     });
     const body = await postedBody(requests);
     expect(body).toContain(countField(2));
+    expect(body).not.toContain('name="description"');
     // jsdom's File reaches undici as plain text, so only the part itself is checked.
     expect(body).toContain('name="photo"');
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:preview');
@@ -435,6 +480,7 @@ describe('HomePage global feed (§4.14)', () => {
     expect(totw.compareDocumentPosition(feed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(await within(feed).findByRole('link', { name: 'Mia' })).toBeVisible();
     expect(within(feed).getByRole('img', { name: "Mia's photo: 2 toasts" })).toBeVisible();
+    expect(feed.querySelector('p.whitespace-pre-wrap.wrap-anywhere')).not.toBeInTheDocument();
 
     await user.click(within(feed).getByRole('button', { name: 'Like 1' }));
     // Shown before the server answers.
@@ -445,6 +491,17 @@ describe('HomePage global feed (§4.14)', () => {
     const post = requests.find(isPost);
     expect(post?.url).toBe(`http://localhost/api/v1/toasts/${item.toastId}/like`);
     like.resolve(new Response(null, { status: 204 }));
+  });
+
+  it('shows present descriptions as plain text with wrapping and preserved newlines', async () => {
+    const description = '<strong>Breakfast</strong>\nwith friends';
+    mockApi(() => jsonResponse(200, home), [feedItem({ description })]);
+    renderHome();
+
+    const feed = await screen.findByRole('region', { name: 'Toasts from everyone' });
+    const text = await within(feed).findByText(description, { normalizer: (value) => value });
+    expect(text).toHaveClass('whitespace-pre-wrap', 'wrap-anywhere');
+    expect(text.querySelector('strong')).toBeNull();
   });
 
   it('says so when nobody has logged a toast yet', async () => {

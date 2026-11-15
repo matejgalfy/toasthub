@@ -109,6 +109,9 @@ export function PhotoGrid({ userId }: { userId: string }) {
               })}
               className="aspect-square w-full rounded-md bg-muted object-cover"
             />
+            {selected.description && (
+              <p className="wrap-anywhere whitespace-pre-wrap">{selected.description}</p>
+            )}
             <Comments key={selected.id} toastId={selected.id} />
           </>
         )}

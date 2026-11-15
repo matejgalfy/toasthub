@@ -63,6 +63,7 @@ const feedItem = (overrides: Partial<FeedItem> = {}): FeedItem => ({
   loggedAt: '2026-10-28T07:00:00.000Z',
   localDate: '2026-10-28',
   count: 2,
+  description: null,
   photoUrl: 'https://photos.example/1.webp',
   likeCount: 1,
   likedByMe: false,
@@ -97,6 +98,7 @@ function mockClanApi(
     if (r.method === 'GET') {
       if (path === `/api/v1/clans/${CLAN_ID}`) return jsonResponse(200, clan);
       if (path.endsWith('/feed')) return jsonResponse(200, { items: feed, nextCursor: null });
+      if (path.endsWith('/comments')) return jsonResponse(200, { items: [], nextCursor: null });
       if (path.endsWith('/requests')) return jsonResponse(200, { items: [request] });
       if (path === '/api/v1/me') return jsonResponse(200, { user: testUser });
     }
@@ -216,6 +218,34 @@ describe('ClanPage', () => {
     await vi.waitFor(() => {
       expect(sent(requests, 'POST')).toEqual([`/api/v1/toasts/${TOAST_ID}/like`]);
     });
+  });
+
+  it('shows feed descriptions as plain text with preserved line breaks and no absent placeholder', async () => {
+    const description = '<strong>Crunchy toast</strong>\nSecond line';
+    mockClanApi(detail('member'), {
+      feed: [
+        feedItem({ description }),
+        feedItem({ sessionId: 'no-description', toastId: 'other', count: 3 }),
+      ],
+    });
+    renderClan();
+
+    const text = await screen.findByText(description, { normalizer: (value) => value });
+    expect(text).toBeVisible();
+    expect(text.textContent).toBe(description);
+    expect(text).toHaveClass('whitespace-pre-wrap', 'wrap-anywhere');
+    expect(text.childElementCount).toBe(0);
+
+    const withoutDescription = screen
+      .getByRole('img', { name: "Mia Member's photo: 3 toasts" })
+      .closest('li');
+    if (!withoutDescription) throw new Error('Missing feed item without a description');
+    expect(await within(withoutDescription).findByText('No comments yet.')).toBeVisible();
+    expect(
+      within(withoutDescription)
+        .getAllByRole('paragraph')
+        .map((text) => text.textContent),
+    ).toEqual(['No comments yet.']);
   });
 
   it('takes a like back', async () => {

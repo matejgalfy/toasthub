@@ -561,7 +561,7 @@ export interface paths {
     delete: operations['ToastSessionsController_delete'];
     options?: never;
     head?: never;
-    patch: operations['ToastSessionsController_updateCount'];
+    patch: operations['ToastSessionsController_update'];
     trace?: never;
   };
   '/api/v1/toast-sessions/{id}/photo': {
@@ -1160,6 +1160,7 @@ export interface components {
         /** Format: date */
         localDate: string;
         count: number;
+        description: string | null;
         /** Format: uri */
         photoUrl: string | null;
         likeCount: number;
@@ -1378,6 +1379,7 @@ export interface components {
         /** Format: date */
         localDate: string;
         count: number;
+        description: string | null;
         hasPhoto: boolean;
         /** Format: uri */
         photoUrl: string | null;
@@ -1406,6 +1408,7 @@ export interface components {
         /** Format: date */
         localDate: string;
         count: number;
+        description: string | null;
         hasPhoto: boolean;
         /** Format: uri */
         photoUrl: string | null;
@@ -1415,7 +1418,8 @@ export interface components {
       nextCursor: string | null;
     };
     UpdateToastSessionDto: {
-      count: number;
+      count?: number;
+      description?: string | null;
     };
     ReportToastDto: {
       reason?: string | null;
@@ -1444,6 +1448,7 @@ export interface components {
         /** Format: date */
         localDate: string;
         count: number;
+        description: string | null;
         /** Format: uri */
         photoUrl: string;
         likeCount: number;
@@ -2424,6 +2429,7 @@ export interface operations {
         'multipart/form-data': {
           /** @default 1 */
           count?: number;
+          description?: string;
           /** Format: binary */
           photo: string;
         };
@@ -2481,7 +2487,7 @@ export interface operations {
       };
     };
   };
-  ToastSessionsController_updateCount: {
+  ToastSessionsController_update: {
     parameters: {
       query?: never;
       header?: never;

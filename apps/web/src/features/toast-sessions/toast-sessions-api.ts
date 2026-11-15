@@ -3,7 +3,7 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { type AchievementCode, PHOTO_FIELD } from '@toasthub/shared';
+import { type AchievementCode, PHOTO_FIELD, type UpdateToastSession } from '@toasthub/shared';
 
 import { api, unwrap } from '@/api/client';
 import { isFeedQuery } from '@/features/feed/feed-api';
@@ -27,9 +27,18 @@ export const toastSessionsQueryOptions = infiniteQueryOptions({
 });
 
 /** A multipart body; the browser sets the boundary for FormData. */
-export function sessionForm({ count, photo }: { count?: number; photo?: File }) {
+export function sessionForm({
+  count,
+  description,
+  photo,
+}: {
+  count?: number;
+  description?: string;
+  photo?: File;
+}) {
   const form = new FormData();
   if (count !== undefined) form.append('count', String(count));
+  if (description?.trim()) form.append('description', description.trim());
   if (photo) form.append(PHOTO_FIELD, photo);
   return form;
 }
@@ -71,10 +80,15 @@ function useSessionMutation<Input, Result>(
 
 const sessionPath = (id: string) => ({ params: { path: { id } } });
 
-export function useUpdateSessionCount() {
+export function useUpdateSession() {
   return useSessionMutation(
-    ({ id, count }: { id: string; count: number }) =>
-      unwrap(api.PATCH('/api/v1/toast-sessions/{id}', { ...sessionPath(id), body: { count } })),
+    ({ id, ...body }: UpdateToastSession & { id: string }) =>
+      unwrap(
+        api.PATCH('/api/v1/toast-sessions/{id}', {
+          ...sessionPath(id),
+          body,
+        }),
+      ),
     (result) => result.newAchievements,
   );
 }

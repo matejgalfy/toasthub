@@ -1,6 +1,6 @@
 # Toasthub — Specification
 
-> Status: Approved | Last updated: 2026-11-10
+> Status: Approved | Last updated: 2026-11-15
 > This file defines WHAT to build and WHY. Coding conventions and HOW-to-work rules live in `AGENTS.md`.
 
 ---
@@ -30,7 +30,7 @@ architecture, tests and documentation are first-class requirements.
 - Wrapped summaries (monthly / yearly), in any form
 - Push notifications
 - AI moderation (planned for a later version, see §13)
-- Toast details (topping, bread type, caption) and backdating toasts
+- Structured toast details (topping, bread type) and backdating toasts
 - Friends / follow system
 - Membership in more than one clan
 - All-time leaderboards
@@ -42,7 +42,7 @@ architecture, tests and documentation are first-class requirements.
 | Role | Description | Can do |
 |------|-------------|--------|
 | Guest | Not logged in | See the landing page, request a magic link |
-| User | Registered, active | Log toast sessions, view own past sessions, edit / delete own sessions on the day they were logged, upload photos, like toasts, report photos, see the global feed, leaderboards / stats / profiles, create / join / leave one clan, edit own profile |
+| User | Registered, active | Log toast sessions, view own past sessions, edit / delete own sessions on the day they were logged and edit their descriptions on any day, upload photos, like toasts, report photos, see the global feed, leaderboards / stats / profiles, create / join / leave one clan, edit own profile |
 | Admin | Internal (app-wide role) | Everything a User can, plus: review flags, hide photos, reject toasts, ban / unban users, manage any clan, edit app settings, see app metrics, re-run the Toast of the week draw |
 
 **Clan roles** (scoped to one clan, held by Users; the UI calls them Toastmeister, Vice-Toast and Toastie, D56):
@@ -77,15 +77,17 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - Every profile is public: any logged-in user sees its stats, heatmap, achievements and photos. There is no visibility setting (§12 D67).
 
 ### 4.3 Logging toasts
-- BR-TOAST-1: A toast is a timestamp set by the server at creation. No backdating, no extra fields.
+- BR-TOAST-1: A toast is a timestamp set by the server at creation. No backdating; an optional description belongs to its session (BR-TOAST-8).
 - BR-TOAST-2: Every new session needs a photo; a log without one is refused (§12 D64). Sessions from before this rule may have none. Upload limit 10 MB (JPEG/PNG/WebP/HEIC). Server re-encodes to WebP, max 1600 px longest side, strips EXIF (incl. GPS).
 - BR-TOAST-3: Toasts are deleted per session (BR-TOAST-7), never one by one by their owner. Deletion is a soft delete; streaks, stats and leaderboards recompute; likes on the session are removed.
 - BR-TOAST-4: Achievements already earned are kept even if the toasts that triggered them are deleted.
 - BR-TOAST-5: One log from the home screen is a **toast session**: 1–10 toasts eaten in one sitting, created together. Each is its own toast; the photo belongs to the session's first toast (its *lead toast*).
-- BR-TOAST-6: A user can view their own past sessions, newest first: date and time, toast count and photo.
-- BR-TOAST-7: On the session's own day (its `local_date`, Europe/Bratislava) the owner can change its toast count (1–10), replace its photo (or add one to a session from before BR-TOAST-2 required it), and delete it. A photo can't be removed. Raising the count adds toasts at the current server time (so they fall on the same day, BR-TOAST-1); lowering it soft-deletes the newest toasts, never the lead toast. Added toasts count toward the creation rate limit and the BR-MOD-1 threshold and trigger achievements like a new log; so does adding a photo (`shutterbug`). After that day ends, the session is read-only. A session with an admin-rejected toast is read-only, and a photo an admin has hidden can't be replaced.
+- BR-TOAST-6: A user can view their own past sessions, newest first: date and time, toast count, photo and description when present.
+- BR-TOAST-7: On the session's own day (its `local_date`, Europe/Bratislava) the owner can change its toast count (1–10), replace its photo (or add one to a session from before BR-TOAST-2 required it), and delete it. A photo can't be removed. Raising the count adds toasts at the current server time (so they fall on the same day, BR-TOAST-1); lowering it soft-deletes the newest toasts, never the lead toast. Added toasts count toward the creation rate limit and the BR-MOD-1 threshold and trigger achievements like a new log; so does adding a photo (`shutterbug`). After that day ends, the count, photo and deletion are read-only; its description may still be edited (BR-TOAST-8). A session with an admin-rejected toast is read-only, and a photo an admin has hidden can't be replaced.
 
-**Acceptance:** from the home screen, "+ Toast" opens a dialog with the number of toasts (default 1) and the photo (pick / take); confirm stays disabled until a photo is picked, confirming logs them (G1), and the today-counter and streak update immediately. There is no separate camera button. "My toasts" lists past sessions; today's sessions open an edit dialog (count, photo, delete with a confirmation) and the home counters follow the change; older sessions show no edit controls.
+- BR-TOAST-8: A session may have an optional plain-text description, trimmed and at most 500 characters. Omitted or blank descriptions are stored as null. The owner may edit or clear it on any day, provided the session is not removed and has no admin-rejected toast. Description-only edits do not change toast counts, timestamps, quota or achievements; a PATCH that also includes count still follows BR-TOAST-7. Descriptions are shown in global/clan feeds, My toasts and profile photo dialogs; absent descriptions show no placeholder.
+
+**Acceptance:** from the home screen, "+ Toast" opens a dialog with the number of toasts (default 1), the photo (pick / take) and an optional description; confirm stays disabled until a photo is picked, confirming logs them (G1), and the today-counter and streak update immediately. There is no separate camera button. "My toasts" lists past sessions; today's sessions open an edit dialog (count, photo, description, delete with a confirmation) and the home counters follow the change; older sessions show no count/photo/delete controls; descriptions can be edited from their feed cards (BR-TOAST-8).
 
 ### 4.4 Anti-cheat & moderation (trust-based, admin only)
 - BR-MOD-1: When a user's toast count for a day exceeds the threshold (app setting, default **8**), a `count_threshold` flag is created for admin review (once per user per day).
@@ -119,7 +121,7 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - BR-CLAN-3: Max members is an app setting, default **10**. Joining / approving fails when full.
 - BR-CLAN-4: The Owner cannot leave without transferring ownership or deleting the clan.
 - BR-CLAN-5: A user may have at most one pending join request at a time; joining a clan cancels it, or they can cancel it themselves.
-- **Clan feed:** toast sessions of current members, newest first, one entry per session with its count, photo and 🍞 likes, like the global feed (§4.14).
+- **Clan feed:** toast sessions of current members, newest first, one entry per session with its count, photo, description and 🍞 likes, like the global feed (§4.14).
 - **Clan page:** info, member list with roles, inner leaderboard, feed.
 
 ### 4.9 Likes
@@ -161,7 +163,7 @@ Implemented with Better Auth (magic-link plugin, Drizzle adapter, bearer plugin)
 - Toast of the week: view history, re-run draw.
 
 ### 4.14 Global feed
-- Home shows a feed of every user's toast sessions under the Toast of the week card, newest first, one entry per session with the user, time, count, photo, 🍞 likes and "Report" (BR-MOD-3), like the clan feed. More load as the user scrolls.
+- Home shows a feed of every user's toast sessions under the Toast of the week card, newest first, one entry per session with the user, time, count, description when present, photo, 🍞 likes and "Report" (BR-MOD-3), like the clan feed. More load as the user scrolls.
 - Left out: deleted sessions, sessions whose lead toast an admin rejected, and sessions of banned users. A photo an admin hid is not shown; the session stays.
 - While the feed is below the visible part of the screen, a round arrow button in the bottom-right corner (above the tab bar on phones) scrolls to it. It disappears as soon as the feed is in view, and comes back when the user scrolls up past it.
 
@@ -274,7 +276,8 @@ One log of 1–10 toasts eaten in one sitting (BR-TOAST-5). Its count is the num
 |-------|------|-------------|
 | id | uuid | PK |
 | user_id | uuid | FK → User |
-| local_date | date | local day of logging; the only day the session can be edited or deleted (BR-TOAST-7) |
+| description | varchar(500) | nullable; trimmed plain text, blank = null (BR-TOAST-8) |
+| local_date | date | local day of logging; the only day count/photo/deletion can change (BR-TOAST-7); description editing has no day limit |
 | deleted_at | timestamptz | nullable (soft delete, together with its toasts) |
 
 Indexes: `(user_id, created_at desc, id)` for the history list, `(created_at desc, id desc)` for the global feed.
@@ -403,9 +406,9 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | GET | /me | Session | — | `200 {user}` | app profile incl. `onboarded` flag and `clanId` (null when in no clan, D49) |
 | PATCH | /me | Session | `{displayName?, avatarId?, locale?}` | `200 {user}` | onboarding uses this |
 | GET | /home | Session | — | `200 {todayCount, streak, clan?, clanStreak?, fact, toastOfTheWeek}` | one call for home screen |
-| POST | /toast-sessions | Session | multipart `{count?, photo}` (count 1–10, default 1) | `201 {session, newAchievements[]}` | one transaction; the 30/hour rate limit counts toasts; photo required (400 without), on the lead toast |
-| GET | /me/toast-sessions | Session | cursor | `200 {items: [{id, loggedAt, localDate, count, hasPhoto, photoUrl?, photoHidden, editable}], nextCursor}` | own sessions, newest first |
-| PATCH | /toast-sessions/:id | Session (owner) | `{count}` (1–10) | `200 {session, newAchievements[]}` | only on the session's day (BR-TOAST-7), else 409 |
+| POST | /toast-sessions | Session | multipart `{count?, photo, description?}` (count 1–10, default 1) | `201 {session, newAchievements[]}` | one transaction; the 30/hour rate limit counts toasts; photo required (400 without), on the lead toast |
+| GET | /me/toast-sessions | Session | cursor | `200 {items: [{id, loggedAt, localDate, count, description, hasPhoto, photoUrl?, photoHidden, editable}], nextCursor}` | own sessions, newest first |
+| PATCH | /toast-sessions/:id | Session (owner) | `{count?, description?}` (count 1–10; description ≤ 500 or null; at least one field) | `200 {session, newAchievements[]}` | count changes only on the session's day (BR-TOAST-7), else 409; owner description-only edits work on any day (BR-TOAST-8) |
 | PUT | /toast-sessions/:id/photo | Session (owner) | multipart `{photo}` | `200 {session, newAchievements[]}` | add or replace; same day rule; 409 if the photo is hidden |
 | DELETE | /toast-sessions/:id | Session (owner) | — | `204` | soft delete with its toasts; same day rule |
 | POST | /toasts/:id/like | Session | — | `204` | idempotent; on the lead toast of a session that isn't removed (D48, D67) |
@@ -418,7 +421,7 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | POST | /comments/:id/report | Session | `{reason?}` (≤ 280) | `202` | live comments only; 10/hour per user, independent of photo reports |
 | POST | /toasts/:id/report | Session | `{reason?}` (≤ 280) | `202` | photo toasts only (409 otherwise); 10/hour per user |
 | GET | /users/:id | Session | — | `200 {profile}` | name, avatar, leaderboard counts; every profile is public (D67) |
-| GET | /users/:id/toasts | Session | cursor | `200 {items[], nextCursor}` | visible photos, one per session (D45) |
+| GET | /users/:id/toasts | Session | cursor | `200 {items[], nextCursor}` | visible photos with nullable description, one per session (D45) |
 | GET | /users/:id/stats | Session | — | `200 {totals, averages, bestDay, streak}` | |
 | GET | /users/:id/heatmap | Session | `?year=` | `200 {year, days: [{date, count}]}` | only days with toasts |
 | GET | /users/:id/achievements | Session | — | `200 {items: [{code, earnedAt?}]}` | |
@@ -430,7 +433,7 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | PATCH | /clans/:id | Owner | `{name?, description?, avatarId?}` | `200 {clan}` | |
 | DELETE | /clans/:id | Owner | — | `204` | removes all memberships |
 | GET | /clans/:id/leaderboard | Session | `?period=` | `200 {items: [{rank, user, count}]}` | every current member, by toasts logged for this clan; default `month` (D50) |
-| GET | /clans/:id/feed | Member | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | current members' sessions, newest first (D48); same items as `/feed` |
+| GET | /clans/:id/feed | Member | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | current members' sessions, newest first (D48); same items as `/feed`, including nullable description |
 | POST | /clans/:id/join | Session | — | `202 {request}` | creates a pending join request |
 | POST | /clans/:id/leave | Member | — | `204` | Owner must transfer first |
 | GET | /clans/:id/requests | Officer+ | — | `200 {items[]}` | pending only |
@@ -440,7 +443,7 @@ Mutations from the browser require `SameSite=Lax` cookie + `Origin` check.
 | PATCH | /clans/:id/members/:userId | Owner | `{role: officer\|member}` | `200 {membership}` | |
 | DELETE | /clans/:id/members/:userId | Officer+ | — | `204` | kick; Officers can kick Members only |
 | POST | /clans/:id/transfer | Owner | `{userId}` | `200 {owner, previousOwner}` | the former Owner becomes an Officer |
-| GET | /feed | Session | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | every user's sessions, newest first (§4.14, D67) |
+| GET | /feed | Session | cursor | `200 {items: [{sessionId, toastId, user, loggedAt, localDate, count, photoUrl?, likeCount, likedByMe}], nextCursor}` | every user's sessions with nullable description, newest first (§4.14, D67) |
 | GET | /toast-of-the-week | Session | cursor | `200 {items: [{weekStart, status, toast?}], nextCursor}` | history, newest first; `status` = `won`, `none` or `removed` (D51) |
 | GET | /admin/flags | Admin | `?type=&status=&cursor=` | `200 {items[], nextCursor}` | newest first; subject, reporter, the toast (photo also when hidden), the reported comment or the day's toasts (D52, D69) |
 | POST | /admin/flags/:id/resolve | Admin | `{action: dismiss\|reject_toasts\|hide_photo\|delete_comment, ban?}` | `200 {flag}` | one transaction; records `resolved_by`/`resolved_at`; 409 once resolved (D52) |
@@ -468,17 +471,18 @@ Codes: `VALIDATION_ERROR` 400, `UNAUTHENTICATED` 401, `FORBIDDEN` 403, `NOT_FOUN
 | `/login` | Login | Public | Email field, "check your inbox" state |
 | `/auth/callback` | Verify link | Public | Consumes token, redirects to `/onboarding` or `/home`, error + resend on failure |
 | `/onboarding` | Onboarding | User (new) | Display name, avatar picker (8) |
-| `/home` | Home | User | No visible title. Big "+ Toast" button (opens the log dialog: number of toasts, required photo), current streak, clan streak with the clan picture, fact of the day, Toast of the week card (last week only), the global feed under it with the arrow to it (§4.14), new-achievement toast (D57, D58) |
+| `/home` | Home | User | No visible title. Big "+ Toast" button (opens the log dialog: number of toasts, required photo, optional description), current streak, clan streak with the clan picture, fact of the day, Toast of the week card (last week only), the global feed under it with the arrow to it (§4.14), new-achievement toast (D57, D58) |
 | `/leaderboards` | Leaderboards | User | Tabs Users / Clans, period switch week / month / year (clans default to month), clan rows show 🔥 streak, "me" row pinned |
 | `/clans` | Clan browser | User | Search, list with picture and member count, "Create clan" |
 | `/clans/new` | Create clan | User (no clan) | Name, description, picture |
 | `/clans/:id` | Clan | User | Header with picture, current / longest clan streak + request to join / cancel request / leave, tabs: Feed (members), Leaderboard, Members; requests panel for Officers+; settings for Owner |
-| `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail); today's sessions open an edit dialog (count stepper, replace photo, delete with a confirmation), older ones are read-only. Linked from the own profile |
-| `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (photos open a dialog with the shared comment thread); own profile links to My toasts |
+| `/toasts` | My toasts | User | Own toast sessions, newest first, grouped by day (time, count, photo thumbnail, description); today's sessions open an edit dialog (count stepper, replace photo, description, delete with a confirmation), older ones are read-only. Linked from the own profile |
+| `/u/:id` | Profile | User | Avatar, name, stats, heatmap, achievements, photo grid (photos open a dialog with the description and shared comment thread); own profile links to My toasts |
 | `/settings` | Settings | User | Display name, avatar, logout |
 | `/admin` | Admin | Admin | Sub-pages: Flags, Users, Clans, Settings, Metrics, TOTW |
 
 - Comment threads preview up to 3 comments on global and clan feed cards: top-level comments take priority; replies fill unused slots only when fewer than 3 top-level comments exist. "Show all comments" expands the thread. Per-comment "Hide replies / Show replies" controls collapse individual loaded subthreads without affecting siblings. Profile photos open a dialog with the photo and the same preview. Deletion requires a confirmation dialog explaining that replies remain. Forms have labelled fields, pending/error states and retain drafts on failure. The compact layout keeps avatar sizes unchanged, uses tighter spacing and small action buttons, and keeps the auto-growing comment box visible beside its submit button. Reply depth is not limited by visual indentation.
+- Owners have an "Edit description" action below the photo in global/clan feed cards, including older posts and posts without a description. A labelled dialog edits or clears only the description (≤ 500 characters), retains the draft on failure and blocks closing during save. Other users see no edit action.
 - Navigation: bottom tab bar on mobile (Home, Leaderboards, Clan, Profile); top nav at `md` and up.
 - Breakpoints: Tailwind defaults (`sm` 640, `md` 768, `lg` 1024); designed for 360 px wide first; content max-width ~ 640 px on desktop except admin.
 - Theme: shadcn/ui with a warm "toast" palette; light + dark following system preference.
@@ -579,6 +583,10 @@ A feature is done when:
 | D68 | Threaded comments (2026-11-10). Comments belong to a session's lead toast, like likes, so photo replacement does not lose discussions. Plain text 1–500 characters; optional same-toast parent with unlimited reply depth and capped visual indentation. Authors and admins can soft-delete after confirmation; placeholders omit both body and author, preserve replies and accept further replies. Banned authors also show as placeholders. The UI previews up to 3 comments, prioritizing top-level comments and filling spare slots with replies only if fewer than 3 top-level comments exist, with "Show all comments" to expand the thread, and shares one toast-keyed paginated cache across global/clan feeds and profile photo dialogs; parents precede replies in the oldest-first API. Creation uses the shared Postgres rate limiter at 30/hour. No editing or notifications. Live comments support the same one-per-user 🍞 like/unlike as posts; other emoji reactions are deferred | Owner chose nested replies and deletion placeholders rather than deleting whole threads. Keeping discussion on the session avoids splitting it when a photo changes; capped indentation remains usable at 360 px |
 
 | D69 | Comment reports. Live comments can be reported with an optional ≤ 280-character reason through the existing admin queue; reporting does not hide them. Comment-report moderation offers dismiss or delete_comment (anonymous placeholder, replies preserved), plus the existing guarded author ban option. Other open reports of a deleted comment are resolved like duplicate photo reports. A dedicated Postgres comment-report quota is 10/hour per user, independent of photo reports; admins receive the comment and linked toast context, never another user's email. Admins may review a banned author's remaining comment text; public threads still show anonymous placeholders. No automatic hiding or new moderation page | Owner chose the existing photo-report workflow and queue rather than a separate system; trust-based moderation remains consistent across photos and comments |
+
+| D70 | Optional session descriptions (BR-TOAST-8, 2026-11-15). One nullable plain-text description per session, trimmed and ≤ 500 characters, shown in global/clan feeds, own history and profile photo dialogs. Owners can edit or clear it on the session’s day with the existing edit restrictions. POST accepts an optional multipart description; PATCH accepts count and/or description, with null or blank clearing it. Older sessions remain null; no markdown or rich text | Owner chose a voluntary post description with the same limit as comments and the same editing window as toast counts |
+
+| D71 | Owner description editing on any day. Owners can edit or clear a visible, non-rejected session’s description directly from a global/clan feed card, with no date restriction. Description-only PATCH skips the day check; any request containing count keeps the same-day rule. Ownership, removal and moderation checks remain. Overrides D70’s same-day description window; count, photo and deletion rules are unchanged | Owner selected anytime description edits via the feed without reopening past toast counts or photos |
 
 ## 13. Future (post-v1)
 - AI moderation of photos and counts (creates `ai_*` flags)

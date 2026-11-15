@@ -4,6 +4,7 @@ import {
   addDays,
   localDate,
   PHOTO_MAX_BYTES,
+  TOAST_SESSION_DESCRIPTION_MAX_LENGTH,
   type ToastSessionChangeResponse,
   type ToastSessionPage,
 } from '@toasthub/shared';
@@ -22,6 +23,7 @@ import {
   discardedPhoto,
   flag,
   like,
+  rateLimit,
   toast,
   toastSession,
   userAchievement,
@@ -87,9 +89,14 @@ async function withPhoto(fields: Record<string, string> = {}, data?: Buffer): Pr
 
 async function logSession(
   as: SignedIn,
-  { count, photo: data }: { count?: number; photo?: Buffer } = {},
+  {
+    count,
+    photo: data,
+    description,
+  }: { count?: number; photo?: Buffer; description?: string } = {},
 ): Promise<ToastSessionChangeResponse> {
   const fields: Record<string, string> = count === undefined ? {} : { count: String(count) };
+  if (description !== undefined) fields.description = description;
   const res = await postSession(as, await withPhoto(fields, data));
   expect(res.statusCode).toBe(201);
   return res.json<ToastSessionChangeResponse>();
@@ -103,11 +110,15 @@ async function photolessSession(as: SignedIn): Promise<string> {
 }
 
 function patchCount(as: SignedIn, id: string, count: unknown) {
+  return patchSession(as, id, { count });
+}
+
+function patchSession(as: SignedIn, id: string, payload: Record<string, unknown>) {
   return app.inject({
     method: 'PATCH',
     url: `/api/v1/toast-sessions/${id}`,
     headers: { cookie: as.cookie, origin: WEB_ORIGIN },
-    payload: { count },
+    payload,
   });
 }
 
@@ -197,6 +208,7 @@ describe('POST /toast-sessions', () => {
       loggedAt: expect.any(String) as string,
       localDate: localDate(new Date()),
       count: 1,
+      description: null,
       hasPhoto: true,
       photoUrl: expect.stringMatching(/X-Amz-Expires=3600/) as string,
       photoHidden: false,
@@ -210,6 +222,35 @@ describe('POST /toast-sessions', () => {
     const rows = await toastsOf(body.session.id);
     expect(rows).toHaveLength(1);
     expect(rows[0]?.eatenAt.getTime()).toBe(loggedAt);
+  });
+
+  it('trims a plain-text description and returns it in own history (BR-TOAST-8)', async () => {
+    const { session } = await logSession(ann, { description: '  <b>Breakfast</b>\nWith coffee  ' });
+    expect(session.description).toBe('<b>Breakfast</b>\nWith coffee');
+    const [stored] = await db.select().from(toastSession).where(eq(toastSession.id, session.id));
+    expect(stored?.description).toBe(session.description);
+    expect((await listSessions(ann)).items[0]?.description).toBe(session.description);
+  });
+
+  it('stores a blank description as null', async () => {
+    const { session } = await logSession(ann, { description: ' \n\t ' });
+    expect(session.description).toBeNull();
+    const [stored] = await db.select().from(toastSession).where(eq(toastSession.id, session.id));
+    expect(stored?.description).toBeNull();
+  });
+
+  it('accepts 500 trimmed characters and rejects a longer description before taking quota', async () => {
+    const description = 'a'.repeat(TOAST_SESSION_DESCRIPTION_MAX_LENGTH);
+    const rejected = await postSession(ann, await withPhoto({ description: `${description}a` }));
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.json()).toMatchObject({
+      error: { code: 'VALIDATION_ERROR', fields: { description: expect.any(String) as string } },
+    });
+    expect(await db.select().from(toastSession)).toHaveLength(0);
+    const { session } = await logSession(ann, { count: 10, description: `  ${description}  ` });
+    expect(session.description).toBe(description);
+    await logSession(ann, { count: 10 });
+    await logSession(ann, { count: 10 });
   });
 
   it('logs several toasts as one session at the same time', async () => {
@@ -554,6 +595,179 @@ describe('GET /me/toast-sessions', () => {
 });
 
 describe('PATCH /toast-sessions/:id', () => {
+  it.each([1, 30])(
+    'changes description alone on a session %d days ago without other effects',
+    async (daysAgo) => {
+      const sessionId = await pastSession(ann, daysAgo);
+      const beforeToasts = await toastsOf(sessionId);
+      const [beforeSession] = await db
+        .select()
+        .from(toastSession)
+        .where(eq(toastSession.id, sessionId));
+      const beforeQuota = await db
+        .select()
+        .from(rateLimit)
+        .where(eq(rateLimit.key, `toast:${ann.userId}`));
+      const res = await patchSession(ann, sessionId, { description: '  Breakfast  ' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json<ToastSessionChangeResponse>()).toMatchObject({
+        session: { id: sessionId, count: 1, description: 'Breakfast', editable: false },
+        newAchievements: [],
+      });
+      expect(await toastsOf(sessionId)).toEqual(beforeToasts);
+      const [afterSession] = await db
+        .select()
+        .from(toastSession)
+        .where(eq(toastSession.id, sessionId));
+      expect(afterSession).toEqual({ ...beforeSession, description: 'Breakfast' });
+      expect(
+        await db
+          .select()
+          .from(rateLimit)
+          .where(eq(rateLimit.key, `toast:${ann.userId}`)),
+      ).toEqual(beforeQuota);
+      expect(await db.select().from(userAchievement)).toHaveLength(0);
+      expect(await db.select().from(flag)).toHaveLength(0);
+    },
+  );
+
+  it.each([null, ' \n\t '])('clears a past session description with %j', async (description) => {
+    const sessionId = await pastSession(ann, 1);
+    await db
+      .update(toastSession)
+      .set({ description: 'Breakfast' })
+      .where(eq(toastSession.id, sessionId));
+    const before = await toastsOf(sessionId);
+    const res = await patchSession(ann, sessionId, { description });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<ToastSessionChangeResponse>().session.description).toBeNull();
+    const [stored] = await db.select().from(toastSession).where(eq(toastSession.id, sessionId));
+    expect(stored?.description).toBeNull();
+    expect(await toastsOf(sessionId)).toEqual(before);
+  });
+
+  it.each([1, 2])(
+    'rejects a past-day count of %d with description atomically, even when unchanged',
+    async (count) => {
+      const sessionId = await pastSession(ann, 1);
+      await db
+        .update(toastSession)
+        .set({ description: 'Breakfast' })
+        .where(eq(toastSession.id, sessionId));
+      const before = await toastsOf(sessionId);
+      const res = await patchSession(ann, sessionId, { count, description: 'Not saved' });
+      expect(res.statusCode).toBe(409);
+      expect(res.json()).toMatchObject({ error: { code: 'CONFLICT' } });
+      const [stored] = await db.select().from(toastSession).where(eq(toastSession.id, sessionId));
+      expect(stored?.description).toBe('Breakfast');
+      expect(await toastsOf(sessionId)).toEqual(before);
+    },
+  );
+
+  it('changes description alone without changing toasts or awarding achievements', async () => {
+    const sessionId = await photolessSession(ann);
+    const before = await toastsOf(sessionId);
+    const res = await patchSession(ann, sessionId, { description: '  Breakfast  ' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<ToastSessionChangeResponse>()).toMatchObject({
+      session: { id: sessionId, count: 1, description: 'Breakfast' },
+      newAchievements: [],
+    });
+    expect(await toastsOf(sessionId)).toEqual(before);
+    expect(await db.select().from(userAchievement)).toHaveLength(0);
+  });
+
+  it('changes count and description together, preserving a description when omitted later', async () => {
+    const { session } = await logSession(ann);
+    const changed = await patchSession(ann, session.id, { count: 3, description: '  Breakfast  ' });
+    expect(changed.statusCode).toBe(200);
+    expect(changed.json<ToastSessionChangeResponse>().session).toMatchObject({
+      count: 3,
+      description: 'Breakfast',
+    });
+    const countOnly = await patchCount(ann, session.id, 2);
+    expect(countOnly.statusCode).toBe(200);
+    expect(countOnly.json<ToastSessionChangeResponse>().session).toMatchObject({
+      count: 2,
+      description: 'Breakfast',
+    });
+  });
+
+  it.each([null, ' \n\t '])('clears the description with %j', async (description) => {
+    const { session } = await logSession(ann, { description: 'Breakfast' });
+    const res = await patchSession(ann, session.id, { description });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<ToastSessionChangeResponse>().session).toMatchObject({
+      count: 1,
+      description: null,
+    });
+    expect((await listSessions(ann)).items[0]?.description).toBeNull();
+    const [stored] = await db.select().from(toastSession).where(eq(toastSession.id, session.id));
+    expect(stored?.description).toBeNull();
+  });
+
+  it('rejects no-op payloads and invalid descriptions', async () => {
+    const { session } = await logSession(ann, { description: 'Breakfast' });
+    for (const payload of [
+      {},
+      { other: true },
+      { description: 123 },
+      { description: 'a'.repeat(501) },
+    ]) {
+      expect((await patchSession(ann, session.id, payload)).statusCode).toBe(400);
+    }
+    expect((await listSessions(ann)).items[0]?.description).toBe('Breakfast');
+  });
+
+  it('keeps the session, ownership and moderation restrictions for description-only edits', async () => {
+    const payload = { description: 'Breakfast' };
+    expect(
+      (
+        await app.inject({
+          method: 'PATCH',
+          url: `/api/v1/toast-sessions/${UNKNOWN_ID}`,
+          payload,
+        })
+      ).statusCode,
+    ).toBe(401);
+    expect((await patchSession(ann, UNKNOWN_ID, payload)).statusCode).toBe(404);
+    expect((await patchSession(ann, 'not-a-uuid', payload)).statusCode).toBe(400);
+    const yesterday = await pastSession(ann, 1);
+    const { session } = await logSession(ann);
+    const bob = await signIn(app, 'bob@example.com');
+    expect((await patchSession(bob, session.id, payload)).statusCode).toBe(403);
+    expect((await patchSession(bob, yesterday, payload)).statusCode).toBe(403);
+    await db.update(toast).set({ status: 'rejected' }).where(eq(toast.sessionId, session.id));
+    await db.update(toast).set({ status: 'rejected' }).where(eq(toast.sessionId, yesterday));
+    expect((await patchSession(ann, session.id, payload)).statusCode).toBe(409);
+    expect((await patchSession(ann, yesterday, payload)).statusCode).toBe(409);
+    await db
+      .update(toastSession)
+      .set({ deletedAt: new Date() })
+      .where(eq(toastSession.id, session.id));
+    expect((await patchSession(ann, session.id, payload)).statusCode).toBe(404);
+    const stored = await db.select().from(toastSession);
+    expect(stored.every((row) => row.description === null)).toBe(true);
+  });
+
+  it('takes no quota for description-only edits and rolls them back if a combined count change fails', async () => {
+    const { session } = await logSession(ann, { count: 8, description: 'Breakfast' });
+    await logSession(ann, { count: 10 });
+    await logSession(ann, { count: 10 });
+    const descriptionOnly = await patchSession(ann, session.id, { description: 'Coffee' });
+    expect(descriptionOnly.statusCode).toBe(200);
+    expect(descriptionOnly.json<ToastSessionChangeResponse>().newAchievements).toEqual([]);
+    expect((await patchCount(ann, session.id, 10)).statusCode).toBe(200);
+    expect((await patchCount(ann, session.id, 9)).statusCode).toBe(200);
+    const failed = await patchSession(ann, session.id, { count: 10, description: 'Not saved' });
+    expect(failed.statusCode).toBe(429);
+    expect((await listSessions(ann)).items.find((row) => row.id === session.id)).toMatchObject({
+      count: 9,
+      description: 'Coffee',
+    });
+    expect((await patchSession(ann, session.id, { description: null })).statusCode).toBe(200);
+  });
+
   it('raises the count with toasts eaten now', async () => {
     const { session } = await logSession(ann);
     const res = await patchCount(ann, session.id, 4);

@@ -34,7 +34,7 @@ import { z } from 'zod';
 import { AppError } from '../../common/errors/app-error';
 import { decodeCursor, toPage } from '../../common/pagination';
 import { type Database, DB } from '../../db/db.module';
-import { toast, user, userAchievement } from '../../db/schema';
+import { toast, toastSession, user, userAchievement } from '../../db/schema';
 import { StorageService } from '../storage/storage.service';
 import { countableToasts } from '../toasts/countable-toasts';
 import { likeStats } from '../toasts/like-stats';
@@ -84,10 +84,12 @@ export class UsersService {
         sessionId: toast.sessionId,
         eatenAt: toast.eatenAt,
         localDate: toast.localDate,
+        description: toastSession.description,
         photoKey: toast.photoKey,
         cursorAt,
       })
       .from(toast)
+      .innerJoin(toastSession, eq(toastSession.id, toast.sessionId))
       .where(
         and(
           eq(toast.userId, subjectId),
@@ -121,6 +123,7 @@ export class UsersService {
         eatenAt: row.eatenAt.toISOString(),
         localDate: row.localDate,
         count: counts.get(row.sessionId) ?? 0,
+        description: row.description,
         photoUrl: await this.storage.presignGet(row.photoKey),
         ...likesOf(row.id),
       });

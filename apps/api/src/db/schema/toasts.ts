@@ -1,6 +1,16 @@
-import { TIME_ZONE, ToastStatus } from '@toasthub/shared';
+import { TIME_ZONE, TOAST_SESSION_DESCRIPTION_MAX_LENGTH, ToastStatus } from '@toasthub/shared';
 import { sql } from 'drizzle-orm';
-import { check, date, index, pgEnum, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  date,
+  index,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { clan } from './clans';
@@ -21,6 +31,7 @@ export const toastSession = pgTable(
     localDate: date()
       .generatedAlwaysAs(sql.raw(`(created_at AT TIME ZONE '${TIME_ZONE}')::date`))
       .notNull(),
+    description: varchar({ length: TOAST_SESSION_DESCRIPTION_MAX_LENGTH }),
     deletedAt: timestamptz(),
     createdAt: createdAt(),
   },

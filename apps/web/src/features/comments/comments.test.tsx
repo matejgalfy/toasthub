@@ -552,6 +552,7 @@ describe('Comments', () => {
       eatenAt: '2026-10-28T07:00:00.000Z',
       localDate: '2026-10-28',
       count: 1,
+      description: null,
       photoUrl: 'https://photos.example/toast.webp',
       likeCount: 0,
       likedByMe: false,

@@ -19,12 +19,13 @@ import { useFormat } from '@/i18n/format';
 
 import { CountStepper } from './count-stepper';
 import { isTooLarge, PhotoPicker, photoErrorMessageKey, usePickedPhoto } from './photo-picker';
-import { useDeleteSession, useSetSessionPhoto, useUpdateSessionCount } from './toast-sessions-api';
+import { SessionDescriptionField } from './session-description-field';
+import { useDeleteSession, useSetSessionPhoto, useUpdateSession } from './toast-sessions-api';
 
 type ErrorKey = ReturnType<typeof photoErrorMessageKey>;
 
 /**
- * Changes one of today's sessions: its count, its photo (replace only, SPEC §12 D64), or deletes it after
+ * Changes one of today's sessions: its count, description or photo (replace only, SPEC §12 D64), or deletes it after
  * a confirmation (SPEC §4.3 BR-TOAST-7). `session` is null while the dialog is closed.
  */
 export function EditSessionDialog({
@@ -50,10 +51,11 @@ export function EditSessionDialog({
 function EditSessionContent({ session, onDone }: { session: ToastSession; onDone: () => void }) {
   const { t } = useTranslation();
   const format = useFormat();
-  const updateCount = useUpdateSessionCount();
+  const updateSession = useUpdateSession();
   const setPhoto = useSetSessionPhoto();
   const deleteSession = useDeleteSession();
   const [count, setCount] = useState(session.count);
+  const [description, setDescription] = useState(session.description ?? '');
   const [picked, setPicked] = usePickedPhoto();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -61,7 +63,10 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
 
   const tooLarge = isTooLarge(picked);
   const shownError = tooLarge ? 'home.photo.tooLarge' : error;
-  const changed = count !== session.count || picked !== null;
+  const savedDescription = description.trim() || null;
+  const detailsChanged =
+    count !== session.count || savedDescription !== (session.description ?? null);
+  const changed = detailsChanged || picked !== null;
   const time = format.dateTime(session.loggedAt, { timeStyle: 'short' });
 
   const pickPhoto = (file: File | null) => {
@@ -69,7 +74,7 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
     setPicked(file);
   };
 
-  /** Photo first, so an unreadable file stops the save before the count changes. */
+  /** Photo first, so an unreadable file stops the save before the count or description changes. */
   const save = async () => {
     setSaving(true);
     setError(null);
@@ -78,7 +83,9 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
         await setPhoto.mutateAsync({ id: session.id, photo: picked.file });
         setPicked(null);
       }
-      if (count !== session.count) await updateCount.mutateAsync({ id: session.id, count });
+      if (detailsChanged) {
+        await updateSession.mutateAsync({ id: session.id, count, description: savedDescription });
+      }
       onDone();
     } catch (cause) {
       setError(photoErrorMessageKey(cause));
@@ -103,6 +110,7 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
 
   return (
     <DialogContent
+      className="max-h-[90dvh] overflow-y-auto"
       // Closing mid-request would hide whether the change was saved.
       showCloseButton={!saving}
       onEscapeKeyDown={(event) => {
@@ -161,6 +169,12 @@ function EditSessionContent({ session, onDone }: { session: ToastSession; onDone
               disabled={saving}
             />
           )}
+
+          <SessionDescriptionField
+            value={description}
+            onChange={setDescription}
+            disabled={saving}
+          />
 
           {shownError && <ErrorText messageKey={shownError} />}
           <DialogFooter className="gap-2 sm:justify-between">

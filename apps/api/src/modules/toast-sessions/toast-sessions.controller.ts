@@ -16,6 +16,7 @@ import {
   createToastSessionSchema,
   pageQuerySchema,
   PHOTO_FIELD,
+  TOAST_SESSION_DESCRIPTION_MAX_LENGTH,
   TOAST_SESSION_MAX_COUNT,
   type ToastSessionChangeResponse,
   toastSessionChangeResponseSchema,
@@ -52,7 +53,8 @@ export class ToastSessionsController {
 
   /**
    * Logs 1–10 toasts eaten now as one session. Send `multipart/form-data` with an optional `count`
-   * (default 1) and the required `photo` (JPEG, PNG, WebP or HEIC, at most 10 MB) for the lead toast.
+   * (default 1), optional plain-text `description` (trimmed, at most 500 characters), and the required
+   * `photo` (JPEG, PNG, WebP or HEIC, at most 10 MB) for the lead toast.
    * Limited to 30 toasts per hour.
    */
   @Post('toast-sessions')
@@ -63,6 +65,7 @@ export class ToastSessionsController {
       required: [PHOTO_FIELD],
       properties: {
         count: { type: 'integer', minimum: 1, maximum: TOAST_SESSION_MAX_COUNT, default: 1 },
+        description: { type: 'string', maxLength: TOAST_SESSION_DESCRIPTION_MAX_LENGTH },
         [PHOTO_FIELD]: PHOTO_PROPERTY,
       },
     },
@@ -79,7 +82,7 @@ export class ToastSessionsController {
     if (!photo) throw photoRequired();
     // After reading the count, before the photo is processed.
     await this.sessions.consumeQuota(user.id, parsed.data.count);
-    return this.sessions.create(user.id, parsed.data.count, photo);
+    return this.sessions.create(user.id, parsed.data.count, photo, parsed.data.description);
   }
 
   /** The caller's own toast sessions, newest first, with their photos. */
@@ -90,17 +93,19 @@ export class ToastSessionsController {
   }
 
   /**
-   * Sets the number of toasts of today's session. Raising adds toasts eaten now; lowering removes the
-   * newest, never the first. 409 after the session's day.
+   * Changes the count on the session's day or its description on any day. Raising adds toasts eaten
+   * now; lowering removes the newest, never the first. Null or blank descriptions clear it; omitted
+   * fields stay as they were. Any request containing count is a 409 after the session's day; rejected
+   * sessions cannot change.
    */
   @Patch('toast-sessions/:id')
   @ZodResponse({ status: 200, type: ToastSessionChangeResponseDto })
-  updateCount(
+  update(
     @CurrentUser() user: AuthUser,
     @Param() params: ToastSessionParamsDto,
     @Body() body: UpdateToastSessionDto,
   ): Promise<ToastSessionChangeResponse> {
-    return this.sessions.updateCount(user.id, params.id, body.count);
+    return this.sessions.update(user.id, params.id, body);
   }
 
   /**
