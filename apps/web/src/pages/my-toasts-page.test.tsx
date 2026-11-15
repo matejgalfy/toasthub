@@ -25,6 +25,7 @@ function session(overrides: Partial<ToastSession> = {}): ToastSession {
     loggedAt: `${today}T07:15:00.000Z`,
     localDate: today,
     count: 2,
+    description: null,
     hasPhoto: false,
     photoUrl: null,
     photoHidden: false,
@@ -95,6 +96,7 @@ describe('MyToastsPage', () => {
     expect(within(older).getByRole('heading', { level: 2 }).textContent).toMatch(/\d{4}/);
     expect(within(older).getByText('1 toast')).toBeInTheDocument();
     expect(within(older).queryByRole('button')).not.toBeInTheDocument();
+    expect(older.querySelector('.whitespace-pre-wrap.wrap-anywhere')).not.toBeInTheDocument();
     expect(within(older).getByRole('img')).toHaveAttribute(
       'src',
       'https://photos.example/yesterday.webp',
@@ -149,6 +151,124 @@ describe('MyToastsPage', () => {
     expect(patch?.url).toBe(`http://localhost/api/v1/toast-sessions/${session().id}`);
     expect(count).toBe(3);
     expect(await screen.findByRole('button', { name: /3 toasts/ })).toBeInTheDocument();
+  });
+
+  it('edits the description and count together, disabling the field during save', async () => {
+    const user = userEvent.setup();
+    let release: (response: Response) => void = () => undefined;
+    const pending = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    const requests = mockApi((request) =>
+      request.method === 'PATCH'
+        ? pending
+        : jsonResponse(200, page([session({ description: 'Breakfast' })])),
+    );
+    renderPage();
+
+    const dialog = await openEdit(user, /2 toasts/);
+    const description = within(dialog).getByRole('textbox', { name: 'Description (optional)' });
+    expect(dialog).toHaveClass('max-h-[90dvh]', 'overflow-y-auto');
+    expect(description).toHaveValue('Breakfast');
+    expect(description).toHaveAttribute('maxlength', '500');
+    await user.type(description, ' with friends');
+    await user.click(within(dialog).getByRole('button', { name: 'One toast more' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    expect(description).toBeDisabled();
+    const patch = requests.find((request) => request.method === 'PATCH');
+    expect(await patch?.json()).toEqual({ count: 3, description: 'Breakfast with friends' });
+    release(
+      jsonResponse(200, changed(session({ count: 3, description: 'Breakfast with friends' }))),
+    );
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('clears a description without changing the count', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi((request) =>
+      request.method === 'PATCH'
+        ? jsonResponse(200, changed(session()))
+        : jsonResponse(200, page([session({ description: 'Breakfast' })])),
+    );
+    renderPage();
+
+    const dialog = await openEdit(user, /2 toasts/);
+    await user.clear(within(dialog).getByRole('textbox', { name: 'Description (optional)' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    const patch = requests.find((request) => request.method === 'PATCH');
+    expect(await patch?.json()).toEqual({ count: 2, description: null });
+  });
+
+  it('shows descriptions as plain text with wrapping and preserved newlines in own history', async () => {
+    const description = '<strong>Breakfast</strong>\nwith friends';
+    mockApi(() => jsonResponse(200, page([session({ description }), yesterday])));
+    renderPage();
+
+    const text = await screen.findByText(description, { normalizer: (value) => value });
+    expect(text).toHaveClass('whitespace-pre-wrap', 'wrap-anywhere');
+    expect(text.querySelector('strong')).toBeNull();
+    expect(screen.queryByText('Description (optional)')).not.toBeInTheDocument();
+  });
+
+  it('does not send description changes if the replacement photo fails', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi((request) =>
+      request.method === 'PUT'
+        ? jsonResponse(400, {
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Invalid photo',
+              fields: { photo: 'Invalid' },
+            },
+          })
+        : jsonResponse(200, page([session()])),
+    );
+    renderPage();
+
+    const dialog = await openEdit(user, /2 toasts/);
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Description (optional)' }),
+      'Breakfast',
+    );
+    await user.upload(fileInput(), new File(['jpeg'], 'toast.jpg', { type: 'image/jpeg' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent("We can't read this file.");
+    expect(requests.some((request) => request.method === 'PATCH')).toBe(false);
+  });
+
+  it('saves the replacement photo before the description', async () => {
+    const user = userEvent.setup();
+    const requests = mockApi((request) =>
+      request.method === 'PUT' || request.method === 'PATCH'
+        ? jsonResponse(200, changed(session({ description: 'Breakfast', hasPhoto: true })))
+        : jsonResponse(200, page([session()])),
+    );
+    renderPage();
+
+    const dialog = await openEdit(user, /2 toasts/);
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Description (optional)' }),
+      'Breakfast',
+    );
+    await user.upload(fileInput(), new File(['jpeg'], 'toast.jpg', { type: 'image/jpeg' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(
+      requests.filter((request) => request.method !== 'GET').map((request) => request.method),
+    ).toEqual(['PUT', 'PATCH']);
+    const patch = requests.find((request) => request.method === 'PATCH');
+    expect(await patch?.json()).toEqual({ count: 2, description: 'Breakfast' });
   });
 
   it('adds a photo to a session from before photos were required, without touching the count', async () => {

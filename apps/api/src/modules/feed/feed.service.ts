@@ -63,6 +63,7 @@ export class FeedService {
         sessionId: toastSession.id,
         createdAt: toastSession.createdAt,
         localDate: toastSession.localDate,
+        description: toastSession.description,
         cursorAt,
         count: sessionCount,
         user: { id: user.id, displayName: user.displayName, avatarId: user.avatarId },
@@ -118,6 +119,7 @@ export class FeedService {
           loggedAt: row.createdAt.toISOString(),
           localDate: row.localDate,
           count: row.count,
+          description: row.description,
           photoUrl:
             visible && row.photoKey !== null ? await this.storage.presignGet(row.photoKey) : null,
           ...likesOf(row.toastId),

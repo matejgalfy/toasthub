@@ -17,10 +17,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useUser } from '@/features/auth/session';
 import { Comments } from '@/features/comments/comments';
 import { useFormat } from '@/i18n/format';
 import { cn } from '@/lib/utils';
 
+import { EditDescriptionDialog } from './edit-description-dialog';
 import { type FeedData, useReportPhoto, useToggleLike } from './feed-api';
 
 /**
@@ -35,8 +37,10 @@ export function FeedList({
   empty: string;
 }) {
   const { t } = useTranslation();
+  const user = useUser();
   const like = useToggleLike();
   const [reporting, setReporting] = useState<FeedItem | null>(null);
+  const [editing, setEditing] = useState<FeedItem | null>(null);
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = feed;
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
@@ -71,12 +75,28 @@ export function FeedList({
               onReport={() => {
                 setReporting(item);
               }}
+              onEditDescription={
+                user.id === item.user.id
+                  ? () => {
+                      setEditing(item);
+                    }
+                  : undefined
+              }
             />
           </li>
         ))}
       </ul>
       {hasNextPage && (
         <LoadMore label={t('feed.loadMore')} onLoad={loadMore} loading={isFetchingNextPage} />
+      )}
+      {editing && (
+        <EditDescriptionDialog
+          key={editing.sessionId}
+          item={editing}
+          onClose={() => {
+            setEditing(null);
+          }}
+        />
       )}
       <ReportDialog
         item={reporting}
@@ -92,10 +112,12 @@ function FeedItem({
   item,
   onLike,
   onReport,
+  onEditDescription,
 }: {
   item: FeedItem;
   onLike: () => void;
   onReport: () => void;
+  onEditDescription?: () => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
@@ -121,6 +143,19 @@ function FeedItem({
             loading="lazy"
             className="aspect-square w-full rounded-md bg-muted object-cover"
           />
+        )}
+        {item.description && (
+          <p className="wrap-anywhere whitespace-pre-wrap">{item.description}</p>
+        )}
+        {onEditDescription && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="self-start text-muted-foreground"
+            onClick={onEditDescription}
+          >
+            {t('feed.editDescription')}
+          </Button>
         )}
         <div className="flex items-center justify-between gap-2">
           <Button

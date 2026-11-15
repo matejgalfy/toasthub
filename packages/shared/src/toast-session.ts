@@ -7,6 +7,15 @@ import { localDateSchema } from './time.js';
 /** The most toasts one session holds (SPEC §4.3 BR-TOAST-5). */
 export const TOAST_SESSION_MAX_COUNT = 10;
 
+/** The trimmed plain-text description limit (SPEC §4.3 BR-TOAST-8). */
+export const TOAST_SESSION_DESCRIPTION_MAX_LENGTH = 500;
+const descriptionTextSchema = z.string().trim().max(TOAST_SESSION_DESCRIPTION_MAX_LENGTH);
+export const toastSessionDescriptionSchema = descriptionTextSchema
+  .transform((description) => (description === '' ? null : description))
+  .nullable()
+  // Keep the output representable for response DTOs and OpenAPI generation.
+  .pipe(descriptionTextSchema.nullable());
+
 const countSchema = z.int().min(1).max(TOAST_SESSION_MAX_COUNT);
 
 /**
@@ -15,10 +24,18 @@ const countSchema = z.int().min(1).max(TOAST_SESSION_MAX_COUNT);
  */
 export const createToastSessionSchema = z.object({
   count: z.coerce.number().pipe(countSchema).default(1),
+  description: toastSessionDescriptionSchema.default(null),
 });
 export type CreateToastSession = z.infer<typeof createToastSessionSchema>;
 
-export const updateToastSessionSchema = z.object({ count: countSchema });
+export const updateToastSessionSchema = z
+  .object({
+    count: countSchema.optional(),
+    description: toastSessionDescriptionSchema.optional(),
+  })
+  .refine((body) => body.count !== undefined || body.description !== undefined, {
+    message: 'At least one of count or description is required',
+  });
 export type UpdateToastSession = z.infer<typeof updateToastSessionSchema>;
 
 export const toastSessionParamsSchema = z.object({ id: z.uuid() });
@@ -32,6 +49,7 @@ export const toastSessionSchema = z.object({
   localDate: localDateSchema,
   // Toasts in the session that are not deleted.
   count: z.int().nonnegative(),
+  description: toastSessionDescriptionSchema,
   // A photo is stored on the session, visible or hidden by an admin. False only for sessions logged
   // before photos were required (SPEC §12 D64).
   hasPhoto: z.boolean(),
@@ -40,6 +58,7 @@ export const toastSessionSchema = z.object({
   // An admin hid the session's photo: it stays hidden and can't be replaced.
   photoHidden: z.boolean(),
   // Today's session without a rejected toast: count, photo and delete can be changed.
+  // Description-only edits have no day restriction (BR-TOAST-8).
   editable: z.boolean(),
 });
 export type ToastSession = z.infer<typeof toastSessionSchema>;

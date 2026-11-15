@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { AppError } from '../../common/errors/app-error';
 import {
   assertCanEdit,
+  assertCanEditDescription,
   assertCanSetPhoto,
   isEditable,
   planCountChange,
@@ -58,6 +59,25 @@ describe('assertCanEdit', () => {
 
   it('checks the owner before the day', () => {
     expect(errorCode(assertCanEdit, session, 'bob', '2026-10-30')).toBe('FORBIDDEN');
+  });
+});
+
+describe('assertCanEditDescription', () => {
+  it.each([TODAY, '2025-10-29'])(
+    'lets the owner edit a session from %s without a day limit',
+    (localDate) => {
+      expect(errorCode(assertCanEditDescription, { ...session, localDate }, 'ann')).toBeUndefined();
+    },
+  );
+
+  it("refuses someone else's past session before checking moderation", () => {
+    const rejected = { ...session, localDate: '2025-10-29', hasRejectedToast: true };
+    expect(errorCode(assertCanEditDescription, rejected, 'bob')).toBe('FORBIDDEN');
+  });
+
+  it('is a conflict with a rejected toast, also on a past session', () => {
+    const rejected = { ...session, localDate: '2025-10-29', hasRejectedToast: true };
+    expect(errorCode(assertCanEditDescription, rejected, 'ann')).toBe('CONFLICT');
   });
 });
 

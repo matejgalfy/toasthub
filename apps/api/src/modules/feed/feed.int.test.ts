@@ -52,9 +52,17 @@ async function feed(as: SignedIn, query = ''): Promise<FeedPage> {
 async function addSession(
   userId: string,
   at: Date,
-  { count = 1, photo = false, hidden = false } = {},
+  {
+    count = 1,
+    photo = false,
+    hidden = false,
+    description = null,
+  }: { count?: number; photo?: boolean; hidden?: boolean; description?: string | null } = {},
 ): Promise<{ sessionId: string; leadId: string; toastIds: string[] }> {
-  const [session] = await db.insert(toastSession).values({ userId, createdAt: at }).returning();
+  const [session] = await db
+    .insert(toastSession)
+    .values({ userId, createdAt: at, description })
+    .returning();
   if (!session) throw new Error('No session');
   const rows = await db
     .insert(toast)
@@ -111,6 +119,32 @@ describe('GET /feed (§4.14)', () => {
     expect(first?.photoUrl).toContain(`toasts/${bob.userId}/`);
     expect(second).toMatchObject({ count: 3, photoUrl: null, likeCount: 0, likedByMe: false });
     expect((await feed(bob)).items[0]).toMatchObject({ likeCount: 2, likedByMe: false });
+  });
+
+  it('projects plain-text and null session descriptions in global and clan feeds (BR-TOAST-8)', async () => {
+    const [crumbs] = await db.insert(clan).values({ name: 'Crumbs' }).returning();
+    if (!crumbs) throw new Error('No clan');
+    await db.insert(clanMembership).values([
+      { userId: ann.userId, clanId: crumbs.id, role: 'owner' },
+      { userId: bob.userId, clanId: crumbs.id, role: 'member' },
+    ]);
+    const description = 'Breakfast with <b>friends</b>\nA second slice.';
+    const described = await addSession(bob.userId, hoursAgo(1), { description });
+    const undescribed = await addSession(bob.userId, hoursAgo(2));
+    const expected = [
+      { sessionId: described.sessionId, description },
+      { sessionId: undescribed.sessionId, description: null },
+    ];
+
+    const globalFeed = await feed(ann);
+    const clanResponse = await get(ann, `/clans/${crumbs.id}/feed`);
+    expect(clanResponse.statusCode, clanResponse.body).toBe(200);
+    const clanFeed = clanResponse.json<FeedPage>();
+    for (const page of [globalFeed, clanFeed]) {
+      expect(
+        page.items.map((item) => ({ sessionId: item.sessionId, description: item.description })),
+      ).toEqual(expected);
+    }
   });
 
   it('shares likes with the clan feed: both show the lead toast’s likes', async () => {

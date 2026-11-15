@@ -170,6 +170,10 @@
     "photoAlt": "Fotka od {{name}}: {{toasts}}",
     "like": "Páči sa mi",
     "report": "Nahlásiť",
+    "editDescription": "Upraviť popis",
+    "editDescriptionDialog": {
+      "description": "Zmeň alebo vymaž popis týchto toastov."
+    },
     "loadMore": "Zobraziť staršie toasty",
     "reportDialog": {
       "title": "Nahlásiť túto fotku?",
@@ -190,6 +194,7 @@
   },
   "toasts": {
     "today": "Dnes",
+    "descriptionLabel": "Popis (nepovinné)",
     "count_one": "{{count}} toast",
     "count_few": "{{count}} toasty",
     "count_many": "{{count}} toastu",

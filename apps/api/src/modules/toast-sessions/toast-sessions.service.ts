@@ -12,6 +12,7 @@ import {
   type ToastSessionChangeResponse,
   type ToastSessionPage,
   ToastStatus,
+  type UpdateToastSession,
 } from '@toasthub/shared';
 import { and, asc, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -28,6 +29,7 @@ import { countableToasts } from '../toasts/countable-toasts';
 import { PHOTO_CONTENT_TYPE, processPhoto } from '../toasts/photo-pipeline';
 import {
   assertCanEdit,
+  assertCanEditDescription,
   assertCanSetPhoto,
   isEditable,
   planCountChange,
@@ -42,6 +44,7 @@ const sessionColumns = {
   id: toastSession.id,
   userId: toastSession.userId,
   localDate: toastSession.localDate,
+  description: toastSession.description,
   createdAt: toastSession.createdAt,
 };
 type SessionRow = Pick<typeof toastSession.$inferSelect, keyof typeof sessionColumns>;
@@ -107,13 +110,21 @@ export class ToastSessionsService {
    * Logs `count` toasts now as one session, the photo on its lead toast (BR-TOAST-2). The server sets the
    * time (SPEC §4.3 BR-TOAST-1); all toasts are saved or none.
    */
-  async create(userId: string, count: number, photo: Buffer): Promise<ToastSessionChangeResponse> {
+  async create(
+    userId: string,
+    count: number,
+    photo: Buffer,
+    description: string | null,
+  ): Promise<ToastSessionChangeResponse> {
     const photoKey = await this.storePhoto(userId, photo);
     let session: SessionRow;
     try {
       session = await this.db.transaction(async (tx) => {
         const clanId = await this.currentClanId(tx, userId);
-        const [row] = await tx.insert(toastSession).values({ userId }).returning(sessionColumns);
+        const [row] = await tx
+          .insert(toastSession)
+          .values({ userId, description })
+          .returning(sessionColumns);
         if (!row) throw new Error('Toast session insert returned no row');
         // `now()` is fixed per transaction, so the toasts share the session's time; their v7 ids rise
         // in insert order, so the first row is the lead toast.
@@ -157,20 +168,28 @@ export class ToastSessionsService {
   }
 
   /**
-   * Sets the number of toasts (BR-TOAST-7). Added toasts are eaten now and count like a new log; lowering
-   * soft-deletes the newest toasts and their likes, never the lead toast.
+   * Changes the count on its day or the description on any day (BR-TOAST-7–8). Added toasts are eaten
+   * now and count like a new log; lowering removes the newest toasts and likes, never the lead toast.
    */
-  async updateCount(
+  async update(
     userId: string,
     sessionId: string,
-    count: number,
+    { count, description }: UpdateToastSession,
   ): Promise<ToastSessionChangeResponse> {
     // One instant for the day check and the added toasts, so they can't land on the next day.
     const now = new Date();
     const today = localDate(now);
     const added = await this.db.transaction(async (tx) => {
       const loaded = await this.loadSession(tx, sessionId);
-      assertCanEdit(factsOf(loaded), userId, today);
+      if (count === undefined) {
+        assertCanEditDescription(factsOf(loaded), userId);
+      } else {
+        assertCanEdit(factsOf(loaded), userId, today);
+      }
+      if (description !== undefined) {
+        await tx.update(toastSession).set({ description }).where(eq(toastSession.id, sessionId));
+      }
+      if (count === undefined) return 0;
       const plan = planCountChange(loaded.toasts, count);
       if (plan.remove.length > 0) {
         const ids = plan.remove.map((row) => row.id);
@@ -310,6 +329,7 @@ export class ToastSessionsService {
           loggedAt: session.createdAt.toISOString(),
           localDate: session.localDate,
           count: own.length,
+          description: session.description,
           hasPhoto: lead?.photoKey != null,
           photoUrl: visibleKey ? await this.storage.presignGet(visibleKey) : null,
           photoHidden: lead?.photoHiddenAt != null,

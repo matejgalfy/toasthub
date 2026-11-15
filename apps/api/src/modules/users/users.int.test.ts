@@ -98,13 +98,18 @@ async function addToasts(userId: string, daysAgo: number[], extra: { status?: 'r
 }
 
 /** A session of `count` toasts `daysAgo` days ago with a stored photo on its lead toast. */
-async function addPhotoSession(userId: string, daysAgo: number, count = 1) {
+async function addPhotoSession(
+  userId: string,
+  daysAgo: number,
+  count = 1,
+  description: string | null = null,
+) {
   const key = `toasts/${userId}/${randomUUID()}.webp`;
   await app.get(StorageService).put(key, Buffer.from(key), 'image/webp');
   const eatenAt = dayAt(daysAgo);
   const [session] = await db
     .insert(toastSession)
-    .values({ userId, createdAt: eatenAt })
+    .values({ userId, createdAt: eatenAt, description })
     .returning();
   if (!session) throw new Error('No session');
   const toasts = await db
@@ -208,6 +213,7 @@ describe('GET /users/:id/toasts', () => {
         eatenAt: dayAt(0).toISOString(),
         localDate: today,
         count: 1,
+        description: null,
         photoUrl: expect.stringMatching(/X-Amz-Expires=3600/) as string,
         likeCount: 0,
         likedByMe: false,
@@ -217,6 +223,22 @@ describe('GET /users/:id/toasts', () => {
     const download = await fetch(page.items[0]?.photoUrl ?? '');
     expect(download.status).toBe(200);
     expect(await download.text()).toBe(newer.key);
+  });
+
+  it('projects plain-text and null session descriptions on profile photos (BR-TOAST-8)', async () => {
+    const description = 'Breakfast with <b>friends</b>\nA second slice.';
+    const described = await addPhotoSession(bob.userId, 0, 2, description);
+    const undescribed = await addPhotoSession(bob.userId, 1);
+
+    for (const viewer of [ann, bob]) {
+      const page = await getOk<UserToastPage>(viewer, `/${bob.userId}/toasts`);
+      expect(
+        page.items.map((item) => ({ sessionId: item.sessionId, description: item.description })),
+      ).toEqual([
+        { sessionId: described.sessionId, description },
+        { sessionId: undescribed.sessionId, description: null },
+      ]);
+    }
   });
 
   it('leaves out hidden, rejected and deleted photos', async () => {

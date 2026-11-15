@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pageSchema } from './pagination.js';
 import { userSummarySchema } from './profile.js';
 import { localDateSchema } from './time.js';
+import { toastSessionDescriptionSchema } from './toast-session.js';
 
 /**
  * One toast session in a feed: the global feed on home (`/feed`) or a clan's feed (`/clans/:id/feed`),
@@ -17,6 +18,7 @@ export const feedItemSchema = z.object({
   localDate: localDateSchema,
   // Countable toasts in the session.
   count: z.int().positive(),
+  description: toastSessionDescriptionSchema,
   // Presigned and valid for 1 hour; null without a photo or when an admin hid it.
   photoUrl: z.url().nullable(),
   // 🍞 likes on the session, stored on its lead toast (SPEC §4.9).

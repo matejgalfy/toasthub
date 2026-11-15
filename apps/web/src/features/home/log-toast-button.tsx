@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { CountStepper } from '@/features/toast-sessions/count-stepper';
+import { SessionDescriptionField } from '@/features/toast-sessions/session-description-field';
 import {
   isTooLarge,
   PhotoPicker,
@@ -53,6 +54,7 @@ function LogToastsDialog({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation();
   const logToasts = useLogToasts();
   const [count, setCount] = useState(1);
+  const [description, setDescription] = useState('');
   const [photo, setPhoto] = usePickedPhoto();
   const pending = logToasts.isPending;
   const tooLarge = isTooLarge(photo);
@@ -68,6 +70,7 @@ function LogToastsDialog({ onDone }: { onDone: () => void }) {
 
   return (
     <DialogContent
+      className="max-h-[90dvh] overflow-y-auto"
       // Closing mid-upload would hide whether the toasts were saved.
       showCloseButton={!pending}
       onEscapeKeyDown={(event) => {
@@ -94,6 +97,8 @@ function LogToastsDialog({ onDone }: { onDone: () => void }) {
         disabled={pending}
       />
 
+      <SessionDescriptionField value={description} onChange={setDescription} disabled={pending} />
+
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {t(error)}
@@ -106,7 +111,7 @@ function LogToastsDialog({ onDone }: { onDone: () => void }) {
           disabled={!photo || tooLarge || pending}
           onClick={() => {
             if (!photo) return;
-            logToasts.mutate({ count, photo: photo.file }, { onSuccess: onDone });
+            logToasts.mutate({ count, description, photo: photo.file }, { onSuccess: onDone });
           }}
         >
           {pending ? (

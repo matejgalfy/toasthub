@@ -84,9 +84,12 @@ function SessionRow({
   const content = (
     <>
       <Thumbnail session={session} time={time} />
-      <span className="flex grow flex-col">
+      <span className="flex min-w-0 grow flex-col">
         <span className="font-medium">{t('toasts.count', { count: session.count })}</span>
         <span className="text-sm text-muted-foreground">{time}</span>
+        {session.description && (
+          <span className="text-sm wrap-anywhere whitespace-pre-wrap">{session.description}</span>
+        )}
       </span>
     </>
   );

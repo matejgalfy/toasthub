@@ -62,6 +62,7 @@ big once you start, split it at the marked `✂` point and record the split in H
 | M19 | Kubernetes (Kustomize, CNPG, Sealed Secrets) | `m19-k8s` | M18 | ☑ |
 | M20 | Launch hardening | `m20-hardening` | all | ☑ |
 | M21 | Threaded comments | `feat/threaded-comments` | M20 | Implemented; owner verification pending |
+| M22 | Optional toast descriptions | — | M20 | Implemented; existing comment contrast blocks full E2E |
 
 **Parallel tracks (team of 3).** After M3, backend work (M6 → M7 → M9/M11 → M12) and frontend work
 (M4 → M5 → M8 → M8b) run side by side. M18 and M19 depend only on what they deploy and can start once M15 is merged. Two
@@ -450,6 +451,7 @@ Every business rule in SPEC §4 and where it is tested (checked in M20). Paths: 
 | BR-TOAST-5 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "logs several toasts as one session", "rejects count=…"; `a/toast-sessions/toast-sessions.policy.test.ts` (`planCountChange`) |
 | BR-TOAST-6 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "lists only the own sessions … newest first"; `w/pages/my-toasts-page.test.tsx` |
 | BR-TOAST-7 | ☑ `a/toast-sessions/toast-sessions.policy.test.ts`; `a/toast-sessions/toast-sessions.int.test.ts` PATCH, PUT photo, "DELETE /toast-sessions/:id/photo is gone", DELETE ("is a conflict on yesterday", "counts added toasts toward the hourly limit"); `e2e/toasts.spec.ts` |
+| BR-TOAST-8 | ☑ `packages/shared/src/toast-session.test.ts`; `a/toast-sessions/toast-sessions.int.test.ts`; feed/profile API and web page tests; `e2e/toasts.spec.ts` optional description create, edit and clear (360 px). ☑ owner-only anytime feed editing: policy/API regressions, `w/features/feed/feed-list.test.tsx`, and older-post E2E with unchanged counts/date |
 | BR-MOD-1 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "count threshold flag" |
 | BR-MOD-2 | ☑ `a/toast-sessions/toast-sessions.int.test.ts` "is opened once when the day goes over the threshold"; `e2e/admin.spec.ts` |
 | BR-MOD-3 | ☑ `a/toasts/toasts.int.test.ts` "opens a photo_report flag …", "is rate limited …" |
@@ -492,6 +494,16 @@ comment reporting and existing admin-queue moderation; API, web and E2E test sou
 
 **Check:** post a root comment, reply and nested reply, open the same thread from the profile photo, then
 delete the parent and verify its replies remain. Run the scoped Definition of Done and regenerate OpenAPI.
+
+### M22 — Optional toast descriptions
+**Read:** SPEC §4.3 BR-TOAST-8, §7 ToastSession, §8 session/feed/profile endpoints, §9, §12 D70.
+
+**Scope:** nullable session description and migration, trimmed plain-text validation (≤ 500 characters),
+optional create field, owner description editing/clearing on any day from global/clan feeds, feed/history/profile-dialog display, shared/API/web/E2E
+regression tests and regenerated OpenAPI. No rich text or new moderation workflow.
+
+**Check:** log with and without a description, see it after reload and in the profile photo dialog, edit
+and clear it from My toasts or a feed card; edit an older post as its owner while another user has no action. Verify the length limit and unchanged count/photo edit restrictions and run the checks.
 
 ---
 
@@ -835,3 +847,12 @@ one disagrees with AGENTS.md or SPEC, those win._
   with the last two tests failing before the inbox screen. The suite sends 22 login-link requests against
   the shared 20/hour IP quota. `signUp()` now resets only that request counter, retaining its row to
   avoid recreate races; production limits and unrelated counters are unchanged. No local test rerun.
+- **M22 — Optional descriptions:** migration 0013 adds nullable `toast_session.description`; trimmed plain
+  text ≤ 500 characters, create/edit/clear and feed/history/profile-dialog display. Migrate before deploy;
+  description-only PATCH preserves counts, quota and achievements. Format, lint, types, build, all 1,008
+  unit/integration tests and both toast E2Es pass; regenerated OpenAPI is stable. Full E2E: 18/19 pass;
+  comments dark-mode contrast also fails on pre-feature HEAD `f1c3bb1`, outside this feature's scope.
+- **M22 follow-up (D71):** owners edit/clear descriptions on any day directly below the photo in both
+  feeds; count/photo/delete day checks are unchanged. Actual localhost:5174/3000 browser proof and all
+  1,025 unit/integration tests pass; format/lint/types/build pass. Full E2E: 19/20, all three toast tests
+  pass; only the already-reproduced comment contrast failure remains.

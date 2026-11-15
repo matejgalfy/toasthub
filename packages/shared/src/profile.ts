@@ -4,6 +4,7 @@ import { achievementCodeSchema } from './achievements.js';
 import { pageSchema } from './pagination.js';
 import { streakSchema } from './streak.js';
 import { localDateSchema } from './time.js';
+import { toastSessionDescriptionSchema } from './toast-session.js';
 import { avatarIdSchema } from './user.js';
 
 /** A user as shown in lists (clan members, join requests). Never carries the email. */
@@ -46,6 +47,7 @@ export const userToastSchema = z.object({
   localDate: localDateSchema,
   // Countable toasts in its session.
   count: z.int().nonnegative(),
+  description: toastSessionDescriptionSchema,
   // Presigned and valid for 1 hour.
   photoUrl: z.url(),
   // 🍞 likes on the session, stored on its lead toast (SPEC §4.9).

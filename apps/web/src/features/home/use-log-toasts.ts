@@ -17,6 +17,7 @@ import { homeQueryKey, withLoggedToasts } from './home-query';
 
 export interface LogToastsInput {
   count: number;
+  description?: string;
   photo: File;
 }
 
@@ -29,12 +30,12 @@ export function useLogToasts() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   return useMutation({
-    mutationFn: ({ count, photo }: LogToastsInput) =>
+    mutationFn: ({ count, description, photo }: LogToastsInput) =>
       unwrap(
         api.POST('/api/v1/toast-sessions', {
           // The generated type describes the multipart fields; the body itself is FormData.
           body: { photo: '' },
-          bodySerializer: () => sessionForm({ count, photo }),
+          bodySerializer: () => sessionForm({ count, description, photo }),
         }),
       ),
     onMutate: async ({ count }) => {

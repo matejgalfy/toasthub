@@ -1,0 +1,1 @@
+ALTER TABLE "toast_session" ADD COLUMN "description" varchar(500);

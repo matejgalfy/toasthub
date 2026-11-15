@@ -52,13 +52,14 @@ const achievements = {
   })),
 };
 
-function photo(n: number): UserToast {
+function photo(n: number, description: string | null = null): UserToast {
   return {
     id: `01900000-0000-7000-8000-00000000010${String(n)}`,
     sessionId: `01900000-0000-7000-8000-00000000020${String(n)}`,
     eatenAt: `${today}T07:00:00.000Z`,
     localDate: today,
     count: n,
+    description,
     photoUrl: `https://photos.example/${String(n)}.webp`,
     likeCount: 0,
     likedByMe: false,
@@ -74,6 +75,9 @@ const page = (items: UserToast[], nextCursor: string | null = null): UserToastPa
 function mockProfileApi(subject: UserProfile, toasts: (cursor: string | null) => UserToastPage) {
   return mockApi((request) => {
     const url = new URL(request.url);
+    if (url.pathname.endsWith('/comments')) {
+      return jsonResponse(200, { items: [], nextCursor: null });
+    }
     const route = url.pathname.replace(`/api/v1/users/${subject.id}`, '');
     switch (route) {
       case '':
@@ -192,6 +196,45 @@ describe('ProfilePage', () => {
       .filter((r) => new URL(r.url).pathname.endsWith('/toasts'))
       .map((r) => new URL(r.url).search);
     expect(cursors).toEqual(['', '?cursor=next']);
+  });
+
+  it('shows a photo description as plain text with preserved line breaks in its dialog', async () => {
+    const user = userEvent.setup();
+    const description = '<strong>Crunchy toast</strong>\nSecond line';
+    mockProfileApi(profile(), () => page([photo(2, description)]));
+    renderProfile(testUser.id);
+
+    const date = formatLocalDate(today, 'en', { dateStyle: 'long' });
+    await user.click(
+      await screen.findByRole('button', { name: `Open photo and comments: 2 toasts on ${date}` }),
+    );
+
+    const dialog = await screen.findByRole('dialog', { name: 'Photo and comments' });
+    const text = within(dialog).getByText(description, { normalizer: (value) => value });
+    expect(text).toBeVisible();
+    expect(text.textContent).toBe(description);
+    expect(text).toHaveClass('whitespace-pre-wrap', 'wrap-anywhere');
+    expect(text.childElementCount).toBe(0);
+  });
+
+  it('omits the description paragraph for a photo without a description', async () => {
+    const user = userEvent.setup();
+    mockProfileApi(profile(), () => page([photo(2)]));
+    renderProfile(testUser.id);
+
+    const date = formatLocalDate(today, 'en', { dateStyle: 'long' });
+    await user.click(
+      await screen.findByRole('button', { name: `Open photo and comments: 2 toasts on ${date}` }),
+    );
+
+    const dialog = await screen.findByRole('dialog', { name: 'Photo and comments' });
+    expect(within(dialog).getByRole('img', { name: `2 toasts on ${date}` })).toBeVisible();
+    expect(await within(dialog).findByText('No comments yet.')).toBeVisible();
+    expect(
+      within(dialog)
+        .getAllByRole('paragraph')
+        .map((text) => text.textContent),
+    ).toEqual([`2 toasts on ${date}`, 'No comments yet.']);
   });
 
   it("shows someone else's whole profile, without a My toasts link", async () => {

@@ -2,7 +2,7 @@ import { type LocalDate, TOAST_SESSION_MAX_COUNT } from '@toasthub/shared';
 
 import { AppError } from '../../common/errors/app-error';
 
-// The edit rules of SPEC §4.3 BR-TOAST-7, without the database.
+// The edit rules of SPEC §4.3 BR-TOAST-7–8, without the database.
 
 /** What the rules need to know about a session. */
 export interface SessionFacts {
@@ -11,7 +11,7 @@ export interface SessionFacts {
   hasRejectedToast: boolean;
 }
 
-/** Whether the session can still change: only on its own day, and not once an admin rejected a toast. */
+/** Whether count, photo and deletion can still change: on its own day, with no rejected toast. */
 export function isEditable(session: SessionFacts, today: LocalDate): boolean {
   return session.localDate === today && !session.hasRejectedToast;
 }
@@ -22,6 +22,14 @@ export function assertCanEdit(session: SessionFacts, userId: string, today: Loca
   if (session.localDate !== today) {
     throw new AppError('CONFLICT', 'A toast session can only be changed on its own day');
   }
+  if (session.hasRejectedToast) {
+    throw new AppError('CONFLICT', 'A toast session with a rejected toast cannot be changed');
+  }
+}
+
+/** Description edits have no day limit, but keep ownership and moderation checks (BR-TOAST-8). */
+export function assertCanEditDescription(session: SessionFacts, userId: string): void {
+  if (session.userId !== userId) throw new AppError('FORBIDDEN', 'Not your toast session');
   if (session.hasRejectedToast) {
     throw new AppError('CONFLICT', 'A toast session with a rejected toast cannot be changed');
   }

@@ -164,6 +164,10 @@
     "photoAlt": "{{name}}'s photo: {{toasts}}",
     "like": "Like",
     "report": "Report",
+    "editDescription": "Edit description",
+    "editDescriptionDialog": {
+      "description": "Change or clear the description of these toasts."
+    },
     "loadMore": "Show older toasts",
     "reportDialog": {
       "title": "Report this photo?",
@@ -184,6 +188,7 @@
   },
   "toasts": {
     "today": "Today",
+    "descriptionLabel": "Description (optional)",
     "count_one": "{{count}} toast",
     "count_other": "{{count}} toasts",
     "photoAlt": "Photo from {{time}}",

@@ -11,6 +11,7 @@ const item = (toastId: string, likeCount: number, likedByMe: boolean): FeedItem 
   loggedAt: '2026-10-28T07:00:00.000Z',
   localDate: '2026-10-28',
   count: 1,
+  description: null,
   photoUrl: null,
   likeCount,
   likedByMe,
@@ -23,10 +24,15 @@ const feed = (...items: FeedItem[][]) => ({
 
 describe('withLike', () => {
   it('likes and unlikes one session on any page', () => {
-    const before = feed([item('a', 0, false)], [item('b', 2, true)]);
+    const description = '<strong>Crunchy toast</strong>\nSecond line';
+    const before = feed([{ ...item('a', 0, false), description }], [item('b', 2, true)]);
 
     const liked = withLike(before, 'a', true);
-    expect(liked.pages[0]?.items[0]).toMatchObject({ likeCount: 1, likedByMe: true });
+    expect(liked.pages[0]?.items[0]).toMatchObject({
+      likeCount: 1,
+      likedByMe: true,
+      description,
+    });
     // Other sessions keep their identity, so their rows don't re-render.
     expect(liked.pages[1]?.items[0]).toBe(before.pages[1]?.items[0]);
 
